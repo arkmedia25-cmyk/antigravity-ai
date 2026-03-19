@@ -8,9 +8,11 @@ from dotenv import load_dotenv
 load_dotenv()
 sys.path.append(os.path.dirname(__file__))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../agents/linkedin-agent"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../agents/content-agent"))
 
 from cmo_agent import run_cmo
 from linkedin_agent import run_linkedin
+from content_agent import run_content
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 URL = f"https://api.telegram.org/bot{TOKEN}"
@@ -47,12 +49,28 @@ def process_command(chat_id, text):
         if text.startswith("/start"):
             send_message(chat_id,
                 "🚀 CMO AI Bot hazır!\n\n"
+                "/cmo - pazarlama stratejisi\n"
+                "/linkedin - LinkedIn mesajı yaz\n"
+                "/content - Instagram/Reels içerik üret\n"
                 "/idea - video fikri\n"
                 "/seo - başlık ve etiket\n"
-                "/script - kısa video\n"
-                "/cmo - pazarlama sistemi kur\n"
-                "/linkedin - LinkedIn mesajı yaz"
+                "/script - video scripti"
             )
+
+        elif text.startswith("/content"):
+            task = text.replace("/content", "").strip()
+            if not task:
+                send_message(chat_id,
+                    "❗ Örnek kullanım:\n\n"
+                    "/content Reels script voor drukke moeders over Happy Juice\n"
+                    "/content Instagram carousel over MentaBiotics\n"
+                    "/content Story serie over energie tips\n"
+                    "/content Caption voor foto met Happy Juice"
+                )
+            else:
+                send_message(chat_id, "✍️ İçerik üretiliyor... (30 saniye sürebilir)")
+                response = run_content(task)
+                send_message(chat_id, f"📱 Content:\n{response}")
 
         elif text.startswith("/idea"):
             send_message(chat_id, "🔥 Düşünüyor...")
