@@ -1,0 +1,24 @@
+{
+  "good_outputs": [],
+  "bad_outputs": [],
+  "approved_hooks": [
+    "Als drukke mama herken je dit vast...",
+    "Hoe ik eindelijk weer energie kreeg...",
+    "Zoek jij een extra inkomstenstroom?"
+  ],
+  "rejected_styles": [
+    "Agressieve MLM taal",
+    "Medische claims",
+    "Te opdringerig",
+    "Engelstalig voor Nederlandse doelgroep"
+  ],
+  "approved_ctas": [
+    "Stuur me een berichtje voor meer info",
+    "Link in bio voor meer details",
+    "DM me voor een gratis gesprek"
+  ],
+  "corrections": [],
+  "notes": "Dit bestand wordt bijgewerkt naarmate het systeem leert van feedback"
+}
+```
+

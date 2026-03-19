@@ -1,0 +1,20 @@
+{
+  "affiliate_link": "https://www.amare.com/2075008/nl-NL",
+  "products": [
+    {"name": "Happy Juice Pack Watermeloen", "benefits": ["Humeur", "Energie", "Focus"], "target": "Stresli anneler", "key_message": "Alles in één drankje!", "best_seller": true},
+    {"name": "Happy Juice Pack Mango", "benefits": ["Humeur", "Energie", "Focus"], "target": "Stresli anneler", "key_message": "Alles in één drankje!", "best_seller": true},
+    {"name": "MentaBiotics", "benefits": ["Darm-brein verbinding", "Stemming", "Energie"], "target": "Sağlık bilincli anneler", "key_message": "Als je darmen blij zijn ben jij blij"},
+    {"name": "EDGE+ Watermeloen", "benefits": ["Energie", "Vitaliteit", "Focus"], "target": "Actieve vrouwen", "key_message": "Natuurlijke energie zonder cafeïne"},
+    {"name": "Energy+ Dragonfruit", "benefits": ["Energie", "Immuunsysteem"], "target": "Drukke moeders", "key_message": "Natuurlijke energie"},
+    {"name": "Sunrise", "benefits": ["22 superfoods", "9 vitamines", "Antioxidanten"], "target": "Gezondheidsbewuste mensen", "key_message": "Begin je dag met 22 superfoods"},
+    {"name": "Nitro Xtreme", "benefits": ["Energie metabolisme", "Immuunsysteem"], "target": "Actieve mensen", "key_message": "Optimale opname van voedingsstoffen"},
+    {"name": "Sunset", "benefits": ["Omega-3", "Hart", "Hersenen"], "target": "Volwassenen", "key_message": "Premium omega-3 van wilde zalm"},
+    {"name": "Triangle of Wellness Xtreme", "benefits": ["Complete voeding", "Energie hele dag"], "target": "Iedereen", "key_message": "Het complete 3-in-1 systeem", "best_seller": true},
+    {"name": "Restore", "benefits": ["Spijsvertering", "Darmflora", "Probiotica"], "target": "Spijsverteringsproblemen", "key_message": "Herstel je darmbalans"},
+    {"name": "Origin Chocolate", "benefits": ["23g eiwit", "Spieropbouw"], "target": "Actieve vrouwen", "key_message": "Plantaardige proteïne shake"},
+    {"name": "ON Shots", "benefits": ["Focus", "Alertheid", "Energie"], "target": "Ondernemers", "key_message": "Natuurlijke focus in 60ml"},
+    {"name": "HL5 Collageen", "benefits": ["Collageen", "Huid", "Haar", "Botten"], "target": "Vrouwen 35+", "key_message": "5g collageen per dag"},
+    {"name": "Ignite for HER", "benefits": ["Vermoeidheid verminderen", "Vrouwelijk welzijn"], "target": "Vrouwen 30-50", "key_message": "Speciaal voor vrouwen"},
+    {"name": "Ignite for HIM", "benefits": ["Testosteron", "Energie"], "target": "Mannen 18+", "key_message": "Natuurlijke ondersteuning voor mannen"}
+  ]
+}

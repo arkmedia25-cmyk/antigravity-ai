@@ -1,0 +1,161 @@
+{
+  "audiences": [
+    {
+      "id": "dutch_mothers",
+      "name": "Hollandalı Anneler",
+      "language": "Hollandaca",
+      "age": "30-45",
+      "description": "Çalışan veya ev hanımı, 1-3 çocuklu stresli anneler",
+      "problems": [
+        "Sürekli yorgunluk ve enerji eksikliği",
+        "Stres ve zihinsel yük",
+        "Kendine zaman ayıramama",
+        "Sağlıklı yaşam istemi ama vakit yok",
+        "Ruh hali dalgalanmaları"
+      ],
+      "desires": [
+        "Doğal enerji çözümleri",
+        "Basit günlük rutinler",
+        "Aile için sağlıklı seçenekler",
+        "Kendini iyi hissetmek",
+        "Denge ve rust (huzur)"
+      ],
+      "emotional_triggers": [
+        "Çocuklar için en iyisini isteme",
+        "Yorgun anne olmak istememe",
+        "Doğal ve kimyasalsız ürün arayışı",
+        "Diğer annelerin deneyimleri"
+      ],
+      "objections": [
+        "Te duur (çok pahalı)",
+        "Werkt het echt? (gerçekten işe yarıyor mu?)",
+        "Ik heb geen tijd (zamanım yok)",
+        "Is het veilig? (güvenli mi?)"
+      ],
+      "best_products": ["Happy Juice Pack", "MentaBiotics", "Ignite for HER", "Energy+"],
+      "best_platforms": ["Instagram", "WhatsApp groepen"],
+      "content_tone": "Sıcak, anlayışlı, anne gibi konuş",
+      "best_hooks": [
+        "Als drukke mama herken je dit vast...",
+        "Hoe ik eindelijk weer energie kreeg...",
+        "Voor alle moeders die uitgeput zijn..."
+      ]
+    },
+    {
+      "id": "dutch_entrepreneurs",
+      "name": "Hollandalı Girişimciler",
+      "language": "Hollandaca / İngilizce",
+      "age": "28-45",
+      "description": "Freelancer, ZZP'er veya küçük işletme sahibi",
+      "problems": [
+        "Ekstra gelir kaynağı arayışı",
+        "Zaman bağımsızlığı istemi",
+        "Enerji ve focus eksikliği",
+        "Yan gelir yaratma"
+      ],
+      "desires": [
+        "Finansal özgürlük",
+        "Esnek çalışma",
+        "Pasif gelir",
+        "Kendi işini kurma"
+      ],
+      "emotional_triggers": [
+        "Zaman özgürlüğü",
+        "Ekstra gelir",
+        "Başkasına bağımlı olmama",
+        "Başarı hikayeleri"
+      ],
+      "objections": [
+        "Is dit een pyramidespel? (bu piramit oyunu mu?)",
+        "Hoeveel kan ik verdienen? (ne kadar kazanabilirim?)",
+        "Ik ken niemand (kimseyi tanımıyorum)",
+        "Ik heb geen ervaring (deneyimim yok)"
+      ],
+      "best_products": ["Business opportunity", "ON Shots", "Happy Juice Pack"],
+      "best_platforms": ["LinkedIn", "Instagram"],
+      "content_tone": "Profesyonel ama samimi, rakam ve gerçekler ver",
+      "best_hooks": [
+        "Hoe ik naast mijn baan extra verdien...",
+        "ZZP'ers opgelet: bijverdienen met wellness...",
+        "Zoek jij een extra inkomstenstroom?..."
+      ]
+    },
+    {
+      "id": "turkish_community",
+      "name": "Hollanda'daki Türk Toplumu",
+      "language": "Türkçe",
+      "age": "25-50",
+      "description": "Hollanda'da yaşayan Türk kökenli bireyler",
+      "problems": [
+        "Güven sorunu yabancı markalarla",
+        "Sağlıklı yaşam bilinci",
+        "Ekstra gelir ihtiyacı",
+        "Aile ve toplum bağı"
+      ],
+      "desires": [
+        "Güvenilir ürünler",
+        "Türkçe destek",
+        "Topluluk hissi",
+        "Ekstra kazanç"
+      ],
+      "emotional_triggers": [
+        "Güven ve samimilik",
+        "Aile sağlığı",
+        "Kendi insanından tavsiye",
+        "Başarı hikayeleri Türkçe"
+      ],
+      "objections": [
+        "Bu ne işe yarıyor?",
+        "MLM mi bu?",
+        "Pahalı değil mi?",
+        "Daha önce denemedim"
+      ],
+      "best_products": ["Happy Juice Pack", "Triangle of Wellness", "Ignite for HER/HIM"],
+      "best_platforms": ["WhatsApp", "Instagram", "Yüz yüze"],
+      "content_tone": "Sıcak, samimi, komşu gibi konuş",
+      "best_hooks": [
+        "Hollanda'da sağlıklı kalmak isteyenler...",
+        "Türk toplumunda doğal takviyeler...",
+        "Ben de şüpheciydim ama şimdi..."
+      ]
+    },
+    {
+      "id": "health_conscious_women",
+      "name": "Sağlık Bilinçli Kadınlar",
+      "language": "Hollandaca",
+      "age": "30-50",
+      "description": "Yoga, wellness, doğal yaşam ilgilenen kadınlar",
+      "problems": [
+        "Kimyasal ürünlerden kaçınma",
+        "Doğal alternatif arayışı",
+        "Cilt ve saç sağlığı",
+        "Hormonal denge"
+      ],
+      "desires": [
+        "Doğal ve organik ürünler",
+        "Bütünsel sağlık",
+        "Güzel cilt ve saç",
+        "Enerji ve vitaliteit"
+      ],
+      "emotional_triggers": [
+        "Doğallık ve saflık",
+        "Bilimsel kanıt",
+        "Gerçek kullanıcı deneyimleri",
+        "Sürdürülebilirlik"
+      ],
+      "objections": [
+        "Zijn het natuurlijke ingrediënten?",
+        "Is het wetenschappelijk bewezen?",
+        "Wat zit erin precies?"
+      ],
+      "best_products": ["HL5 Collageen", "Restore", "Origin Chocolate", "Sunrise", "Ignite for HER"],
+      "best_platforms": ["Instagram", "Pinterest", "Email"],
+      "content_tone": "Informatief, wetenschappelijk maar toegankelijk",
+      "best_hooks": [
+        "Natuurlijke supplementen die écht werken...",
+        "Geen kunstmatige toevoegingen...",
+        "De wetenschap achter gut-brain connectie..."
+      ]
+    }
+  ]
+}

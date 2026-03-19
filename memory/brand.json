@@ -1,0 +1,24 @@
+{
+  "brand_name": "Amare Global",
+  "my_role": "Independent Brand Partner - Netherlands",
+  "mission": "Hollanda'da sağlıklı yaşam ürünleri satmak ve yeni iş ortakları bulmak",
+  "tone": {
+    "style": "Sıcak, güvenilir, samimi",
+    "avoid": ["baskıcı satış dili", "tıbbi iddialar", "agresif MLM dili"],
+    "use": ["doğal yaşam", "enerji", "annelik", "güven", "topluluk"]
+  },
+  "platforms": ["Instagram", "LinkedIn", "Email", "WhatsApp", "Telegram"],
+  "budget": "sıfır — sadece organik",
+  "income_streams": [
+    "Ürün satışı komisyonu",
+    "Yeni iş ortağı kazanımı komisyonu"
+  ],
+  "location": {
+    "primary": "Hollanda",
+    "secondary": "Hollanda'daki Türk toplumu"
+  },
+  "language": {
+    "primary": "Hollandaca",
+    "secondary": "Türkçe ve İngilizce"
+  }
+}
