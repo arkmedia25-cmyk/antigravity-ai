@@ -9,10 +9,12 @@ load_dotenv()
 sys.path.append(os.path.dirname(__file__))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../agents/linkedin-agent"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../agents/content-agent"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../agents/email-agent"))
 
 from cmo_agent import run_cmo
 from linkedin_agent import run_linkedin
 from content_agent import run_content
+from email_agent import run_email
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 URL = f"https://api.telegram.org/bot{TOKEN}"
@@ -52,10 +54,26 @@ def process_command(chat_id, text):
                 "/cmo - pazarlama stratejisi\n"
                 "/linkedin - LinkedIn mesajı yaz\n"
                 "/content - Instagram/Reels içerik üret\n"
+                "/email - email dizisi yaz\n"
                 "/idea - video fikri\n"
                 "/seo - başlık ve etiket\n"
                 "/script - video scripti"
             )
+
+        elif text.startswith("/email"):
+            task = text.replace("/email", "").strip()
+            if not task:
+                send_message(chat_id,
+                    "❗ Örnek kullanım:\n\n"
+                    "/email 5 gunluk nurture dizisi yeni lead icin\n"
+                    "/email Happy Juice tanitim maili\n"
+                    "/email yeni is ortagi icin karsilama maili\n"
+                    "/email follow-up maili ilgisiz lead icin"
+                )
+            else:
+                send_message(chat_id, "📧 Email yazılıyor... (30 saniye sürebilir)")
+                response = run_email(task)
+                send_message(chat_id, f"✉️ Email:\n{response}")
 
         elif text.startswith("/content"):
             task = text.replace("/content", "").strip()
