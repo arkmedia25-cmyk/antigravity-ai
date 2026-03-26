@@ -1,7 +1,12 @@
 from flask import Flask, request
+from dotenv import load_dotenv
+from openai import OpenAI
 import os
 
+load_dotenv()
+
 app = Flask(__name__)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 @app.route("/")
 def home():
@@ -14,7 +19,14 @@ def canva_callback():
 
 @app.route("/cmo")
 def cmo():
-    return "CMO AI çalışıyor 🚀"
+    prompt = request.args.get("q", "Bana kısa bir pazarlama fikri ver.")
+
+    response = client.responses.create(
+        model="gpt-4o-mini",
+        input=prompt
+    )
+
+    return response.output_text
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
