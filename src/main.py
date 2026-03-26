@@ -19,11 +19,11 @@ def canva_callback():
 
 @app.route("/cmo")
 def cmo():
-    prompt = request.args.get("q", "Bana kısa bir pazarlama fikri ver.")
+    q = request.args.get("q", "Instagram için 3 kısa büyüme fikri ver")
 
     response = client.responses.create(
         model="gpt-4o-mini",
-        input=prompt
+        input=q
     )
 
     return response.output_text
