@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmd.exe /c \"tree /F D:\\\\OneDrive\\\\Bureaublad\\\\Antigravity\\\\src && echo --- && tree /F D:\\\\OneDrive\\\\Bureaublad\\\\Antigravity\\\\tests\")",
+      "Bash(cmd.exe /c \"tree /F \"\"D:\\\\OneDrive\\\\Bureaublad\\\\Antigravity\\\\src\"\"\")",
+      "Bash(python -m pytest tests/test_phase0_imports.py tests/test_phase1_basic.py tests/test_phase2_telegram_bridge.py -v)",
+      "Bash(pip install:*)",
+      "Bash(python -m pytest tests/test_phase0_imports.py tests/test_phase1_basic.py tests/test_phase2_telegram_bridge.py tests/test_phase5_agents.py -v)",
+      "Bash(cd \"D:\\\\OneDrive\\\\Bureaublad\\\\Antigravity\" && timeout 20 python skills/automation/telegram_handler.py 2>&1)",
+      "Bash(taskkill /F /IM python.exe 2>/dev/null; echo \"killed\")",
+      "Bash(pip show:*)",
+      "Bash(python -m pytest tests/test_phase0_imports.py tests/test_phase1_basic.py tests/test_phase2_telegram_bridge.py tests/test_phase5_agents.py tests/test_phase6_email_linkedin.py tests/test_phase7b_memory.py tests/test_phase7c_chat_id.py tests/test_phase8_funnel_logic.py -v --tb=short)",
+      "Bash(python -c \":*)",
+      "Bash(python tests/test_phase9_live_simulation.py)",
+      "Bash(python -X utf8 tests/test_phase9_live_simulation.py)",
+      "Bash(python -m pytest tests/ -x -q)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''src/skills/canva_client.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''OK''\\)\")"
+    ]
+  }
+}

@@ -12,9 +12,13 @@ def load_file(filepath):
 
 def load_json(filepath):
     if os.path.exists(filepath):
-        with open(filepath, "r", encoding="utf-8") as f:
-            return json.load(f)
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except json.JSONDecodeError as e:
+            print(f"[WARN] JSON parse hatasi ({filepath}): {e}")
     return {}
+
 
 
 def load_memory():
@@ -27,19 +31,19 @@ def load_memory():
     learned = load_json(os.path.join(memory_dir, "learned.json"))
 
     memory_text = f"""
-=== MARKA BİLGİSİ ===
+=== MERKINFO ===
 {json.dumps(brand, ensure_ascii=False, indent=2)}
 
-=== ÜRÜNLER ===
+=== PRODUCTEN ===
 {json.dumps(products, ensure_ascii=False, indent=2)}
 
-=== HEDEF KİTLE ===
+=== DOELGROEP ===
 {json.dumps(audience, ensure_ascii=False, indent=2)}
 
-=== ÖĞRENİLENLER ===
-Onaylanan hook'lar: {learned.get('approved_hooks', [])}
-Reddedilen stiller: {learned.get('rejected_styles', [])}
-Onaylanan CTA'lar: {learned.get('approved_ctas', [])}
+=== GELEERDE INZICHTEN ===
+Goedgekeurde hooks: {learned.get('approved_hooks', [])}
+Afgewezen stijlen: {learned.get('rejected_styles', [])}
+Goedgekeurde CTA's: {learned.get('approved_ctas', [])}
 """
     return memory_text
 
@@ -74,7 +78,9 @@ def run_cmo(task):
         )
 
         response = ask_ai(full_prompt)
+        print(f"[RAW RESPONSE] {response[:300]}")
         return response
 
     except Exception as e:
+        print(f"[ERROR] CMO agent hatasi: {e}")
         return f"CMO agent hatasi: {e}"

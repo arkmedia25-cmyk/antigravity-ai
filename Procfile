@@ -1,3 +1,1 @@
-git add .
-git commit -m "railway config eklendi"
-git push
+web: python skills/automation/telegram_handler.py
