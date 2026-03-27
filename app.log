@@ -6,104 +6,29 @@ WARNING: This is a development server. Do not use it in a production deployment.
  * Running on http://127.0.0.1:8080
  * Running on http://134.209.80.233:8080
 Press CTRL+C to quit
-2026-03-27 14:57:17 [DEBUG] agent.cmo: Agent initialized: cmo
-2026-03-27 14:57:17 [DEBUG] memory.manager: MemoryManager initialized (namespace=cmo)
-2026-03-27 14:57:17 [DEBUG] agent.content: Agent initialized: content
-2026-03-27 14:57:17 [DEBUG] memory.manager: MemoryManager initialized (namespace=content)
-2026-03-27 14:57:17 [DEBUG] agent.sales: Agent initialized: sales
-2026-03-27 14:57:17 [DEBUG] memory.manager: MemoryManager initialized (namespace=sales)
-2026-03-27 14:57:17 [DEBUG] agent.research: Agent initialized: research
-2026-03-27 14:57:17 [DEBUG] memory.manager: MemoryManager initialized (namespace=research)
-2026-03-27 14:57:17 [DEBUG] agent.email: Agent initialized: email
-2026-03-27 14:57:17 [DEBUG] memory.manager: MemoryManager initialized (namespace=email)
-2026-03-27 14:57:17 [DEBUG] agent.linkedin: Agent initialized: linkedin
-2026-03-27 14:57:17 [DEBUG] memory.manager: MemoryManager initialized (namespace=linkedin)
-2026-03-27 14:57:17 [DEBUG] agent.canva: Agent initialized: canva
-2026-03-27 14:57:17 [DEBUG] memory.manager: MemoryManager initialized (namespace=canva_tokens)
-2026-03-27 14:57:17 [DEBUG] memory.manager: MemoryManager initialized (namespace=canva_designs)
-2026-03-27 14:57:17 [DEBUG] orchestrator: Orchestrator initialized with agents: ['cmo', 'content', 'sales', 'research', 'email', 'linkedin', 'canva']
-2026-03-27 14:57:17 [DEBUG] memory.manager: MemoryManager initialized (namespace=funnel)
-2026-03-27 14:57:17 [DEBUG] interfaces.telegram.handler: TelegramHandler initialized
+2026-03-27 20:29:10 [DEBUG] agent.cmo: Agent initialized: cmo
+2026-03-27 20:29:10 [DEBUG] memory.manager: MemoryManager initialized (namespace=cmo)
+2026-03-27 20:29:10 [DEBUG] agent.content: Agent initialized: content
+2026-03-27 20:29:10 [DEBUG] memory.manager: MemoryManager initialized (namespace=content)
+2026-03-27 20:29:10 [DEBUG] agent.sales: Agent initialized: sales
+2026-03-27 20:29:10 [DEBUG] memory.manager: MemoryManager initialized (namespace=sales)
+2026-03-27 20:29:10 [DEBUG] agent.research: Agent initialized: research
+2026-03-27 20:29:10 [DEBUG] memory.manager: MemoryManager initialized (namespace=research)
+2026-03-27 20:29:10 [DEBUG] agent.email: Agent initialized: email
+2026-03-27 20:29:10 [DEBUG] memory.manager: MemoryManager initialized (namespace=email)
+2026-03-27 20:29:10 [DEBUG] agent.linkedin: Agent initialized: linkedin
+2026-03-27 20:29:10 [DEBUG] memory.manager: MemoryManager initialized (namespace=linkedin)
+2026-03-27 20:29:10 [DEBUG] agent.canva: Agent initialized: canva
+2026-03-27 20:29:10 [DEBUG] memory.manager: MemoryManager initialized (namespace=canva_tokens)
+2026-03-27 20:29:10 [DEBUG] memory.manager: MemoryManager initialized (namespace=canva_designs)
+2026-03-27 20:29:10 [DEBUG] orchestrator: Orchestrator initialized with agents: ['cmo', 'content', 'sales', 'research', 'email', 'linkedin', 'canva']
+2026-03-27 20:29:10 [DEBUG] memory.manager: MemoryManager initialized (namespace=funnel)
+2026-03-27 20:29:10 [DEBUG] interfaces.telegram.handler: TelegramHandler initialized
 ✅ Telegram bot başlatıldı!
-2026-03-27 14:58:30 [DEBUG] interfaces.telegram.handler: Incoming message [chat_id=812914122]: Merhaba
-2026-03-27 14:58:30 [DEBUG] orchestrator: Routing request to [cmo] (chat_id=812914122): Merhaba
-2026-03-27 14:58:30 [DEBUG] agent.cmo: Processing task: Merhaba
-2026-03-27 14:58:30 [DEBUG] memory.manager: Saved: u812914122:cmo:last_task
-2026-03-27 14:58:30 [DEBUG] memory.manager: MemoryManager initialized (namespace=funnel)
-2026-03-27 14:58:33 [DEBUG] memory.manager: Saved: u812914122:cmo:last_response
-91.224.92.125 - - [27/Mar/2026 15:10:48] "GET /SDK/webLanguage HTTP/1.1" 404 -
-80.87.206.72 - - [27/Mar/2026 15:19:00] "GET / HTTP/1.1" 200 -
-80.87.206.72 - - [27/Mar/2026 15:19:00] code 400, message Bad request syntax ('\x16\x03\x01\x02\x00\x01\x00\x01ü\x03\x03n®WÛaV\x1d')
-80.87.206.72 - - [27/Mar/2026 15:19:00] "\x16\x03\x01\x02\x00\x01\x00\x01ü\x03\x03n®WÛaV\x1d" 400 -
-80.87.206.72 - - [27/Mar/2026 15:19:00] "GET /ui HTTP/1.1" 404 -
-80.87.206.72 - - [27/Mar/2026 15:19:00] code 400, message Bad request version ("®)Fºd,\x17º\x86º\x89öq\x8c\x8a\x00>\x13\x02\x13\x03\x13\x01À,À0\x00\x9fÌ©Ì¨ÌªÀ+À/\x00\x9eÀ$À(\x00kÀ#À'\x00gÀ")
-80.87.206.72 - - [27/Mar/2026 15:19:00] "\x16\x03\x01\x02\x00\x01\x00\x01ü\x03\x03ô!\x1c(å¬.as\x95¯ÝÏ§\x86»\x81õ\x1f@ª©«\x06»\x10äµþ''Ù ´#0Á\x01À&\x1b¾\x18õ]\x1f&=\x99\x85®)Fºd,\x17º\x86º\x89öq\x8c\x8a\x00>\x13\x02\x13\x03\x13\x01À,À0\x00\x9fÌ©Ì¨ÌªÀ+À/\x00\x9eÀ$À(\x00kÀ#À'\x00gÀ" 400 -
-135.237.126.223 - - [27/Mar/2026 15:27:34] code 400, message Bad request syntax ('MGLNDD_134.209.80.233_8080')
-135.237.126.223 - - [27/Mar/2026 15:27:34] "MGLNDD_134.209.80.233_8080" 400 -
-204.76.203.206 - - [27/Mar/2026 15:38:50] "GET / HTTP/1.1" 200 -
-77.248.123.248 - - [27/Mar/2026 15:48:25] "GET / HTTP/1.1" 200 -
-2026-03-27 15:50:41 [DEBUG] interfaces.telegram.handler: Incoming message [chat_id=812914122]: Merhaba
-2026-03-27 15:50:41 [DEBUG] orchestrator: Routing request to [cmo] (chat_id=812914122): Merhaba
-2026-03-27 15:50:41 [DEBUG] agent.cmo: Processing task: Merhaba
-2026-03-27 15:50:41 [DEBUG] memory.manager: Saved: u812914122:cmo:last_task
-2026-03-27 15:50:41 [DEBUG] memory.manager: MemoryManager initialized (namespace=funnel)
-2026-03-27 15:51:02 [DEBUG] memory.manager: Saved: u812914122:cmo:last_response
-2026-03-27 15:52:05 [DEBUG] interfaces.telegram.handler: Incoming message [chat_id=812914122]: Kan je make 1 short video
-2026-03-27 15:52:05 [DEBUG] orchestrator: Routing request to [cmo] (chat_id=812914122): Kan je make 1 short video
-2026-03-27 15:52:05 [DEBUG] agent.cmo: Processing task: Kan je make 1 short video
-2026-03-27 15:52:05 [DEBUG] memory.manager: Saved: u812914122:cmo:last_task
-2026-03-27 15:52:05 [DEBUG] memory.manager: MemoryManager initialized (namespace=funnel)
-2026-03-27 15:52:23 [DEBUG] memory.manager: Saved: u812914122:cmo:last_response
-2026-03-27 15:53:21 [DEBUG] interfaces.telegram.handler: Incoming message [chat_id=812914122]: Optie A
-2026-03-27 15:53:21 [DEBUG] orchestrator: Routing request to [cmo] (chat_id=812914122): Optie A
-2026-03-27 15:53:21 [DEBUG] agent.cmo: Processing task: Optie A
-2026-03-27 15:53:21 [DEBUG] memory.manager: Saved: u812914122:cmo:last_task
-2026-03-27 15:53:21 [DEBUG] memory.manager: MemoryManager initialized (namespace=funnel)
-2026-03-27 15:53:40 [DEBUG] memory.manager: Saved: u812914122:cmo:last_response
-2026-03-27 15:54:53 [DEBUG] interfaces.telegram.handler: Incoming message [chat_id=812914122]: Optie A:
-2026-03-27 15:54:53 [DEBUG] orchestrator: Routing request to [cmo] (chat_id=812914122): Optie A:
-2026-03-27 15:54:53 [DEBUG] agent.cmo: Processing task: Optie A:
-2026-03-27 15:54:53 [DEBUG] memory.manager: Saved: u812914122:cmo:last_task
-2026-03-27 15:54:53 [DEBUG] memory.manager: MemoryManager initialized (namespace=funnel)
-2026-03-27 15:55:09 [DEBUG] memory.manager: Saved: u812914122:cmo:last_response
-2026-03-27 15:56:53 [DEBUG] interfaces.telegram.handler: Incoming message [chat_id=812914122]: Option A: nederlanse moeder
-2026-03-27 15:56:53 [DEBUG] orchestrator: Routing request to [cmo] (chat_id=812914122): Option A: nederlanse moeder
-2026-03-27 15:56:53 [DEBUG] agent.cmo: Processing task: Option A: nederlanse moeder
-2026-03-27 15:56:53 [DEBUG] memory.manager: Saved: u812914122:cmo:last_task
-2026-03-27 15:56:53 [DEBUG] memory.manager: MemoryManager initialized (namespace=funnel)
-2026-03-27 15:57:22 [DEBUG] memory.manager: Saved: u812914122:cmo:last_response
-2026-03-27 15:58:46 [DEBUG] interfaces.telegram.handler: Incoming message [chat_id=812914122]: Option instagram netherlande moder reels video
-2026-03-27 15:58:46 [DEBUG] orchestrator: Routing request to [cmo] (chat_id=812914122): Option instagram netherlande moder reels video
-2026-03-27 15:58:46 [DEBUG] agent.cmo: Processing task: Option instagram netherlande moder reels video
-2026-03-27 15:58:46 [DEBUG] memory.manager: Saved: u812914122:cmo:last_task
-2026-03-27 15:58:46 [DEBUG] memory.manager: MemoryManager initialized (namespace=funnel)
-2026-03-27 15:58:49 [DEBUG] memory.manager: Saved: u812914122:cmo:last_response
-66.132.195.62 - - [27/Mar/2026 16:09:37] "GET / HTTP/1.1" 200 -
-66.132.195.62 - - [27/Mar/2026 16:09:41] code 400, message Bad request version ('À\x14À')
-66.132.195.62 - - [27/Mar/2026 16:09:41] "\x16\x03\x01\x00î\x01\x00\x00ê\x03\x03ôÿ¿­nmåñøcÇ\x85»i\x1d¨w\x9bí\x8fÙø\x94öB46$\x1c\x15á¾ K7'\x04=b\x17\x9d\x82\x1f±ü§¦}Ýîê\x83ÎY®±q\x02çªq\x973$u\x00&Ì¨Ì©À/À0À+À,À\x13À\x09À\x14À" 400 -
-66.132.195.62 - - [27/Mar/2026 16:09:41] "GET / HTTP/1.1" 200 -
-66.132.195.62 - - [27/Mar/2026 16:09:41] code 505, message Invalid HTTP version (2.0)
-66.132.195.62 - - [27/Mar/2026 16:09:41] "PRI * HTTP/2.0" 505 -
-66.132.195.62 - - [27/Mar/2026 16:09:41] "GET /favicon.ico HTTP/1.1" 404 -
-66.132.195.62 - - [27/Mar/2026 16:09:44] code 400, message Bad request version ('À\x14À')
-66.132.195.62 - - [27/Mar/2026 16:09:44] "\x16\x03\x01\x00î\x01\x00\x00ê\x03\x03èA©¥\x81\x11b\x1alS\x15 æ\x92§T\x1c`æ\x98ãoiVJ\x0f]h\x96¥ÂÊ Óq\x95W\x91\\\x10ß»é\x0b^j¶4\x97/\x07îWí(¸9E6Ç\x06ü.Þµ\x00&Ì¨Ì©À/À0À+À,À\x13À\x09À\x14À" 400 -
-66.132.195.62 - - [27/Mar/2026 16:09:45] "GET /security.txt HTTP/1.1" 404 -
-31.56.208.84 - - [27/Mar/2026 16:11:58] "GET /login HTTP/1.1" 404 -
-66.132.172.192 - - [27/Mar/2026 16:55:50] "GET / HTTP/1.1" 200 -
-66.132.172.192 - - [27/Mar/2026 16:55:54] code 400, message Bad request syntax ('\x16\x03\x01\x00î\x01\x00\x00ê\x03\x03PÅ\x07¦Ì\x10\x7f>wÞm~Ï8.Æé-fô\x19q+¼\x12')
-66.132.172.192 - - [27/Mar/2026 16:55:54] "\x16\x03\x01\x00î\x01\x00\x00ê\x03\x03PÅ\x07¦Ì\x10\x7f>wÞm~Ï8.Æé-fô\x19q+¼\x12" 400 -
-66.132.172.192 - - [27/Mar/2026 16:55:56] "GET / HTTP/1.1" 200 -
-66.132.172.192 - - [27/Mar/2026 16:55:59] code 505, message Invalid HTTP version (2.0)
-66.132.172.192 - - [27/Mar/2026 16:55:59] "PRI * HTTP/2.0" 505 -
-66.132.172.192 - - [27/Mar/2026 16:56:01] "GET /favicon.ico HTTP/1.1" 404 -
-66.132.172.192 - - [27/Mar/2026 16:56:11] code 400, message Bad request version ('À\x14À')
-66.132.172.192 - - [27/Mar/2026 16:56:11] "\x16\x03\x01\x00î\x01\x00\x00ê\x03\x03\x86EV\x93\x02\x97<ú·\x19ÂÙ3\x9eé.æ[\x02òÝ7¥ÜÝ¼ºÅûÆ¦§ [zv`ñ\x18Í:¨Ø@\x8aëªð>\x0c%;ÝºH>ÎÆÔ\x99®srÞ|\x00&Ì¨Ì©À/À0À+À,À\x13À\x09À\x14À" 400 -
-66.132.172.192 - - [27/Mar/2026 16:56:12] "GET /security.txt HTTP/1.1" 404 -
-204.76.203.206 - - [27/Mar/2026 17:16:18] "GET / HTTP/1.1" 200 -
-149.86.227.60 - - [27/Mar/2026 17:18:57] "GET / HTTP/1.1" 200 -
-204.76.203.206 - - [27/Mar/2026 18:47:47] "GET / HTTP/1.1" 200 -
-172.206.225.242 - - [27/Mar/2026 19:40:19] code 400, message Bad request version ('À\x14À')
-172.206.225.242 - - [27/Mar/2026 19:40:19] "\x16\x03\x01\x00{\x01\x00\x00w\x03\x037±\x0d\x81æ\x04êÆ\x86C\x1f¦Ç=ÕCÌ\x8bÒm¿÷µÞâ8üv¨y£\x88\x00\x00\x1aÀ/À+À\x11À\x07À\x13À\x09À\x14À" 400 -
-172.206.225.242 - - [27/Mar/2026 19:40:20] code 400, message Bad request syntax ('MGLNDD_134.209.80.233_8080')
-172.206.225.242 - - [27/Mar/2026 19:40:20] "MGLNDD_134.209.80.233_8080" 400 -
-87.236.176.76 - - [27/Mar/2026 19:42:12] "GET / HTTP/1.1" 200 -
+2026-03-27 20:29:10 [DEBUG] interfaces.telegram.handler: Incoming message [chat_id=812914122]: merhaba
+2026-03-27 20:29:10 [DEBUG] orchestrator: Routing request to [cmo] (chat_id=812914122): merhaba
+2026-03-27 20:29:10 [DEBUG] agent.cmo: Processing task: merhaba
+2026-03-27 20:29:10 [DEBUG] memory.manager: Saved: u812914122:cmo:last_task
+2026-03-27 20:29:10 [DEBUG] memory.manager: MemoryManager initialized (namespace=funnel)
+2026-03-27 20:29:26 [DEBUG] memory.manager: Saved: u812914122:cmo:last_response
+149.86.227.60 - - [27/Mar/2026 20:31:06] "GET / HTTP/1.1" 200 -
