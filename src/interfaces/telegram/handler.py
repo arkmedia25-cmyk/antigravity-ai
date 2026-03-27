@@ -1,8 +1,9 @@
+import os
 import time
 from collections import defaultdict
-from src.orchestrator import Orchestrator
-from src.memory.memory_manager import MemoryManager
-from src.core.logging import get_logger
+from orchestrator import Orchestrator
+from memory.memory_manager import MemoryManager
+from core.logging import get_logger
 
 _RATE_LIMIT_MAX = 5       # max requests
 _RATE_LIMIT_WINDOW = 30   # seconds
@@ -88,7 +89,13 @@ class TelegramHandler:
         self._funnel = MemoryManager(namespace="funnel")
         logger.debug("TelegramHandler initialized")
 
-    def handle(self, text: str, chat_id: int = 0) -> str:
+    async def handle(self, update, context) -> None:
+        text = update.message.text
+        chat_id = update.message.chat_id
+        response = self._process_message(text, chat_id)
+        await update.message.reply_text(response)
+
+    def _process_message(self, text: str, chat_id: int = 0) -> str:
         logger.debug(f"Incoming message [chat_id={chat_id}]: {text[:100]}")
 
         if not text or not text.strip():
@@ -137,3 +144,24 @@ class TelegramHandler:
         command = text.split()[0]
         logger.debug(f"Unknown command received: {command}")
         return f"Onbekend commando: {command}"
+
+
+def start_telegram_bot():
+    """Telegram bot'u başlat"""
+    import asyncio
+    from telegram.ext import Application, MessageHandler, filters
+    
+    token = os.getenv("TELEGRAM_TOKEN")
+    if not token:
+        print("ERROR: TELEGRAM_TOKEN bulunamadı!")
+        return
+    
+    handler = TelegramHandler()
+    
+    application = Application.builder().token(token).build()
+    
+    # Tüm mesajları yakala
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler.handle))
+    
+    print("✅ Telegram bot başlatıldı!")
+    application.run_polling(stop_signals=None)

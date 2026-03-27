@@ -1,9 +1,9 @@
 import os
 
-from src.agents.base_agent import BaseAgent
-from src.agents.agent_utils import load_memory_context, build_funnel_context
-from src.memory.memory_manager import MemoryManager
-from src.skills.ai_client import ask_ai
+from agents.base_agent import BaseAgent
+from agents.agent_utils import load_memory_context, build_funnel_context
+from memory.memory_manager import MemoryManager
+from skills.ai_client import ask_ai
 
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 

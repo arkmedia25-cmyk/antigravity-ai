@@ -1,7 +1,7 @@
-from src.agents.base_agent import BaseAgent
-from src.memory.memory_manager import MemoryManager
-from src.skills import canva_client
-from src.core.logging import get_logger
+from agents.base_agent import BaseAgent
+from memory.memory_manager import MemoryManager
+from skills import canva_client
+from core.logging import get_logger
 
 logger = get_logger("agents.canva")
 

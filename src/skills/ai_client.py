@@ -1,6 +1,6 @@
 import anthropic
 from openai import OpenAI
-from src.config.settings import settings
+from config.settings import settings
 
 
 _anthropic_client = None

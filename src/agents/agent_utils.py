@@ -33,7 +33,7 @@ def build_funnel_context(chat_id) -> str:
         return ""
 
     # Lazy import to avoid circular dependency at module load time
-    from src.memory.memory_manager import MemoryManager
+    from memory.memory_manager import MemoryManager
     mm = MemoryManager(namespace="funnel")
 
     stage = mm.load_user(chat_id, "funnel:stage") or "awareness"
@@ -59,7 +59,7 @@ def get_reengagement_status(chat_id) -> str | None:
     """
     if chat_id is None:
         return None
-    from src.memory.memory_manager import MemoryManager
+    from memory.memory_manager import MemoryManager
     mm = MemoryManager(namespace="funnel")
     last_active_str = mm.load_user(chat_id, "funnel:last_active")
     if not last_active_str:
