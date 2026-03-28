@@ -147,21 +147,29 @@ class TelegramHandler:
 
 
 def start_telegram_bot():
-    """Telegram bot'u başlat"""
     import asyncio
     from telegram.ext import Application, MessageHandler, filters
-    
+
     token = os.getenv("TELEGRAM_TOKEN")
     if not token:
-        print("ERROR: TELEGRAM_TOKEN bulunamadı!")
+        print("ERROR: TELEGRAM_TOKEN bulunamadi!")
         return
-    
-    handler = TelegramHandler()
-    
-    application = Application.builder().token(token).build()
-    
-    # Tüm mesajları yakala
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler.handle))
-    
-    print("✅ Telegram bot başlatıldı!")
-    application.run_polling(stop_signals=None)
+
+    async def run():
+        try:
+            handler = TelegramHandler()
+            application = Application.builder().token(token).build()
+            application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler.handle))
+            print("Telegram bot baslatildi!")
+            async with application:
+                await application.start()
+                await application.updater.start_polling()
+                await asyncio.Event().wait()
+        except Exception as e:
+            print(f"Bot hatasi: {e}")
+            import traceback
+            traceback.print_exc()
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(run())
