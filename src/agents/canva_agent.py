@@ -12,6 +12,7 @@ _FILE_MARKER = "CANVA_FILE:"
 class CanvaAgent(BaseAgent):
     def __init__(self):
         super().__init__(name="canva")
+        self.memory = MemoryManager(namespace="canva")
         self._tokens = MemoryManager(namespace="canva_tokens")
         self._designs = MemoryManager(namespace="canva_designs")
 

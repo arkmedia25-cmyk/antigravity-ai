@@ -1,3 +1,4 @@
+import os
 import time
 from collections import defaultdict
 from src.orchestrator import Orchestrator
@@ -137,3 +138,24 @@ class TelegramHandler:
         command = text.split()[0]
         logger.debug(f"Unknown command received: {command}")
         return f"Onbekend commando: {command}"
+
+
+def start_telegram_bot():
+    """Telegram bot'u başlat"""
+    import asyncio
+    from telegram.ext import Application, MessageHandler, filters
+    
+    token = os.getenv("TELEGRAM_TOKEN")
+    if not token:
+        print("ERROR: TELEGRAM_TOKEN bulunamadı!")
+        return
+    
+    handler = TelegramHandler()
+    
+    application = Application.builder().token(token).build()
+    
+    # Tüm mesajları yakala
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler.handle))
+    
+    print("✅ Telegram bot başlatıldı!")
+    application.run_polling()
