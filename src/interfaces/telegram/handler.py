@@ -92,7 +92,15 @@ class TelegramHandler:
     async def handle(self, update, context) -> None:
         text = update.message.text
         chat_id = update.message.chat_id
-        response = self._process_message(text, chat_id)
+        
+        # Memory'den önceki konuşmayı yükle
+        prev_context = self.memory.load(f"chat_{chat_id}_context") or ""
+        
+        response = self._process_message(text, chat_id, prev_context)
+        
+        # Yeni context'i kaydet
+        self.memory.save(f"chat_{chat_id}_context", text, chat_id)
+        
         await update.message.reply_text(response)
 
     def _process_message(self, text: str, chat_id: int = 0) -> str:
