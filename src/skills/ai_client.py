@@ -1,6 +1,6 @@
 import anthropic
 from openai import OpenAI
-from src.config.settings import settings
+from config.settings import settings
 
 
 _anthropic_client = None
@@ -21,7 +21,7 @@ def _get_openai():
     return _openai_client
 
 
-def ask_ai(prompt: str, provider: str = "claude") -> str:
+def ask_ai(prompt: str, provider: str = "openai") -> str:
     try:
         if provider == "claude":
             response = _get_anthropic().messages.create(
@@ -32,7 +32,7 @@ def ask_ai(prompt: str, provider: str = "claude") -> str:
             return response.content[0].text
         else:
             response = _get_openai().chat.completions.create(
-                model="gpt-4.1-mini",
+                model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
             )
             return response.choices[0].message.content

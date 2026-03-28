@@ -1,11 +1,11 @@
-from src.agents.cmo_agent import CmoAgent
-from src.agents.content_agent import ContentAgent
-from src.agents.sales_agent import SalesAgent
-from src.agents.research_agent import ResearchAgent
-from src.agents.email_agent import EmailAgent
-from src.agents.linkedin_agent import LinkedInAgent
-from src.agents.canva_agent import CanvaAgent
-from src.core.logging import get_logger
+from agents.cmo_agent import CmoAgent
+from agents.content_agent import ContentAgent
+from agents.sales_agent import SalesAgent
+from agents.research_agent import ResearchAgent
+from agents.email_agent import EmailAgent
+from agents.linkedin_agent import LinkedInAgent
+from agents.canva_agent import CanvaAgent
+from core.logging import get_logger
 
 logger = get_logger("orchestrator")
 

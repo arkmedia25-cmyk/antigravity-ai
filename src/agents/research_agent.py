@@ -1,7 +1,7 @@
-from src.agents.base_agent import BaseAgent
-from src.agents.agent_utils import load_memory_context, load_agent_prompt, build_funnel_context
-from src.memory.memory_manager import MemoryManager
-from src.skills.ai_client import ask_ai
+from agents.base_agent import BaseAgent
+from agents.agent_utils import load_memory_context, load_agent_prompt, build_funnel_context
+from memory.memory_manager import MemoryManager
+from skills.ai_client import ask_ai
 
 
 class ResearchAgent(BaseAgent):
