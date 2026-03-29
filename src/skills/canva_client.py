@@ -156,8 +156,14 @@ def create_design(access_token: str, design_type_key: str, title: str = "", temp
         json=json_data,
         timeout=30,
     )
-    resp.raise_for_status()
-    return resp.json()
+    try:
+        resp.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        raise RuntimeError(f"Canva HTTP Error {resp.status_code}: {resp.text} - {e}")
+    try:
+        return resp.json()
+    except Exception as e:
+        raise RuntimeError(f"Canva JSON Error | Status: {resp.status_code} | Body: {resp.text[:500]} | Err: {e}")
 
 
 def start_export(access_token: str, design_id: str, fmt: str = "PNG") -> dict:
