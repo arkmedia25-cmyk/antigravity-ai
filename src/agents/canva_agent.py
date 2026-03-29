@@ -68,7 +68,9 @@ class CanvaAgent(BaseAgent):
             )
 
         try:
-            result = canva_client.create_design(access_token, design_type_key, title)
+            from config.settings import settings
+            template_id_override = settings.CANVA_TEMPLATE_INSTAGRAM if design_type_key.lower() == "instagram" else ""
+            result = canva_client.create_design(access_token, design_type_key, title, template_id_override=template_id_override)
             design = result.get("design", {})
             design_id = design.get("id", "")
             edit_url = design.get("urls", {}).get("edit_url", "")

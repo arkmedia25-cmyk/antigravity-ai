@@ -136,16 +136,24 @@ def refresh_access_token(refresh_token: str) -> dict:
     return resp.json()
 
 
-def create_design(access_token: str, design_type_key: str, title: str = "") -> dict:
+def create_design(access_token: str, design_type_key: str, title: str = "", template_id_override: str = "") -> dict:
     """Create a new Canva design. Returns full API response."""
-    preset_name = DESIGN_TYPES.get(design_type_key.lower(), "INSTAGRAM_POST")
+    if template_id_override:
+        json_data = {
+            "design_type": {"type": "template", "asset_id": template_id_override},
+            "title": title or "Antigravity Design",
+        }
+    else:
+        preset_name = DESIGN_TYPES.get(design_type_key.lower(), "INSTAGRAM_POST")
+        json_data = {
+            "design_type": {"type": "preset", "name": preset_name},
+            "title": title or "Antigravity Design",
+        }
+        
     resp = requests.post(
         f"{CANVA_API_BASE}/designs",
         headers={"Authorization": f"Bearer {access_token}"},
-        json={
-            "design_type": {"type": "preset", "name": preset_name},
-            "title": title or "Antigravity Design",
-        },
+        json=json_data,
         timeout=30,
     )
     resp.raise_for_status()

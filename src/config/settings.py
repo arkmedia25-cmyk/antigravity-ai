@@ -13,6 +13,7 @@ class Settings:
     CANVA_CLIENT_ID: str = os.getenv("CANVA_CLIENT_ID", "")
     CANVA_CLIENT_SECRET: str = os.getenv("CANVA_CLIENT_SECRET", "")
     CANVA_REDIRECT_URI: str = os.getenv("CANVA_REDIRECT_URI", "")
+    CANVA_TEMPLATE_INSTAGRAM: str = os.getenv("CANVA_TEMPLATE_INSTAGRAM", "EAF9zZ6X6kM")
 
     @classmethod
     def validate(cls) -> None:
