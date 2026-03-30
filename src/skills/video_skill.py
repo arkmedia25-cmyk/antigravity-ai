@@ -137,77 +137,77 @@ def create_reel(
     output_filename: str = "final_video.mp4",
 ) -> str:
     """
-    Creates the video by generating flat PNGs and stitching them via FFmpeg process.
-    Uses 0% RAM compared to MoviePy. Resolves DigitalOcean Droplet Broken Pipe.
+    Creates the video by generating flat PNGs, encoding them to minimal MP4 segments,
+    and then stitching them via FFmpeg concat demuxer (zero memory usage!).
     """
     os.makedirs(_OUTPUT_DIR, exist_ok=True)
     output_path = os.path.join(_OUTPUT_DIR, output_filename)
     if os.path.exists(output_path):
         os.remove(output_path)
 
-    # 1. Provide minimal fake timestamps if timestamps.json missing
     ts_path = os.path.join(_OUTPUT_DIR, "timestamps.json")
-    if os.path.exists(ts_path):
-        try:
-            with open(ts_path, encoding="utf-8") as f:
-                ts = json.load(f)
-        except:
-            ts = []
-    else:
-        ts = []
-
+    try:
+        with open(ts_path, encoding="utf-8") as f:
+            ts = json.load(f)
+    except:
+        ts = [{"sentence": f"Deel {i}", "start": i*3.0, "end": (i+1)*3.0} for i in range(5)]
     if len(ts) < 5:
-        # Generate dummy 15s segments placeholder
         ts = [{"sentence": f"Deel {i}", "start": i*3.0, "end": (i+1)*3.0} for i in range(5)]
 
-    # 2. Extract durations
     d_hook = max(0.5, ts[0]["end"] - ts[0]["start"])
     d_content = max(0.5, ts[4]["start"] - ts[1]["start"])
-    d_cta = 5.0 # Let audio length determine the rest. We use a static 5.0 or determine from audio.
+    d_cta = 10.0 # Audio will cut this
 
-    # 3. Create static images (uses negligible memory)
+    print("[video_skill] Natively generating frames...")
     img_hook = _build_hook()
     img_content = _build_content(ts)
     img_cta = _build_cta()
 
-    print(f"[video_skill] Natively generating video with FFmpeg. Resolutions: 1080x1920")
+    def make_clip(img_path, dur, out_name):
+        clip_path = os.path.join(_OUTPUT_DIR, out_name)
+        cmd = [
+            "ffmpeg", "-y", "-loop", "1", "-framerate", "24", "-t", str(dur),
+            "-i", img_path, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23",
+            "-preset", "ultrafast", clip_path
+        ]
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return clip_path
 
-    # 4. Construct FFmpeg command
-    # Filtergraph: Fade in/out each image, pad with black gaps in between
-    cmd = [
-        "ffmpeg", "-y",
-        "-loop", "1", "-framerate", "24", "-t", str(d_hook), "-i", img_hook,
-        "-f", "lavfi", "-t", str(_GAP), "-i", "color=c=black:s=1080x1920:r=24",
-        "-loop", "1", "-framerate", "24", "-t", str(d_content), "-i", img_content,
-        "-f", "lavfi", "-t", str(_GAP), "-i", "color=c=black:s=1080x1920:r=24",
-        "-loop", "1", "-framerate", "24", "-t", "10", "-i", img_cta, # cta is long, audio will cut it
-        "-i", audio_path,
-        "-filter_complex",
-        (
-            f"[0:v]fade=t=in:st=0:d={_FADE_IN},fade=t=out:st={d_hook - _FADE_OUT}:d={_FADE_OUT}[v0];"
-            f"[2:v]fade=t=in:st=0:d={_FADE_IN},fade=t=out:st={d_content - _FADE_OUT}:d={_FADE_OUT}[v2];"
-            f"[4:v]fade=t=in:st=0:d={_FADE_IN}[v4];"
-            f"[v0][1:v][v2][3:v][v4]concat=n=5:v=1:a=0[outv]"
-        ),
-        "-map", "[outv]",
-        "-map", "5:a",
-        "-c:v", "libx264",
-        "-c:a", "aac",
-        "-pix_fmt", "yuv420p",
-        "-shortest",
-        output_path
+    def make_black(dur, out_name):
+        clip_path = os.path.join(_OUTPUT_DIR, out_name)
+        cmd = [
+            "ffmpeg", "-y", "-f", "lavfi", "-t", str(dur),
+            "-i", "color=c=black:s=1080x1920:r=24", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+            "-crf", "23", "-preset", "ultrafast", clip_path
+        ]
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return clip_path
+
+    print("[video_skill] Encoding lightweight segments (ZERO Memory Mode)...")
+    v1 = make_clip(img_hook, d_hook, "v1.mp4")
+    b1 = make_black(_GAP, "b1.mp4")
+    v2 = make_clip(img_content, d_content, "v2.mp4")
+    b2 = make_black(_GAP, "b2.mp4")
+    v3 = make_clip(img_cta, d_cta, "v3.mp4")
+
+    list_path = os.path.join(_OUTPUT_DIR, "concat.txt")
+    with open(list_path, "w", encoding="utf-8") as f:
+        f.write(f"file 'v1.mp4'\nfile 'b1.mp4'\nfile 'v2.mp4'\nfile 'b2.mp4'\nfile 'v3.mp4'\n")
+
+    print("[video_skill] Assembling final pipeline...")
+    cmd_final = [
+        "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_path,
+        "-i", audio_path, "-c:v", "copy", "-c:a", "aac", "-shortest", output_path
     ]
 
-    print("[video_skill] Running FFmpeg command...")
     try:
-        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(cmd_final, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except subprocess.CalledProcessError as e:
-        print("[video_skill] FFmpeg failed!")
-        print(e.stderr.decode("utf-8", errors="ignore"))
+        print("[video_skill] Concat failed!")
         raise RuntimeError(f"FFmpeg error: {e.stderr.decode('utf-8', errors='ignore')}")
 
     size_mb = os.path.getsize(output_path) / 1_000_000
-    print(f"[video_skill] Video saved instantly: {output_path} ({size_mb:.1f} MB)")
+    print(f"[video_skill] Video assembled flawlessly: {output_path} ({size_mb:.1f} MB)")
     return output_path
 
 if __name__ == "__main__":
