@@ -30,6 +30,10 @@ _project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
  
+_src_path = os.path.join(_project_root, "src")
+if _src_path not in sys.path:
+    sys.path.insert(0, _src_path)
+
 from cmo_agent import run_cmo
 from linkedin_agent import run_linkedin
 from content_agent import run_content
@@ -48,9 +52,13 @@ except Exception as _e:
 
 # Video pipeline — laad skills vanuit src/
 try:
-    from src.skills.tts_skill import generate_dutch_audio
-    from src.skills.video_skill import create_reel
-    from src.skills.ai_client import ask_ai
+    import sys as _sys
+    _src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../src"))
+    if _src_path not in _sys.path:
+        _sys.path.insert(0, _src_path)
+    from skills.tts_skill import generate_dutch_audio
+    from skills.video_skill import create_reel
+    from skills.ai_client import ask_ai
     _video_pipeline_ok = True
     print("[Video] Pipeline geladen")
 except Exception as _ve:
