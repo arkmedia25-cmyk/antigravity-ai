@@ -26,9 +26,16 @@ _YELLOW = (255, 235, 60)
 _ORANGE = (255, 140, 0)
 _BLUE   = (0,   150, 255)
 
+import platform
+
 _FONT_BOLD  = "C:/Windows/Fonts/arialbd.ttf"
 _FONT_REG   = "C:/Windows/Fonts/arial.ttf"
 _FONT_EMOJI = "C:/Windows/Fonts/seguiemj.ttf"
+
+if platform.system() != "Windows":
+    _FONT_BOLD  = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    _FONT_REG   = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    _FONT_EMOJI = "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf"
 
 _GAP      = 0.20   # black gap between sections (seconds)
 _FADE_IN  = 0.30   # fade-in duration
@@ -257,6 +264,7 @@ def create_reel(audio_path: str, output_filename: str = "reel.mp4") -> str:
         codec="libx264",
         audio_codec="aac",
         logger=None,
+        ffmpeg_params=["-pix_fmt", "yuv420p"],
     )
 
     audio.close()
