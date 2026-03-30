@@ -1,42 +1,36 @@
 import os
-import asyncio
-import edge_tts
+from openai import OpenAI
+from config.settings import settings
 
 _OUTPUT_DIR = "outputs"
-_DEFAULT_VOICE = "nl-NL-FennaNeural"
-_DEFAULT_RATE = "+10%"
-
-
-async def _generate(text: str, output_path: str, voice: str, rate: str) -> None:
-    communicate = edge_tts.Communicate(text, voice, rate=rate)
-    await communicate.save(output_path)
-
+_DEFAULT_VOICE = "nova"
 
 def generate_dutch_audio(
     text: str,
     filename: str,
-    voice: str = _DEFAULT_VOICE,
-    rate: str = _DEFAULT_RATE,
+    voice: str = "",
+    rate: str = "",
 ) -> str:
     """
-    Convert text to Dutch speech using edge-tts.
+    Convert text to Dutch speech using OpenAI TTS API. (Edge-TTS IP blocked on DO).
     Saves the result as an MP3 in the outputs/ folder.
     Returns the full path to the saved file.
     """
     os.makedirs(_OUTPUT_DIR, exist_ok=True)
     output_path = os.path.join(_OUTPUT_DIR, filename)
-    asyncio.run(_generate(text, output_path, voice, rate))
-    print(f"[tts_skill] Audio saved: {output_path} | voice={voice} | rate={rate}")
+    
+    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    response = client.audio.speech.create(
+        model="tts-1",
+        voice=_DEFAULT_VOICE,
+        input=text
+    )
+    
+    response.write_to_file(output_path)
+    
+    print(f"[tts_skill] Audio saved via OpenAI: {output_path} | voice={_DEFAULT_VOICE}")
     return output_path
 
-
 if __name__ == "__main__":
-    test_text = (
-        "Wist je dat stress je geheugen met wel 40% kan verminderen? "
-        "Je brein heeft dagelijks de juiste voeding en rust nodig om optimaal te functioneren. "
-        "Kleine gewoontes, grote verschillen. "
-        "Wat doe jij vandaag voor je mentale gezondheid?"
-    )
-
-    path = generate_dutch_audio(test_text, "test_audio_v3.mp3")
-    print(f"[tts_skill] Test geslaagd: {path} ({os.path.getsize(path)} bytes)")
+    _path = generate_dutch_audio("Hallo allemaal, leuk dat je er bent!", "test_audio_openai.mp3")
+    print(f"Test klaar: {_path}")
