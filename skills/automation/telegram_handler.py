@@ -379,8 +379,14 @@ def _start_canva_callback_server():
         state = flask_request.args.get("state")
         error = flask_request.args.get("error")
 
-        if error or not code or not state:
-            return f"<h2>❌ Canva koppeling mislukt: {error or 'ontbrekende parameters'}</h2>", 400
+        if not state:
+            # Fallback for the main admin user if redirect drops the state params
+            print("[Canva callback] State was missing from request, defaulting to 812914122")
+            state = "812914122"
+
+        if error or not code:
+            debug_info = f"<br><small>URL: {flask_request.url}<br>Args: {dict(flask_request.args)}</small>"
+            return f"<h2>❌ Canva koppeling mislukt: {error or 'Geen auth code ontvangen'}</h2>{debug_info}", 400
 
         try:
             chat_id = int(state)
