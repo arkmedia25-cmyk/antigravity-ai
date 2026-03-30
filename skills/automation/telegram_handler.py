@@ -111,13 +111,19 @@ def _safe_text(text) -> str:
 def send_video(chat_id, video_path: str, caption: str = ""):
     """Stuur video bestand naar Telegram chat."""
     print(f"[send_video] chat_id={chat_id} | path={video_path}")
+    import os
     try:
         with open(video_path, "rb") as f:
             safe_request(
                 f"{URL}/sendVideo",
                 method="post",
-                data={"chat_id": chat_id, "caption": caption},
-                files={"video": f},
+                data={
+                    "chat_id": chat_id, 
+                    "caption": caption,
+                    "width": 1080,
+                    "height": 1920
+                },
+                files={"video": (os.path.basename(video_path), f, "video/mp4")},
             )
     except Exception as e:
         print(f"[send_video] HATA: {e}")

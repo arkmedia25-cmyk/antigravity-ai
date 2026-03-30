@@ -23,33 +23,30 @@ _NAVY   = (10,  10,  46)
 _TURQ   = (0,   212, 255)
 _WHITE  = (255, 255, 255)
 _YELLOW = (255, 235, 60)
-_ORANGE = (255, 140, 0)
-_BLUE   = (0,   150, 255)
-
 import platform
+import os
+import urllib.request
 
-_FONT_BOLD  = "C:/Windows/Fonts/arialbd.ttf"
-_FONT_REG   = "C:/Windows/Fonts/arial.ttf"
-_FONT_EMOJI = "C:/Windows/Fonts/seguiemj.ttf"
-
-if platform.system() != "Windows":
-    _FONT_BOLD  = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    _FONT_REG   = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-    _FONT_EMOJI = "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf"
+_FONT_PATH = "Roboto-Bold.ttf"
+if not os.path.exists(_FONT_PATH):
+    print("[video_skill] Downloading Roboto font...")
+    try:
+        urllib.request.urlretrieve("https://github.com/googlefonts/roboto/raw/main/src/hinted/Roboto-Bold.ttf", _FONT_PATH)
+    except Exception as e:
+        print(f"[video_skill] Warning: Failed to download font: {e}")
 
 _GAP      = 0.20   # black gap between sections (seconds)
 _FADE_IN  = 0.30   # fade-in duration
 _FADE_OUT = 0.30   # fade-out duration
 
-
 # ── Font & drawing helpers ─────────────────────────────────────────────────────
 
 def _font(size: int, emoji: bool = False) -> ImageFont.FreeTypeFont:
-    for p in ([_FONT_EMOJI] if emoji else []) + [_FONT_BOLD, _FONT_REG]:
-        try:
-            return ImageFont.truetype(p, size)
-        except IOError:
-            pass
+    try:
+        if os.path.exists(_FONT_PATH):
+            return ImageFont.truetype(_FONT_PATH, size)
+    except IOError:
+        pass
     return ImageFont.load_default()
 
 
