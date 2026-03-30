@@ -13,27 +13,38 @@ SCOPES = "design:content:read design:content:write design:meta:read"
 # Kept for backward compat — no longer used for primary storage
 _pending_verifiers: dict = {}
 
-DESIGN_TYPES = {
+# Canva v1 API (2025): type="preset" only accepts: doc, whiteboard, presentation.
+# All social / video formats must use type="custom" with pixel dimensions.
+DESIGN_DIMENSIONS: dict[str, tuple[int, int]] = {
     # Statische afbeeldingen
-    "instagram": "INSTAGRAM_POST",
-    "story": "INSTAGRAM_STORY",
-    "facebook": "FACEBOOK_POST",
-    "linkedin": "LINKEDIN_POST",
-    "presentatie": "PRESENTATION_16_9",
-    "flyer": "FLYER_PORTRAIT",
-    "poster": "POSTER_PORTRAIT",
-    # Video
-    "video": "VIDEO_MESSAGE",
-    "tiktok": "TIKTOK_VIDEO",
-    "reels": "INSTAGRAM_REEL",
-    "youtube": "YOUTUBE_VIDEO",
+    "instagram": (1080, 1080),
+    "story":     (1080, 1920),
+    "facebook":  (1200, 630),
+    "linkedin":  (1200, 627),
+    "flyer":     (794, 1123),
+    "poster":    (794, 1123),
+    # Video / Reels / TikTok
+    "video":     (1280, 720),
+    "tiktok":    (1080, 1920),
+    "reels":     (1080, 1920),
+    "youtube":   (1280, 720),
 }
+
+# Canva native presets (type="preset") — only these three are valid
+DESIGN_PRESETS: dict[str, str] = {
+    "presentatie": "presentation",
+    "doc":         "doc",
+    "whiteboard":  "whiteboard",
+}
+
+# Backward-compat alias (kept so old code that imports DESIGN_TYPES doesn't break)
+DESIGN_TYPES = {**{k: f"custom {w}x{h}" for k, (w, h) in DESIGN_DIMENSIONS.items()}, **DESIGN_PRESETS}
 
 # Export formats per design type
 EXPORT_FORMAT = {
-    "video": "MP4",
-    "tiktok": "MP4",
-    "reels": "MP4",
+    "video":   "MP4",
+    "tiktok":  "MP4",
+    "reels":   "MP4",
     "youtube": "MP4",
 }
 
@@ -60,9 +71,7 @@ def _get_redirect_uri() -> str:
 
 
 def get_auth_url(state: str) -> tuple:
-    """Generate Canva OAuth URL with PKCE.
-    Returns (auth_url, code_verifier) — caller is responsible for storing the verifier.
-    """
+    """Generate Canva OAuth URL with PKCE."""
     client_id = _get_client_id()
     redirect_uri = _get_redirect_uri()
 
@@ -84,11 +93,11 @@ def get_auth_url(state: str) -> tuple:
     }
     auth_url = f"{CANVA_AUTH_URL}?{urlencode(params, quote_via=quote)}"
 
-    print(f"[Canva OAuth] client_id    = {client_id}")
+    print(f"[Canva OAuth] client_id     = {client_id}")
     print(f"[Canva OAuth] redirect_uri = {redirect_uri}")
     print(f"[Canva OAuth] scope        = {SCOPES}")
     print(f"[Canva OAuth] state        = {state}")
-    print(f"[Canva OAuth] full URL     = {auth_url}")
+    print(f"[Canva OAuth] full URL      = {auth_url}")
 
     return auth_url, code_verifier
 
@@ -137,37 +146,48 @@ def refresh_access_token(refresh_token: str) -> dict:
 
 
 def create_design(access_token: str, design_type_key: str, title: str = "", template_id_override: str = "") -> dict:
-    """Create a new Canva design. Returns full API response."""
-    if template_id_override:
-        json_data = {
-            "design_type": {"type": "template", "asset_id": template_id_override},
-            "title": title or "Antigravity Design",
-        }
+    """Create a new Canva design.
+
+    Canva Connect API v1 (2025) rules:
+    - type="preset"  → name must be one of: doc, whiteboard, presentation
+    - type="custom"  → requires width + height (pixels, 40-8000)
+    - type="template" is NOT supported
+    - top-level "name" field is mandatory
+    """
+    import json as _json
+
+    design_name = title or "Antigravity Design"
+    key = design_type_key.lower()
+
+    if key in DESIGN_PRESETS:
+        # Native Canva preset (doc / whiteboard / presentation)
+        design_type_obj = {"type": "preset", "name": DESIGN_PRESETS[key]}
     else:
-        preset_name = DESIGN_TYPES.get(design_type_key.lower(), "INSTAGRAM_POST")
-        json_data = {
-            "design_type": {"type": "preset", "name": preset_name},
-            "title": title or "Antigravity Design",
-        }
-        
+        # Social / video format → use custom with pixel dimensions
+        w, h = DESIGN_DIMENSIONS.get(key, (1080, 1080))
+        design_type_obj = {"type": "custom", "width": w, "height": h}
+
+    json_data = {
+        "name": design_name,
+        "design_type": design_type_obj,
+    }
+
+    print(f"[Canva create_design] payload → {_json.dumps(json_data, ensure_ascii=False)}")
     resp = requests.post(
         f"{CANVA_API_BASE}/designs",
         headers={"Authorization": f"Bearer {access_token}"},
         json=json_data,
         timeout=30,
     )
-    try:
-        resp.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        raise RuntimeError(f"Canva HTTP Error {resp.status_code}: {resp.text} - {e}")
-    try:
-        return resp.json()
-    except Exception as e:
-        raise RuntimeError(f"Canva JSON Error | Status: {resp.status_code} | Body: {resp.text[:500]} | Err: {e}")
+
+    if not resp.ok:
+        raise RuntimeError(f"Canva HTTP Error {resp.status_code}: {resp.text}")
+
+    return resp.json()
 
 
 def start_export(access_token: str, design_id: str, fmt: str = "PNG") -> dict:
-    """Start an async export job. Returns job info with export_id."""
+    """Start an async export job."""
     resp = requests.post(
         f"{CANVA_API_BASE}/exports",
         headers={"Authorization": f"Bearer {access_token}"},
@@ -179,7 +199,7 @@ def start_export(access_token: str, design_id: str, fmt: str = "PNG") -> dict:
 
 
 def get_export_status(access_token: str, export_id: str) -> dict:
-    """Check export job status. Status: in_progress | success | failed."""
+    """Check export job status."""
     resp = requests.get(
         f"{CANVA_API_BASE}/exports/{export_id}",
         headers={"Authorization": f"Bearer {access_token}"},
@@ -190,7 +210,7 @@ def get_export_status(access_token: str, export_id: str) -> dict:
 
 
 def wait_for_export(access_token: str, export_id: str, timeout: int = 90) -> list:
-    """Poll export status until done. Returns list of download URLs."""
+    """Poll export status until done."""
     import time
     deadline = time.time() + timeout
     while time.time() < deadline:

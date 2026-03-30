@@ -65,8 +65,9 @@ class CanvaAgent(BaseAgent):
         if isinstance(access_token, str) and access_token.startswith("❌"):
             return access_token
 
-        if design_type_key not in canva_client.DESIGN_TYPES:
-            types = ", ".join(canva_client.DESIGN_TYPES.keys())
+        valid_keys = set(canva_client.DESIGN_DIMENSIONS) | set(canva_client.DESIGN_PRESETS)
+        if design_type_key not in valid_keys:
+            types = ", ".join(sorted(valid_keys))
             return (
                 f"❌ Onbekend ontwerp-type: '{design_type_key}'\n\n"
                 f"Beschikbare types:\n{types}\n\n"
@@ -74,9 +75,7 @@ class CanvaAgent(BaseAgent):
             )
 
         try:
-            from config.settings import settings
-            template_id_override = settings.CANVA_TEMPLATE_INSTAGRAM if design_type_key.lower() == "instagram" else ""
-            result = canva_client.create_design(access_token, design_type_key, title, template_id_override=template_id_override)
+            result = canva_client.create_design(access_token, design_type_key, title)
             design = result.get("design", {})
             design_id = design.get("id", "")
             edit_url = design.get("urls", {}).get("edit_url", "")
