@@ -45,6 +45,17 @@ except Exception as _e:
     _new_handler = None
     _use_new_system = False
     print(f"[Phase3] New src/ system unavailable — fallback active: {_e}")
+
+# Video pipeline — laad skills vanuit src/
+try:
+    from src.skills.tts_skill import generate_dutch_audio
+    from src.skills.video_skill import create_reel
+    from src.skills.ai_client import ask_ai
+    _video_pipeline_ok = True
+    print("[Video] Pipeline geladen")
+except Exception as _ve:
+    _video_pipeline_ok = False
+    print(f"[Video] Pipeline niet beschikbaar: {_ve}")
  
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 URL = f"https://api.telegram.org/bot{TOKEN}"
@@ -87,6 +98,78 @@ def _safe_text(text) -> str:
         text = str(text)
     text = text.strip()
     return text if text else "(geen inhoud)"
+
+
+def send_video(chat_id, video_path: str, caption: str = ""):
+    """Stuur video bestand naar Telegram chat."""
+    print(f"[send_video] chat_id={chat_id} | path={video_path}")
+    try:
+        with open(video_path, "rb") as f:
+            safe_request(
+                f"{URL}/sendVideo",
+                method="post",
+                data={"chat_id": chat_id, "caption": caption},
+                files={"video": f},
+            )
+    except Exception as e:
+        print(f"[send_video] HATA: {e}")
+        send_message(chat_id, f"Video gonderilirken hata: {e}")
+
+
+def _generate_and_send_video(chat_id, topic: str):
+    """Full pipeline: AI script → TTS audio → video → Telegram.
+    Wordt uitgevoerd in een aparte thread.
+    """
+    import time, datetime
+    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    try:
+        if not _video_pipeline_ok:
+            send_message(chat_id, "Video pipeline niet beschikbaar. Controleer installatie.")
+            return
+
+        # Stap 1: AI genereert script
+        send_message(chat_id, "Stap 1/3: Script schrijven...")
+        prompt = (
+            f"Schrijf een kort, pakkend Nederlands script voor een Instagram Reels video over: {topic}.\n"
+            "Het script heeft 3 delen:\n"
+            "1. HOOK (5-8 sec): Begin met een vraag of schokfeit om aandacht te trekken\n"
+            "2. CONTENT (15-20 sec): Geef 2-3 concrete tips of feiten\n"
+            "3. CTA (5 sec): Eindig met 'Like, sla op en volg ons voor meer tips!'\n"
+            "Schrijf ALLEEN de gesproken tekst, geen titels of labels."
+        )
+        script = ask_ai(prompt)
+        print(f"[Video] Script gegenereerd ({len(script)} tekens)")
+
+        # Stap 2: TTS audio
+        send_message(chat_id, "Stap 2/3: Stem inspreken...")
+        audio_path = generate_dutch_audio(script, filename=f"video_audio_{ts}.mp3")
+        print(f"[Video] Audio: {audio_path}")
+
+        # Stap 3: Video renderen
+        send_message(chat_id, "Stap 3/3: Video renderen... (1-2 min)")
+        video_path = create_reel(audio_path, output_filename=f"reel_{ts}.mp4")
+        print(f"[Video] Video: {video_path}")
+
+        # Verstuur video
+        caption = (
+            f"Onderwerp: {topic}\n\n"
+            "Instagram yayinlamak icin:\n"
+            "1. Yukardaki videoyu kaydet\n"
+            "2. Instagram > + > Reel > Video sec\n"
+            "3. Yayinla!"
+        )
+        send_video(chat_id, video_path, caption=caption)
+        send_message(chat_id,
+            "Video hazir! Instagramda yayinlamak icin:\n"
+            "1. Videoyu telefona kaydet\n"
+            "2. Instagram > + > Reel\n"
+            "3. Yayinla!"
+        )
+
+    except Exception as e:
+        print(f"[Video] HATA: {e}")
+        send_message(chat_id, f"Video olusturulirken hata: {e}")
 
 
 def send_message(chat_id, text):
@@ -148,6 +231,8 @@ def process_command(chat_id, text):
                 "/idea - viraal video idee\n"
                 "/seo - YouTube titel en tags\n"
                 "/script - video script\n\n"
+                "🎬 VIDEO\n"
+                "/video <konu> - tam video olustur ve Telegrama gonder\n\n"
                 "💬 SALES\n"
                 "/sales - DM scripts & closing berichten\n\n"
                 "📊 ONDERZOEK\n"
@@ -155,10 +240,30 @@ def process_command(chat_id, text):
                 "📧 COMMUNICATIE\n"
                 "/email - email reeks schrijven\n"
                 "/linkedin - LinkedIn berichten\n\n"
-                "🎨 DESIGN & VIDEO\n"
-                "/canva - Canva ontwerpen & video's maken\n\n"
-                "Voorbeeld: /cmo Stel lead systeem op voor Nederland"
+                "🎨 DESIGN\n"
+                "/canva - Canva ontwerpen maken\n\n"
+                "Voorbeeld: /video stres ve beyin sagliği"
             )
+
+        elif text.startswith("/video"):
+            topic = text.replace("/video", "").strip()
+            if not topic:
+                send_message(chat_id,
+                    "🎬 Video olusturma:\n\n"
+                    "Kullanimi:\n"
+                    "/video <konu>\n\n"
+                    "Ornek:\n"
+                    "/video stres ve beyin sagliği\n"
+                    "/video sabah rutini ipuclari\n"
+                    "/video Happy Juice faydalari"
+                )
+            else:
+                send_message(chat_id,
+                    f"🎬 Video hazirlaniyor: '{topic}'\n"
+                    "Script + ses + video olusturuluyor... (2-3 dk)"
+                )
+                t = threading.Thread(target=_generate_and_send_video, args=(chat_id, topic), daemon=True)
+                t.start()
 
         elif text.startswith("/canva"):
             task = text.replace("/canva", "").strip()
