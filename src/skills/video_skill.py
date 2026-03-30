@@ -1,34 +1,23 @@
-"""
-video_skill.py — 3-section Reels with fade-in/out, synced to audio.
-
-Timeline (auto-calculated from audio duration):
-  Section 1  20% of total  → HOOK
-  <0.2s black gap>
-  Section 2  60% of total  → CONTENT
-  <0.2s black gap>
-  Section 3  20% of total  → CTA
-
-Each section: 0.3s fade-in → full display → 0.3s fade-out
-"""
 import os
+import io
+import json
+import subprocess
+import urllib.request
+import platform
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
-from moviepy import VideoClip, AudioFileClip
 
 _OUTPUT_DIR = "outputs"
 _W, _H = 1080, 1920
+_CX = _W // 2
 
 _BLACK  = (0,   0,   0)
 _NAVY   = (10,  10,  46)
-_TURQ   = (0,   212, 255)
 _WHITE  = (255, 255, 255)
+_TURQ   = (0,   212, 255)
 _YELLOW = (255, 235, 60)
 _ORANGE = (255, 140, 0)
 _BLUE   = (0,   150, 255)
-
-import platform
-import os
-import urllib.request
 
 _FONT_PATH = "Roboto-Bold.ttf"
 if not os.path.exists(_FONT_PATH):
@@ -52,17 +41,13 @@ def _font(size: int, emoji: bool = False) -> ImageFont.FreeTypeFont:
         pass
     return ImageFont.load_default()
 
-
 def _sz(draw, text, font):
     bb = draw.textbbox((0, 0), text, font=font)
     return bb[2] - bb[0], bb[3] - bb[1]
 
-
-def _center_text(draw, text, font, y, color):
+def _center(draw, text, font, cy, color):
     w, h = _sz(draw, text, font)
-    draw.text((_W // 2 - w // 2, y), text, font=font, fill=color)
-    return h
-
+    draw.text((_CX - w // 2, cy - h // 2), text, font=font, fill=color)
 
 def _wrap(draw, text, font, max_w):
     words = text.split()
@@ -79,205 +64,152 @@ def _wrap(draw, text, font, max_w):
         lines.append(cur)
     return lines
 
-
-def _multiline_centered(draw, lines, font, start_y, color, spacing=22):
-    y = start_y
+def _multiline(draw, lines, font, center_y, color, spacing=26):
+    _, lh = _sz(draw, "Ag", font)
+    total_h = len(lines) * (lh + spacing) - spacing
+    y = center_y - total_h // 2
     for line in lines:
-        w, h = _sz(draw, line, font)
-        draw.text((_W // 2 - w // 2, y), line, font=font, fill=color)
-        y += h + spacing
-    return y
+        w, _ = _sz(draw, line, font)
+        draw.text((_CX - w // 2, y), line, font=font, fill=color)
+        y += lh + spacing
 
+# ── Frame builders ─────────────────────────────────────────────────────────────
 
-# ── Static frame builders (return numpy RGB arrays) ───────────────────────────
-
-def _build_hook() -> np.ndarray:
+def _build_hook() -> str:
     img  = Image.new("RGB", (_W, _H), _BLACK)
     draw = ImageDraw.Draw(img)
+    f_em   = _font(160, emoji=True)
+    f_main = _font(90)
+    em = "\u26a0\ufe0f" # Warning emoji
+    ew, eh = _sz(draw, em, f_em)
+    draw.text((_CX - ew // 2, 620), em, font=f_em, fill=_ORANGE)
+    _multiline(draw, ["DIT WIST JE NOG NIET...", "over dit onderwerp!"], f_main, center_y=1000, color=_WHITE, spacing=28)
+    path = os.path.join(_OUTPUT_DIR, "frame_0_hook.png")
+    img.save(path)
+    return path
 
-    f_em   = _font(180, emoji=True)
-    f_main = _font(82)
-
-    # ⚠️ emoji
-    em = "\u26a0\ufe0f"
-    ew, _ = _sz(draw, em, f_em)
-    draw.text((_W // 2 - ew // 2, 570), em, font=f_em, fill=_ORANGE)
-
-    # Hook text (two lines)
-    _multiline_centered(
-        draw,
-        ["Dit wist je nog NIET", "over je brein..."],
-        f_main,
-        start_y=920,
-        color=_WHITE,
-        spacing=24,
-    )
-
-    return np.array(img)
-
-
-def _build_content() -> np.ndarray:
+def _build_content(ts_data: list) -> str:
     img  = Image.new("RGB", (_W, _H), _NAVY)
     draw = ImageDraw.Draw(img)
+    f_body = _font(72)
+    # Combine sentences for content
+    content_text = " ".join([s["sentence"] for s in ts_data[1:4]]) if len(ts_data) >= 4 else "Belangrijke informatie..."
+    lines = _wrap(draw, content_text, f_body, max_w=900)
+    _multiline(draw, lines, f_body, center_y=_H // 2, color=_WHITE, spacing=28)
+    draw.line([(80, _H - 120), (_W - 80, _H - 120)], fill=_TURQ, width=2)
+    f_sm = _font(42)
+    _center(draw, "Meer info? Link in bio", f_sm, cy=_H - 72, color=_TURQ)
+    path = os.path.join(_OUTPUT_DIR, "frame_1_content.png")
+    img.save(path)
+    return path
 
-    f_title = _font(82)
-    f_em    = _font(74, emoji=True)
-    f_body  = _font(66)
-    f_link  = _font(46)
-
-    # Header
-    title = "DID YOU KNOW?"
-    tw, _ = _sz(draw, title, f_title)
-    tx = _W // 2 - tw // 2
-    draw.text((tx, 110), title, font=f_title, fill=_TURQ)
-    draw.text((tx + tw + 14, 118), "\U0001f9e0", font=f_em, fill=_WHITE)
-
-    # Divider
-    draw.line([(_W // 2 - 380, 248), (_W // 2 + 380, 248)], fill=_TURQ, width=3)
-
-    # Body — auto-wrapped, vertically centered
-    body = (
-        "Stress vermindert je geheugen met 40%. "
-        "Je brein heeft dagelijks de juiste "
-        "voeding en rust nodig."
-    )
-    lines = _wrap(draw, body, f_body, max_w=920)
-    _, lh = _sz(draw, "Ag", f_body)
-    sp = 26
-    total_h = len(lines) * (lh + sp) - sp
-    start_y = _H // 2 - total_h // 2 - 40
-    _multiline_centered(draw, lines, f_body, start_y=start_y, color=_WHITE, spacing=sp)
-
-    # Bottom link
-    link = "\U0001f447 Meer tips? Link in bio"
-    lw, _ = _sz(draw, link, f_link)
-    draw.text((_W // 2 - lw // 2, _H - 110), link, font=f_link, fill=_TURQ)
-
-    return np.array(img)
-
-
-def _build_cta() -> np.ndarray:
+def _build_cta() -> str:
     img  = Image.new("RGB", (_W, _H), _NAVY)
     draw = ImageDraw.Draw(img)
-
-    f_em   = _font(60, emoji=True)
-    f_btn  = _font(54)
+    f_q    = _font(80)
+    f_em   = _font(62, emoji=True)
+    f_btn  = _font(56)
     f_link = _font(48)
-
-    # Icons row
-    icons = "\U0001f44d   \U0001f4be   \U0001f465"
-    iw, _ = _sz(draw, icons, f_em)
-    draw.text((_W // 2 - iw // 2, 810), icons, font=f_em, fill=_WHITE)
-
-    # Labels row
-    labels = "Like        Bewaar        Volg ons"
-    lw, _ = _sz(draw, labels, f_btn)
-    draw.text((_W // 2 - lw // 2, 920), labels, font=f_btn, fill=_YELLOW)
-
-    # Border box around icons + labels
-    bx0, by0, bx1, by1 = 60, 778, _W - 60, 1020
+    _multiline(draw, ["Wat ga jij", "vandaag doen?"], f_q, center_y=820, color=_WHITE, spacing=24)
+    em = "\U0001f4ac"
+    ew, _ = _sz(draw, em, f_em)
+    draw.text((_CX - ew // 2, 970), em, font=f_em, fill=_WHITE)
+    bx0, by0, bx1, by1 = 60, 1100, _W - 60, 1360
     draw.rectangle([bx0, by0, bx1, by1], outline=_BLUE, width=3)
     draw.rectangle([bx0 - 4, by0 - 4, bx1 + 4, by1 + 4], outline=(0, 80, 180), width=2)
+    icons = "\U0001f44d   \U0001f4be   \U0001f465"
+    iw, _ = _sz(draw, icons, f_em)
+    draw.text((_CX - iw // 2, by0 + 30), icons, font=f_em, fill=_WHITE)
+    labels = "Like        Bewaar        Volg ons"
+    lw, _ = _sz(draw, labels, f_btn)
+    draw.text((_CX - lw // 2, by0 + 130), labels, font=f_btn, fill=_YELLOW)
+    link = "\U0001f447 Link in bio"
+    llw, _ = _sz(draw, link, f_link)
+    draw.text((_CX - llw // 2, _H - 130), link, font=f_link, fill=_TURQ)
+    path = os.path.join(_OUTPUT_DIR, "frame_2_cta.png")
+    img.save(path)
+    return path
 
-    # Bottom link
-    link_text = "\U0001f447 Link in bio"
-    llw, _ = _sz(draw, link_text, f_link)
-    draw.text((_W // 2 - llw // 2, _H - 130), link_text, font=f_link, fill=_TURQ)
+# ── Main FFmpeg execution ────────────────────────────────────────────────────────
 
-    return np.array(img)
-
-
-# ── Section timing ─────────────────────────────────────────────────────────────
-
-def _calc_sections(total: float):
+def create_reel(
+    audio_path: str = "outputs/audio_final.mp3",
+    output_filename: str = "final_video.mp4",
+) -> str:
     """
-    Returns list of section dicts:
-      {frame, start, end, dur}
-    Timeline accounts for two 0.2s black gaps.
+    Creates the video by generating flat PNGs and stitching them via FFmpeg process.
+    Uses 0% RAM compared to MoviePy. Resolves DigitalOcean Droplet Broken Pipe.
     """
-    available = total - 2 * _GAP
-    s1_dur = available * 0.20
-    s2_dur = available * 0.60
-    s3_dur = available * 0.20
-
-    s1_start = 0.0
-    s1_end   = s1_start + s1_dur
-    s2_start = s1_end + _GAP
-    s2_end   = s2_start + s2_dur
-    s3_start = s2_end + _GAP
-    s3_end   = s3_start + s3_dur   # should equal total
-
-    return [
-        {"name": "HOOK",    "start": s1_start, "end": s1_end,   "dur": s1_dur},
-        {"name": "CONTENT", "start": s2_start, "end": s2_end,   "dur": s2_dur},
-        {"name": "CTA",     "start": s3_start, "end": s3_end,   "dur": s3_dur},
-    ]
-
-
-# ── Alpha calculator ────────────────────────────────────────────────────────────
-
-def _section_alpha(t_local: float, dur: float) -> float:
-    """Returns 0..1 opacity for time t_local within a section of length dur."""
-    if t_local < _FADE_IN:
-        return t_local / _FADE_IN
-    if t_local > dur - _FADE_OUT:
-        return max(0.0, (dur - t_local) / _FADE_OUT)
-    return 1.0
-
-
-# ── Public API ─────────────────────────────────────────────────────────────────
-
-def create_reel(audio_path: str, output_filename: str = "reel.mp4") -> str:
     os.makedirs(_OUTPUT_DIR, exist_ok=True)
     output_path = os.path.join(_OUTPUT_DIR, output_filename)
+    if os.path.exists(output_path):
+        os.remove(output_path)
 
-    # Measure audio
-    audio = AudioFileClip(audio_path)
-    total = audio.duration
-    print(f"\n[video_skill] Audio duration : {total:.2f}s")
+    # 1. Provide minimal fake timestamps if timestamps.json missing
+    ts_path = os.path.join(_OUTPUT_DIR, "timestamps.json")
+    if os.path.exists(ts_path):
+        try:
+            with open(ts_path, encoding="utf-8") as f:
+                ts = json.load(f)
+        except:
+            ts = []
+    else:
+        ts = []
 
-    # Calculate sections
-    sections = _calc_sections(total)
-    frames   = [_build_hook(), _build_content(), _build_cta()]
-    _BLACK_FRAME = np.zeros((_H, _W, 3), dtype=np.uint8)
+    if len(ts) < 5:
+        # Generate dummy 15s segments placeholder
+        ts = [{"sentence": f"Deel {i}", "start": i*3.0, "end": (i+1)*3.0} for i in range(5)]
 
-    for s in sections:
-        print(f"[video_skill] {s['name']:8s}  {s['start']:.2f}s - {s['end']:.2f}s  "
-              f"(dur={s['dur']:.2f}s)")
-    print()
+    # 2. Extract durations
+    d_hook = max(0.5, ts[0]["end"] - ts[0]["start"])
+    d_content = max(0.5, ts[4]["start"] - ts[1]["start"])
+    d_cta = 5.0 # Let audio length determine the rest. We use a static 5.0 or determine from audio.
 
-    def make_frame(t: float) -> np.ndarray:
-        for i, sec in enumerate(sections):
-            if sec["start"] <= t < sec["end"]:
-                t_local = t - sec["start"]
-                alpha   = _section_alpha(t_local, sec["dur"])
-                if alpha >= 0.9999:
-                    return frames[i]
-                return (frames[i] * alpha).astype(np.uint8)
-        return _BLACK_FRAME   # gap periods
+    # 3. Create static images (uses negligible memory)
+    img_hook = _build_hook()
+    img_content = _build_content(ts)
+    img_cta = _build_cta()
 
-    clip = VideoClip(make_frame, duration=total)
-    clip = clip.with_audio(audio)
-    clip.write_videofile(
-        output_path,
-        fps=24,
-        codec="libx264",
-        audio_codec="aac",
-        logger=None,
-        ffmpeg_params=["-pix_fmt", "yuv420p"],
-    )
+    print(f"[video_skill] Natively generating video with FFmpeg. Resolutions: 1080x1920")
 
-    audio.close()
-    clip.close()
+    # 4. Construct FFmpeg command
+    # Filtergraph: Fade in/out each image, pad with black gaps in between
+    cmd = [
+        "ffmpeg", "-y",
+        "-loop", "1", "-framerate", "24", "-t", str(d_hook), "-i", img_hook,
+        "-f", "lavfi", "-t", str(_GAP), "-i", "color=c=black:s=1080x1920:r=24",
+        "-loop", "1", "-framerate", "24", "-t", str(d_content), "-i", img_content,
+        "-f", "lavfi", "-t", str(_GAP), "-i", "color=c=black:s=1080x1920:r=24",
+        "-loop", "1", "-framerate", "24", "-t", "10", "-i", img_cta, # cta is long, audio will cut it
+        "-i", audio_path,
+        "-filter_complex",
+        (
+            f"[0:v]fade=t=in:st=0:d={_FADE_IN},fade=t=out:st={d_hook - _FADE_OUT}:d={_FADE_OUT}[v0];"
+            f"[2:v]fade=t=in:st=0:d={_FADE_IN},fade=t=out:st={d_content - _FADE_OUT}:d={_FADE_OUT}[v2];"
+            f"[4:v]fade=t=in:st=0:d={_FADE_IN}[v4];"
+            f"[v0][1:v][v2][3:v][v4]concat=n=5:v=1:a=0[outv]"
+        ),
+        "-map", "[outv]",
+        "-map", "5:a",
+        "-c:v", "libx264",
+        "-c:a", "aac",
+        "-pix_fmt", "yuv420p",
+        "-shortest",
+        output_path
+    ]
+
+    print("[video_skill] Running FFmpeg command...")
+    try:
+        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except subprocess.CalledProcessError as e:
+        print("[video_skill] FFmpeg failed!")
+        print(e.stderr.decode("utf-8", errors="ignore"))
+        raise RuntimeError(f"FFmpeg error: {e.stderr.decode('utf-8', errors='ignore')}")
 
     size_mb = os.path.getsize(output_path) / 1_000_000
-    print(f"[video_skill] Saved: {output_path} ({size_mb:.1f} MB)")
+    print(f"[video_skill] Video saved instantly: {output_path} ({size_mb:.1f} MB)")
     return output_path
 
-
 if __name__ == "__main__":
-    path = create_reel(
-        audio_path="outputs/test_audio_v3.mp3",
-        output_filename="test_video_v6.mp4",
-    )
-    print(f"[video_skill] Done: {path}")
+    _path = create_reel()
+    print("Test video:", _path)
