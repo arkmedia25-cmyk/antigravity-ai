@@ -394,9 +394,20 @@ def _start_canva_callback_server():
 
             # Retrieve PKCE verifier from SQLite (stored by canva_agent._auth)
             code_verifier = mem.load(f"pkce_{chat_id}")
-            print(f"[Canva callback] state={state!r} code_verifier_found={bool(code_verifier)}")
+            print(f"[Canva callback] state={state!r} sqlite_found={bool(code_verifier)}")
+            print(f"[Canva callback] All DB keys: {mem.all_keys()}")
+
+            # Fallback: read from temp file if SQLite missed it
             if not code_verifier:
-                return "<h2>❌ PKCE verifier niet gevonden. Gebruik /canva auth opnieuw.</h2>", 400
+                import tempfile, pathlib
+                _pkce_file = pathlib.Path(tempfile.gettempdir()) / f"canva_pkce_{chat_id}.tmp"
+                print(f"[Canva callback] Trying temp file: {_pkce_file}")
+                if _pkce_file.exists():
+                    code_verifier = _pkce_file.read_text().strip()
+                    print(f"[Canva callback] Verifier found in temp file!")
+
+            if not code_verifier:
+                return f"<h2>❌ PKCE verifier niet gevonden. Gebruik /canva auth opnieuw.</h2><small>DB keys: {mem.all_keys()}</small>", 400
 
             tokens = canva_client.exchange_code(code, code_verifier)
 

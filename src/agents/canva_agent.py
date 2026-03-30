@@ -42,6 +42,12 @@ class CanvaAgent(BaseAgent):
         # Store verifier in SQLite — survives thread boundaries and restarts
         self._tokens.save(f"pkce_{chat_id}", code_verifier)
         print(f"[CanvaAgent] PKCE verifier opgeslagen voor chat_id={chat_id}")
+
+        # Also write to a plain file as a bullet-proof fallback
+        import tempfile, pathlib
+        _pkce_file = pathlib.Path(tempfile.gettempdir()) / f"canva_pkce_{chat_id}.tmp"
+        _pkce_file.write_text(code_verifier)
+        print(f"[CanvaAgent] PKCE fallback bestand: {_pkce_file}")
         print(f"[CanvaAgent] OAuth link: {auth_url}")
         return (
             "🎨 Koppel je Canva-account:\n\n"
