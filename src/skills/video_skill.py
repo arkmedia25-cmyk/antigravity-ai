@@ -23,6 +23,9 @@ _NAVY   = (10,  10,  46)
 _TURQ   = (0,   212, 255)
 _WHITE  = (255, 255, 255)
 _YELLOW = (255, 235, 60)
+_ORANGE = (255, 140, 0)
+_BLUE   = (0,   150, 255)
+
 import platform
 import os
 import urllib.request
