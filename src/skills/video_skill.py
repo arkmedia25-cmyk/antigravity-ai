@@ -69,8 +69,8 @@ def _font(size: int, type: str = "body") -> ImageFont.FreeTypeFont:
     font_filename = _FONTS.get(type, "Montserrat-Medium.ttf")
     path = os.path.join(base_dir, font_filename)
     
-    # Scale up size for 1080x1920 canvas (High Visibility)
-    final_size = size + 200 if size < 120 else size + 250
+    # Refined size for 1080x1920 canvas (Not too huge, not too small)
+    final_size = size + 20
     
     try:
         if os.path.exists(path):
@@ -111,7 +111,7 @@ def _wrap(draw, text, font, max_w):
         lines.append(cur)
     return lines
 
-def _multiline(draw, lines, font, center_y, color, spacing=250):
+def _multiline(draw, lines, font, center_y, color, spacing=150):
     _, lh = _sz(draw, "Ag", font)
     # Correct total height calculation for centering jumbo fonts
     total_h = len(lines) * (lh + spacing) - spacing
@@ -145,7 +145,7 @@ def _build_hook(theme) -> str:
     
     f_hook = _font(150, theme["font_title"]) # Massive, exciting font
     lines = ["DIT WIST JE NOG NIET...", "Over deze routine!"]
-    _multiline(draw, lines, f_hook, center_y=1100, color=theme["text"], spacing=220)
+    _multiline(draw, lines, f_hook, center_y=1100, color=theme["text"], spacing=180)
     
     path = os.path.join(_OUTPUT_DIR, f"frame_{theme['brand_name']}_0_hook.png")
     img.save(path)
@@ -167,7 +167,7 @@ def _build_content(ts_data: list, theme) -> str:
         content_text = "Ontdek de geheimen van een stralende gezondheid. Elke dag een stap vooruit naar jouw beste zelf!"
     
     lines = _wrap(draw, content_text, f_body, max_w=900)
-    _multiline(draw, lines, f_body, center_y=_H // 2, color=theme["text"], spacing=180)
+    _multiline(draw, lines, f_body, center_y=_H // 2, color=theme["text"], spacing=130)
     
     path = os.path.join(_OUTPUT_DIR, f"frame_{theme['brand_name']}_1_content.png")
     img.save(path)
