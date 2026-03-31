@@ -127,41 +127,17 @@ def _center(draw, text: str, font, cy: int, color):
     tw, _ = _sz(draw, text, font)
     draw.text((_CX - tw // 2, cy - h // 2), text, font=font, fill=color)
 
-# ── Frame builders ────────────────────────────────────────────────────────────
-
-def _build_sentence_frame(text: str, theme: dict, index: int) -> str:
-    img  = Image.new("RGB", (_W, _H), theme["bg"])
-    draw = ImageDraw.Draw(img)
-    text = _clean_text(text)
-    
-    card_x0, card_x1 = 80, _W - 80
-    card_y0, card_y1 = _H // 2 - 380, _H // 2 + 380
-    
-    # Modern Rounded Plate
-    _draw_rounded_rect(draw, [card_x0, card_y0, card_x1, card_y1], 40, fill=theme["accent2"])
-    
-    # Accent Bar
-    draw.rectangle([card_x0, card_y0 + 60, card_x0 + 10, card_y1 - 60], fill=theme["accent"])
-    
-    f = _font(72, theme["font_body"])
-    lines = _wrap(draw, text, f, max_w=870)
-    _multiline(draw, lines, f, center_y=_H // 2, color=theme["text"], spacing=22)
-    
-    path = os.path.join(_OUTPUT_DIR, f"frame_content_{index}.png")
-    os.makedirs(_OUTPUT_DIR, exist_ok=True)
-    img.save(path)
-    return path
-
 # ── Main video assembly ───────────────────────────────────────────────────────
 
 def create_reel(
     fragments: list = None,
     image_path: str = None,
     output_filename: str = "final_video.mp4",
-    brand: str = "glow",
-    font_path: str = None
+    brand: str = "glow"
 ) -> str:
+    # Use selected brand theme
     theme = THEMES.get(brand, THEMES["glow"])
+    
     os.makedirs(_OUTPUT_DIR, exist_ok=True)
     output_path = os.path.join(_OUTPUT_DIR, output_filename)
     if os.path.exists(output_path):
@@ -202,7 +178,7 @@ def create_reel(
     all_video_clips = []
     all_audio_files = []
 
-    print(f"[video_skill] Rendering {len(fragments)} fragments...")
+    print(f"[video_skill] Rendering {len(fragments)} fragments for @{brand.capitalize()}NL...")
 
     for i, frag in enumerate(fragments):
         a_path = frag.get("audio") or frag.get("path")
@@ -230,7 +206,7 @@ def create_reel(
         overlay_img = Image.new("RGBA", (_W, _H), (0,0,0,0))
         overlay_draw = ImageDraw.Draw(overlay_img)
         
-        draw = ImageDraw.Draw(img) # Draw on the main image for measuerement first
+        draw = ImageDraw.Draw(img) 
         text_color = theme["text"]
         
         if tag == "hook":
@@ -238,15 +214,11 @@ def create_reel(
             lines = _wrap(draw, _clean_text(text), f, max_w=850)
             _, lh = _sz(draw, "Ag", f)
             total_h = len(lines) * lh + (len(lines) - 1) * 25
-            
-            # Header Plate (Glass) - Dynamic Height
             bx0, by0, bx1, by1 = 80, 200, _W - 80, 200 + total_h + 100
             _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, fill=theme["glass"])
-            
             img.paste(overlay_img, (0, 0), overlay_img)
             draw = ImageDraw.Draw(img)
             _multiline(draw, lines, f, center_y=(by0 + by1) // 2, color=text_color, spacing=25)
-            
             img_p = os.path.join(_OUTPUT_DIR, f"f_hook_{i}.png")
             img.save(img_p)
         elif tag == "cta":
@@ -254,27 +226,19 @@ def create_reel(
             lines_q = _wrap(draw, _clean_text(text), f_q, max_w=820)
             _, lh_q = _sz(draw, "Ag", f_q)
             total_h_q = len(lines_q) * lh_q + (len(lines_q) - 1) * 25
-            
-            # Quote/CTA Plate (Glass) - Dynamic Height
             p_cy = 650
             bx0, by0, bx1, by1 = 100, p_cy - total_h_q//2 - 50, _W - 100, p_cy + total_h_q//2 + 50
             _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, fill=theme["glass"])
-            
-            # Action Button Plate
             btn_bx0, btn_by0, btn_bx1, btn_by1 = 120, _H - 550, _W - 120, _H - 270
             _draw_rounded_rect(overlay_draw, [btn_bx0, btn_by0, btn_bx1, btn_by1], 60, fill=theme["accent"])
-            
             img.paste(overlay_img, (0, 0), overlay_img)
             draw = ImageDraw.Draw(img)
             _multiline(draw, lines_q, f_q, center_y=(by0 + by1) // 2, color=text_color, spacing=25)
-            
             f_btn = _font(55, theme["font_body"])
             _center(draw, "Like & Sla Op", f_btn, cy=btn_by0 + 85, color=(255, 255, 255))
             _center(draw, f"Volg {theme['brand_name']}", f_btn, cy=btn_by0 + 185, color=(255, 255, 255))
-            
             f_link = _font(44, theme["font_body"])
             _center(draw, "Bekijk de link in bio", f_link, cy=_H - 160, color=theme["accent"])
-            
             img_p = os.path.join(_OUTPUT_DIR, f"f_cta_{i}.png")
             img.save(img_p)
         else:
@@ -282,18 +246,12 @@ def create_reel(
             lines = _wrap(draw, _clean_text(text), f, max_w=850)
             _, lh = _sz(draw, "Ag", f)
             total_h = len(lines) * lh + (len(lines) - 1) * 25
-            
-            # Main Content Plate (Glass) - Dynamic Height
             bx0, by0, bx1, by1 = 80, _H//2 - total_h//2 - 60, _W - 80, _H//2 + total_h//2 + 60
             _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, fill=theme["glass"])
-            
-            # Accent bar on glass
             overlay_draw.rectangle([bx0, by0 + 40, bx0 + 15, by1 - 40], fill=theme["accent"])
-            
             img.paste(overlay_img, (0, 0), overlay_img)
             draw = ImageDraw.Draw(img)
             _multiline(draw, lines, f, center_y=_H // 2, color=text_color, spacing=25)
-            
             img_p = os.path.join(_OUTPUT_DIR, f"f_content_{i}.png")
             img.save(img_p)
 
@@ -321,14 +279,11 @@ def create_reel(
     # Mixed Final Assembly (Voice + Background Music with Ducking)
     bg_music = os.path.join("audio_assets", "wellness_bg.mp3")
     if os.path.exists(bg_music):
-        print("[video_skill] Mixing background music with ducking...")
-        subprocess.run([
+         subprocess.run([
             "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", v_list,
             "-i", final_audio, "-i", bg_music,
             "-filter_complex", 
-            "[2:a]volume=0.15[bg];" # Constant music volume 15%
-            "[1:a]volume=1.0[voice];" # Voice at 100%
-            "[bg][voice]amix=inputs=2:duration=first[outa]", # Mix them
+            "[2:a]volume=0.15[bg];[1:a]volume=1.0[voice];[bg][voice]amix=inputs=2:duration=first[outa]",
             "-map", "0:v", "-map", "[outa]", "-c:v", "copy", "-c:a", "aac", "-shortest", output_path
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     else:
@@ -338,7 +293,3 @@ def create_reel(
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     return output_path
-
-if __name__ == "__main__":
-    p = create_reel()
-    print("Video:", p)

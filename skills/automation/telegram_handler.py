@@ -265,16 +265,21 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
 def send_message(chat_id, text):
     """Stuur bericht naar Telegram chat — splits automatisch bij >4096 tekens."""
     text = _safe_text(text)
-
-    # Debug log: length + first 300 chars before every send
-    print(f"[send_message] chat_id={chat_id} | len={len(text)} | preview: {text[:300]!r}")
-
-    # Split into chunks so Telegram never receives a payload that is too long
+    print(f"[send_message] chat_id={chat_id} | len={len(text)}")
     chunks = [text[i:i + _TELEGRAM_MAX_LEN] for i in range(0, len(text), _TELEGRAM_MAX_LEN)]
-
     for chunk in chunks:
         data = {"chat_id": chat_id, "text": chunk}
         safe_request(f"{URL}/sendMessage", method="post", data=data)
+
+def send_message_with_markup(chat_id, text, reply_markup):
+    """Stuur bericht met inline buttons."""
+    import json
+    data = {
+        "chat_id": chat_id, 
+        "text": text,
+        "reply_markup": json.dumps(reply_markup)
+    }
+    safe_request(f"{URL}/sendMessage", method="post", data=data)
  
 _CANVA_FILE_MARKER = "CANVA_FILE:"
 
@@ -332,9 +337,25 @@ def route_nl_request(chat_id, text):
         reply = decision.get("reply", "Anladım, hemen ilgileniyorum...")
         
         if action == "video":
-            send_message(chat_id, reply)
-            # Re-route to process_command as a slash command
-            process_command(chat_id, f"/gezellig {topic}")
+            import json
+            # Ask which brand
+            reply_markup = {
+                "inline_keyboard": [[
+                    {"text": "🔥 @GlowUpNL (Energetic)", "callback_data": f"brand_glow_video_{topic}"},
+                    {"text": "🌿 @HolistiGlow (Calm)", "callback_data": f"brand_holisti_video_{topic}"}
+                ]]
+            }
+            send_message_with_markup(chat_id, "Hangi kanal için video hazırlayalım komutanım?", reply_markup)
+        elif action == "post":
+            import json
+            # Ask which brand for post
+            reply_markup = {
+                "inline_keyboard": [[
+                    {"text": "🔥 @GlowUpNL (Energetic)", "callback_data": f"brand_glow_post_{topic}"},
+                    {"text": "🌿 @HolistiGlow (Calm)", "callback_data": f"brand_holisti_post_{topic}"}
+                ]]
+            }
+            send_message_with_markup(chat_id, "Hangi kanal için statik POST hazırlayalım?", reply_markup)
         elif action == "idea":
             send_message(chat_id, reply)
             process_command(chat_id, "/idea")
@@ -348,6 +369,65 @@ def route_nl_request(chat_id, text):
     except Exception as e:
         print(f"[Router] HATA: {e}")
         send_message(chat_id, "Üzgünüm, ne demek istediğini tam anlayamadım ama her zaman /start ile komutları görebilirsin!")
+
+
+def _run_agency_video(chat_id, brand, topic):
+    """Markaya ozel trend analizi yap ve video uret."""
+    try:
+        import hunt_trends
+        send_message(chat_id, f"🔍 @{brand.capitalize()}NL için güncel pazar trendleri taranıyor...")
+        hunt_trends.hunt_trends(brand=brand)
+        
+        from autonomous_producer import run_production_line
+        from src.skills.video_skill import create_reel
+        import time
+        
+        send_message(chat_id, f"🎬 Otonom '{brand.capitalize()}' senaryosu (Trend uyumlu) hazırlanıyor...")
+        pack = run_production_line(topic=topic)
+        if not pack:
+             send_message(chat_id, "❌ Senaryo üretilirken bir hata oluştu.")
+             return
+        
+        data = pack["gpt_data"]
+        from src.skills.ai_client import generate_image
+        bg_path = generate_image(data['image_prompt'])
+        
+        send_message(chat_id, "🎥 Video render ediliyor (Agency Mode)...")
+        video_path = create_reel(
+            fragments=pack["fragments"],
+            image_path=bg_path,
+            output_filename=f"agency_{brand}_{int(time.time())}.mp4",
+            brand=brand
+        )
+        
+        send_video(chat_id, video_path, caption=f"✨ @{brand.capitalize()}NL Otonom Video!\n\nSenaryo: {data['dutch_script']}\n\n📝 **Posting Kit:**\n{data.get('instagram_caption', '')}")
+    except Exception as e:
+        print(f"[_run_agency_video] HATA: {e}")
+        send_message(chat_id, f"❌ Agency video hatası: {e}")
+
+def _run_agency_post(chat_id, brand, topic):
+    """Markaya ozel statik post uret."""
+    try:
+        import hunt_trends
+        send_message(chat_id, f"🔍 @{brand.capitalize()}NL için trend-odaklı görsel post planlanıyor...")
+        hunt_trends.hunt_trends(brand=brand)
+        
+        from autonomous_producer import generate_autonomous_content
+        send_message(chat_id, f"🎨 @{brand.capitalize()}NL statik post tasarımı (DALL-E) başlatıldı...")
+        
+        data = generate_autonomous_content(topic)
+        if not data: return
+        
+        from src.skills.ai_client import generate_image
+        # Post format is 1:1, ask DALL-E for square
+        post_path = generate_image(data['image_prompt'] + " (Square 1:1 format, high-end photography, cinematic wellness style)")
+        
+        if not post_path: return
+        
+        send_document(chat_id, post_path, caption=f"🖼 @{brand.capitalize()}NL Statik Post Hazır!\n\n**Açıklama:**\n{data.get('instagram_caption', '')}\n\n**Etiketler:**\n`{data.get('hashtags', '')}`")
+    except Exception as e:
+        print(f"[_run_agency_post] HATA: {e}")
+        send_message(chat_id, f"❌ Agency post hatası: {e}")
 
 
 def process_command(chat_id, text):
@@ -820,14 +900,24 @@ def main():
                     chat_id = cb["message"]["chat"]["id"]
                     data = cb["data"]
                     
-                    if data.startswith("dl_doc_"):
-                        filename = data.replace("dl_doc_", "")
-                        send_message(chat_id, "📤 Dosya hazırlanıyor, yüksek kaliteli versiyon gönderiliyor...")
-                        send_document(chat_id, filename, caption="✨ İşte yüksek kaliteli videonuz!")
-                    
-                    # Answer callback query to stop loading spinner
-                    safe_request(f"{URL}/answerCallbackQuery", method="post", data={"callback_query_id": cb["id"]})
-                    continue
+                    # Brand Selection Callback
+                    if data.startswith("brand_"):
+                        # brand_glow_video_topic
+                        parts = data.split("_")
+                        brand = parts[1] # glow or holisti
+                        type = parts[2] # video or post
+                        topic = "_".join(parts[3:]) if len(parts) > 3 else ""
+                        
+                        send_message(chat_id, f"📝 Marka: @{brand.capitalize()}NL | Tür: {type.upper()}\nPlanlama yapılıyor...")
+                        
+                        if type == "video":
+                            # Trigger trend-aware production
+                            threading.Thread(target=_run_agency_video, args=(chat_id, brand, topic), daemon=True).start()
+                        elif type == "post":
+                             threading.Thread(target=_run_agency_post, args=(chat_id, brand, topic), daemon=True).start()
+                        
+                        safe_request(f"{URL}/answerCallbackQuery", method="post", data={"callback_query_id": cb["id"]})
+                        continue
 
                 if "message" in update and "text" in update["message"]:
                     chat_id = update["message"]["chat"]["id"]
