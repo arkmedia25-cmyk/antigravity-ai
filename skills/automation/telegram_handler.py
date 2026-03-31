@@ -58,6 +58,7 @@ try:
         _sys.path.insert(0, _src_path)
     from skills.tts_skill import generate_dutch_audio
     from skills.video_skill import create_reel
+    from scheduler.content_scheduler import start_content_factory
     from skills.ai_client import ask_ai
     _video_pipeline_ok = True
     print("[Video] Pipeline geladen")
@@ -130,56 +131,64 @@ def send_video(chat_id, video_path: str, caption: str = ""):
         send_message(chat_id, f"Video gonderilirken hata: {e}")
 
 
-def _generate_and_send_video(chat_id, topic: str):
-    """Full pipeline: AI script → TTS audio → video → Telegram.
-    Wordt uitgevoerd in een aparte thread.
-    """
+def _generate_and_send_video(chat_id, topic, brand="holisti"):
+    """Tam video üretim akışı (Brand farkındalıklı)"""
     import time, datetime
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    brand_label = "@GlowUpNL" if brand == "glow" else "@HolistiGlow"
+    tone = "energetic and result-oriented" if brand == "glow" else "calm and holistic"
 
     try:
         if not _video_pipeline_ok:
             send_message(chat_id, "Video pipeline niet beschikbaar. Controleer installatie.")
             return
 
-        # Stap 1: AI genereert script
-        send_message(chat_id, "Stap 1/3: Script schrijven...")
+        # Stap 1: AI genereert script, caption en tags
+        send_message(chat_id, f"🎬 {brand_label} için video hazırlanıyor...\nKonu: {topic}\nStrateji: Faydalı & Güven Verici")
+        
         prompt = (
-            f"Schrijf een kort, pakkend Nederlands script voor een Instagram Reels video over: {topic}.\n"
-            "Het script heeft 3 delen:\n"
-            "1. HOOK (5-8 sec): Begin met een vraag of schokfeit om aandacht te trekken\n"
-            "2. CONTENT (15-20 sec): Geef 2-3 concrete tips of feiten\n"
-            "3. CTA (5 sec): Eindig met 'Like, sla op en volg ons voor meer tips!'\n"
-            "Schrijf ALLEEN de gesproken tekst, geen titels of labels."
+            f"Sen uzman bir wellness içerik üreticisisin. Marka: {brand_label}. Tone: {tone}.\n"
+            f"Konu: {topic}\n"
+            "GÖREV: Hollanda'daki kadınlara faydalı olacak, güven veren bir video scripti yaz.\n"
+            "YAPI:\n"
+            "1. HOOK (5-8 sec): Merak uyandıran veya bir soruna çözüm sunan giriş.\n"
+            "2. CONTENT (15-20 sec): 2-3 gerçekten faydalı ipucu veya bilgi.\n"
+            "3. CTA (5 sec): Nazikçe takip iste. Örn: 'Bu bilgiler için bizi takip etmeyi unutma!'\n\n"
+            "Şu 3 parçayı sağla:\n"
+            "---SCRIPT---\n[Sadece seslendirilecek Hollandaca metin]\n"
+            "---CAPTION---\n[Instagram için samimi Hollandaca açıklama]\n"
+            "---TAGS---\n[En popüler 10-15 hashtag]\n"
         )
-        script = ask_ai(prompt)
-        print(f"[Video] Script gegenereerd ({len(script)} tekens)")
+        full_response = ask_ai(prompt)
+        
+        # Parse response
+        script = full_response.split("---SCRIPT---")[-1].split("---CAPTION---")[0].strip()
+        caption_body = full_response.split("---CAPTION---")[-1].split("---TAGS---")[0].strip()
+        tags = full_response.split("---TAGS---")[-1].strip()
 
         # Stap 2: TTS audio
         send_message(chat_id, "Stap 2/3: Stem inspreken...")
         audio_path = generate_dutch_audio(script, filename=f"video_audio_{ts}.mp3")
-        print(f"[Video] Audio: {audio_path}")
 
         # Stap 3: Video renderen
-        send_message(chat_id, "Stap 3/3: Video renderen... (1-2 min)")
-        video_path = create_reel(audio_path, output_filename=f"reel_{ts}.mp4")
-        print(f"[Video] Video: {video_path}")
+        send_message(chat_id, "Stap 3/3: Video renderen...")
+        video_path = create_reel(audio_path, output_filename=f"reel_{brand}_{ts}.mp4", brand=brand)
 
         # Verstuur video
-        caption = (
-            f"Onderwerp: {topic}\n\n"
-            "Instagram yayinlamak icin:\n"
-            "1. Yukardaki videoyu kaydet\n"
-            "2. Instagram > + > Reel > Video sec\n"
-            "3. Yayinla!"
+        final_caption = (
+            f"🌟 {brand_label} Hazır!\n\n"
+            f"Konu: {topic}\n"
+            f"Kopyalamak için aşağıya bak 👇"
         )
-        send_video(chat_id, video_path, caption=caption)
-        send_message(chat_id,
-            "Video hazir! Instagramda yayinlamak icin:\n"
-            "1. Videoyu telefona kaydet\n"
-            "2. Instagram > + > Reel\n"
-            "3. Yayinla!"
+        send_video(chat_id, video_path, caption=final_caption)
+        
+        # Send Copy-Paste Package
+        package = (
+            f"📝 **INSTAGRAM PAKETİ**\n\n"
+            f"**Açıklama:**\n{caption_body}\n\n"
+            f"**Etiketler:**\n`{tags}`"
         )
+        send_message(chat_id, package)
 
     except Exception as e:
         print(f"[Video] HATA: {e}")
@@ -236,31 +245,36 @@ def process_command(chat_id, text):
     """Verwerk Telegram commando"""
     try:
         if text.startswith("/start"):
+            # Start the 24/7 Automated Content Factory
+            start_content_factory(chat_id)
             send_message(chat_id,
-                "🚀 Antigravity AI Bot klaar!\n\n"
-                "🧠 STRATEGIE\n"
-                "/cmo - marketingstrategie & advies\n\n"
-                "📱 CONTENT\n"
-                "/content - Instagram/Reels content genereren\n"
-                "/idea - viraal video idee\n"
-                "/seo - YouTube titel en tags\n"
-                "/script - video script\n\n"
-                "🎬 VIDEO\n"
-                "/video <konu> - tam video olustur ve Telegrama gonder\n\n"
-                "💬 SALES\n"
-                "/sales - DM scripts & closing berichten\n\n"
-                "📊 ONDERZOEK\n"
-                "/research - markttrends & doelgroep analyse\n\n"
-                "📧 COMMUNICATIE\n"
-                "/email - email reeks schrijven\n"
-                "/linkedin - LinkedIn berichten\n\n"
-                "🎨 DESIGN\n"
-                "/canva - Canva ontwerpen maken\n\n"
-                "Voorbeeld: /video stres ve beyin sagliği"
+                "🚀 Antigravity AI Bot Hazır!\n\n"
+                "🎬 **VİDEO ÜRETİMİ (GlowUp & Holisti)**\n"
+                "/video_glow <konu> - Mercan/Şeftali temalı @GlowUpNL videosu\n"
+                "/video_holisti <konu> - Bej/Yeşil temalı @HolistiGlow videosu\n\n"
+                "🧠 **STRATEJİ & ANALİZ**\n"
+                "/cmo - Pazarlama stratejisi ve büyüme tavsiyesi\n"
+                "/research - Pazar trendleri ve rakip analizi\n\n"
+                "📱 **İÇERİK ÜRETİMİ**\n"
+                "/content - Instagram/Reels metinleri\n"
+                "/idea - Viral video fikirleri\n"
+                "/script - Video senaryosu\n\n"
+                "🎨 **TASARIM**\n"
+                "/canva - Canva tasarımları oluştur\n\n"
+                "💡 *Örnek: /video_glow sabah rutini ve enerji*"
             )
 
+        elif text.startswith("/video_glow"):
+            topic = text.replace("/video_glow", "").strip() or "Gezondheid"
+            threading.Thread(target=_generate_and_send_video, args=(chat_id, topic, "glow")).start()
+            
+        elif text.startswith("/video_holisti"):
+            topic = text.replace("/video_holisti", "").strip() or "Wellness"
+            threading.Thread(target=_generate_and_send_video, args=(chat_id, topic, "holisti")).start()
+
         elif text.startswith("/video"):
-            topic = text.replace("/video", "").strip()
+            topic = text.replace("/video", "").strip() or "Wellness"
+            threading.Thread(target=_generate_and_send_video, args=(chat_id, topic, "holisti")).start()
             if not topic:
                 send_message(chat_id,
                     "🎬 Video olusturma:\n\n"
