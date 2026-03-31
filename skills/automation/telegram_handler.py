@@ -153,14 +153,15 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         prompt = (
             f"=== SQUAD MANIFESTO - ACT AS THIS TEAM ===\n{manifesto}\n\n"
             f"Role: Expert Wellness Content Creator. Brand: {brand_label}.\n"
-            f"Topic: {topic}\n"
+            f"Topic (may be in Turkish, translate to Dutch first): {topic}\n"
+            "CRITICAL: YOUR OUTPUT MUST BE 100% IN DUTCH. NO TURKISH WORDS ALLOWED.\n"
             "GOAL: Create a high-conversion, trust-building Instagram package for Dutch women.\n"
             "STRUCTURE:\n"
             "1. HOOK (5-8 sec): Curiosity or problem-solving entrance.\n"
             "2. CONTENT (15-20 sec): 2-3 genuinely helpful tips.\n"
             "3. CTA (5 sec): Polite follow invitation.\n\n"
             "PROVIDE THESE 3 PARTS IN DUTCH ONLY:\n"
-            "---SCRIPT---\n[STRICTLY DUTCH - Voiceover text only]\n"
+            "---SCRIPT---\n[STRICTLY DUTCH - Voiceover text only - NO TURKISH]\n"
             "---CAPTION---\n[STRICTLY DUTCH - Engaging Instagram caption]\n"
             "---TAGS---\n[Strategic Hashtags]\n"
         )
