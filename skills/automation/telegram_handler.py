@@ -454,14 +454,15 @@ def _run_agency_story(chat_id, brand, topic):
         data = generate_autonomous_content(topic, brand=brand)
         if not data: return
         
-        from src.skills.ai_client import generate_image
-        # Story format is 9:16, ask DALL-E for vertical
-        target_prompt = data['image_prompt'] + " (Vertical 9:16 format, high-end lifestyle photography, cinematic wellness style)"
-        story_path = generate_image(target_prompt)
+        from src.skills.post_skill import create_static_story
+        # create_static_story already calls generate_image AND adds the 'Link in Bio' sticker
+        story_path = create_static_story(brand=brand, topic=topic)
         
-        if not story_path: return
+        if not story_path: 
+            send_message(chat_id, "❌ Story tasarımı üretilirken bir hata oluştu.")
+            return
         
-        send_document(chat_id, story_path, caption=f"📱 @{brand.capitalize()}NL Story Görseli Hazır!\n\n**İpucu:** Hikayenize 'Link in Bio' çıkartması eklemeyi unutmayın!\n\n**Metin Önerisi:**\n{data.get('dutch_script', '')}")
+        send_document(chat_id, story_path, caption=f"📱 @{brand.capitalize()}NL Story Görseli Hazır!\n\n**İpucu:** Hikayenize 'Link in Bio' çıkartması otomatik olarak eklendi! ✨\n\n**Metin Önerisi:**\n{data.get('dutch_script', '')}")
     except Exception as e:
         print(f"[_run_agency_story] HATA: {e}")
         send_message(chat_id, f"❌ Agency story hatası: {e}")
