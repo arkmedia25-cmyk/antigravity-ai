@@ -65,27 +65,27 @@ _FADE_OUT = 0.30   # fade-out duration
 
 def _font(size: int, type: str = "body") -> ImageFont.FreeTypeFont:
     # Use the script's directory to find the root
-    # video_skill.py is in src/skills/, so root is 2 levels up
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     font_filename = _FONTS.get(type, "Montserrat-Medium.ttf")
     path = os.path.join(base_dir, font_filename)
     
-    # Scale up size for 1080x1920 canvas
-    final_size = size + 100 if size < 120 else size + 150
+    # Scale up size for 1080x1920 canvas (High Visibility)
+    final_size = size + 200 if size < 120 else size + 250
     
     try:
         if os.path.exists(path):
             return ImageFont.truetype(path, final_size)
-        else:
-            # Try searching in current directory just in case
-            alt_path = os.path.join(os.getcwd(), font_filename)
-            if os.path.exists(alt_path):
-                return ImageFont.truetype(alt_path, final_size)
     except IOError:
-        print(f"[video_skill] Warning: Font {path} failed, using default.")
-    
-    # If all fails, use default (which is tiny, but we can't change its size)
-    # We will print a big warning in the terminal
+        pass
+        
+    # CRITICAL FALLBACK: If TTF fails, we MUST still have large text.
+    # PIL's load_default() doesn't support size, so we try system fonts
+    for fallback in ["arial.ttf", "DejaVuSans.ttf", "LiberationSans-Regular.ttf"]:
+        try:
+            return ImageFont.truetype(fallback, final_size)
+        except:
+            continue
+            
     return ImageFont.load_default()
 
 def _sz(draw, text, font):
@@ -219,9 +219,11 @@ def create_reel(
     if len(ts) < 5:
         ts = [{"sentence": f"Deel {i}", "start": i*3.0, "end": (i+1)*3.0} for i in range(5)]
 
-    d_hook = max(0.5, ts[0]["end"] - ts[0]["start"])
-    d_content = max(0.5, ts[4]["start"] - ts[1]["start"])
-    d_cta = 10.0 # Audio will cut this
+    # Calculate dynamic durations based on audio
+    # But since we use -shortest, we can just set long buffers for segments 2 and 3
+    d_hook = 5.0
+    d_content = 30.0 # Plenty of space for tips
+    d_cta = 15.0     # Plenty of space for CTA
 
     print(f"[video_skill] Natively generating frames for brand: {brand}...")
     img_hook = _build_hook(theme)
