@@ -262,7 +262,8 @@ def create_reel(
     v_list = os.path.join(_OUTPUT_DIR, "v_list.txt")
     with open(v_list, "w", encoding="utf-8") as f:
         for i in range(len(all_video_clips)):
-            f.write(f"file 'v_frag_{i}.mp4'\n")
+            abs_v = os.path.abspath(all_video_clips[i])
+            f.write(f"file '{abs_v.replace('\\', '/')}'\n")
 
     a_list = os.path.join(_OUTPUT_DIR, "a_list.txt")
     with open(a_list, "w", encoding="utf-8") as f:
@@ -270,7 +271,8 @@ def create_reel(
             local_a = os.path.join(_OUTPUT_DIR, f"tmp_a_{i}.mp3")
             import shutil
             shutil.copy2(a_p, local_a)
-            f.write(f"file 'tmp_a_{i}.mp3'\n")
+            abs_a = os.path.abspath(local_a)
+            f.write(f"file '{abs_a.replace('\\', '/')}'\n")
 
     final_audio = os.path.join(_OUTPUT_DIR, "audio_full.mp3")
     subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", a_list, "-c", "copy", final_audio],
