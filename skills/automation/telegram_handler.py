@@ -180,9 +180,19 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         send_message(chat_id, "Stap 3/3: Video renderen...")
         
         # 4. Generate dynamic timestamps/sentences for video_skill sync
-        import json
-        sentences = [s.strip() + "." for s in script.split(".") if len(s.strip()) > 3]
-        ts_data = [{"sentence": s, "start": i*3.0, "end": (i+1)*3.0} for i, s in enumerate(sentences)]
+        import json, re
+        raw_sentences = re.split(r'(?<=[.!?])\s+', script.strip())
+        clean_sentences = []
+        for s in raw_sentences:
+            # Remove numbered list markers like "1.", "2.", "•", "-" at start
+            s = re.sub(r'^\s*[\d]+[\.\)]\s*', '', s).strip()
+            s = re.sub(r'^\s*[-•*]\s*', '', s).strip()
+            # Keep only real sentences (at least 15 chars, not just a number)
+            if len(s) >= 15 and not re.match(r'^\d+$', s):
+                clean_sentences.append(s)
+        if not clean_sentences:
+            clean_sentences = ["Gezondheid begint met kleine keuzes elke dag!"]
+        ts_data = [{"sentence": s, "start": i*3.0, "end": (i+1)*3.0} for i, s in enumerate(clean_sentences)]
         os.makedirs("outputs", exist_ok=True)
         with open("outputs/timestamps.json", "w", encoding="utf-8") as f:
             json.dump(ts_data, f, ensure_ascii=False, indent=2)

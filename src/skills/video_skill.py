@@ -149,12 +149,17 @@ def _build_sentence_frame(text: str, theme: dict, index: int) -> str:
     img  = Image.new("RGB", (_W, _H), theme["bg"])
     draw = ImageDraw.Draw(img)
 
-    # Soft accent blob
-    draw.ellipse([_CX - 380, _H // 2 - 340, _CX + 380, _H // 2 + 340],
-                 fill=theme["accent2"])
+    # Card background — solid, clean, no hollow artifacts
+    card_x0, card_x1 = 80, _W - 80
+    card_y0, card_y1 = _H // 2 - 380, _H // 2 + 380
+    _draw_rounded_rect(draw, [card_x0, card_y0, card_x1, card_y1], 40, fill=theme["accent2"])
+
+    # Left accent bar
+    draw.rectangle([card_x0, card_y0 + 60, card_x0 + 10, card_y1 - 60],
+                   fill=theme["accent"])
 
     f = _font(72, theme["font_body"])
-    lines = _wrap(draw, text, f, max_w=950)
+    lines = _wrap(draw, text, f, max_w=870)
     _multiline(draw, lines, f, center_y=_H // 2, color=theme["text"], spacing=22)
 
     path = os.path.join(_OUTPUT_DIR, f"frame_content_{index}.png")
