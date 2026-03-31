@@ -308,8 +308,56 @@ def _send_canva_response(chat_id, response: str):
         send_message(chat_id, response)
 
 
+def route_nl_request(chat_id, text):
+    """Met GPT-4o bepalen wat een 'normaal' bericht betekent."""
+    prompt = (
+        f"Kullanıcı mesajı: '{text}'\n\n"
+        "Sen @GlowUpNL markasının dijital asistanısın. Kullanıcının niyetini anla.\n"
+        "Şu eylemlerden birini seç (action):\n"
+        "1. 'video': Kullanıcı video/reels yapılmasını istiyor.\n"
+        "2. 'idea': Kullanıcı içerik fikri istiyor.\n"
+        "3. 'research': Kullanıcı pazar/trend araştırması istiyor.\n"
+        "4. 'chat': Sadece soru soruyor veya sohbet ediyor.\n\n"
+        "JSON döndür: { \"action\": \"...\", \"topic\": \"...\", \"reply\": \"Kullanıcıya verilecek kısa ön onay mesajı\" }"
+    )
+    from skills.ai_client import ask_ai
+    try:
+        from skills.ai_client import ask_ai
+        # Force JSON response via the newly patched ask_ai
+        decision = ask_ai(prompt, is_json=True)
+        print(f"[Router] Decision: {decision}")
+        
+        action = decision.get("action", "chat")
+        topic = decision.get("topic", "")
+        reply = decision.get("reply", "Anladım, hemen ilgileniyorum...")
+        
+        if action == "video":
+            send_message(chat_id, reply)
+            # Re-route to process_command as a slash command
+            process_command(chat_id, f"/gezellig {topic}")
+        elif action == "idea":
+            send_message(chat_id, reply)
+            process_command(chat_id, "/idea")
+        elif action == "research":
+            send_message(chat_id, reply)
+            process_command(chat_id, f"/research {topic}")
+        else:
+            # Standart Chat
+            response = ask_ai(f"Brand: @GlowUpNL. User asked: {text}. Respond as a wise best friend CMO (1-3 sentences).")
+            send_message(chat_id, response)
+    except Exception as e:
+        print(f"[Router] HATA: {e}")
+        send_message(chat_id, "Üzgünüm, ne demek istediğini tam anlayamadım ama her zaman /start ile komutları görebilirsin!")
+
+
 def process_command(chat_id, text):
     """Verwerk Telegram commando"""
+    # NL Router for non-slash messages
+    if not text.startswith("/"):
+        import threading
+        threading.Thread(target=route_nl_request, args=(chat_id, text), daemon=True).start()
+        return
+
     try:
         if text.startswith("/squad_status"):
             # Competition Dashboard (Simulation for now based on generated files)
