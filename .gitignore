@@ -4,3 +4,6 @@ __pycache__/
 *.db
 *.db-shm
 *.db-wal
+
+outputs/
+Roboto-Bold.ttf
