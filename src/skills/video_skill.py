@@ -107,14 +107,14 @@ def _multiline(draw, lines: list, font, center_y: int, color, spacing: int = 20)
         y += lh + spacing
 
 def _clean_text(text: str) -> str:
-    """Removes unsupported characters (emojis, icons, special symbols)
-    that cause 'hollow squares' in standard fonts."""
+    """Removes unsupported characters and maps markers (bullets/emojis)
+    to a standard '*' for better visual list alignment."""
     import re
     if not text: return ""
-    # Only keep characters supported by Montserrat/Playfair + Dutch basics
-    clean = re.sub(r'[^\x00-\x7F\xC0-\xFF\.,!?\'\":\- ]+', '', text)
-    # Remove leading numbering like "1. ", "- ", "• "
-    clean = re.sub(r'^\s*[\d\.\-\•\*\>]+\s*', '', clean)
+    # Map common list/emoji markers to '*' to maintain list structure
+    text = re.sub(r'^\s*[•🌿✨\-1234567890\.\*\/]+\s*', '* ', text)
+    # Filter for standard characters supported by the font, plus our '*'
+    clean = re.sub(r'[^\x00-\x7F\xC0-\xFF\.,!?\'\":\* ]+', '', text)
     return clean.strip()
 
 def _draw_rounded_rect(draw, coords, radius: int, fill):
@@ -130,6 +130,7 @@ def _draw_rounded_rect(draw, coords, radius: int, fill):
 
 def _center(draw, text: str, font, cy: int, color):
     """Draw a single horizontally centered line at cy."""
+    text = _clean_text(text)
     w, _ = _sz(draw, text, font)
     draw.text((_CX - w // 2, cy - _sz(draw, "Ag", font)[1] // 2), text, font=font, fill=color)
 
@@ -250,14 +251,14 @@ def create_reel(
     if not sentences:
         sentences = ["Gezondheid begint met kleine keuzes.", "Elke dag een stap vooruit!"]
 
-    # ── 3. SMART SYNC: Adaptive Timing ──
-    # Formula: Base(1.8s) + Character-based weight
+    # ── 3. SMART SYNC: Adaptive Word-Based Timing ──
+    # Formula: 1.2s base + duration based on word count (approx 2.5 words/sec)
     hook_dur = 5.0
     cta_dur  = 8.0
     content_dur = max(audio_duration - hook_dur - cta_dur, 5.0)
 
-    # Calculate weights for each sentence: 1.8s base + proportional part
-    weights = [1.8 + (len(s) / 20.0) for s in sentences]
+    # Calculate weights based on human speech density
+    weights = [1.2 + (len(s.split()) / 2.5) for s in sentences]
     total_weight = sum(weights) or 1.0
 
     # ── 4. Build frames ──
