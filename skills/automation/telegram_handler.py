@@ -139,17 +139,31 @@ def send_video(chat_id, video_path: str, caption: str = ""):
 def send_document(chat_id, file_path: str, caption: str = ""):
     """Stuur bestand als Document (onverpakt) naar Telegram."""
     print(f"[send_document] chat_id={chat_id} | path={file_path}")
+    import os
     try:
-        if not os.path.exists(file_path):
-            # Try to look in outputs/ if not absolute
-            file_path = os.path.join("outputs", os.path.basename(file_path))
-            
-        with open(file_path, "rb") as f:
+        # Resolve absolute path or search in common locations
+        final_path = file_path
+        if not os.path.exists(final_path):
+            candidates = [
+                os.path.join(os.getcwd(), file_path),
+                os.path.join(os.getcwd(), "outputs", os.path.basename(file_path))
+            ]
+            for c in candidates:
+                if os.path.exists(c):
+                    final_path = c
+                    break
+        
+        if not os.path.exists(final_path):
+             print(f"[send_document] HATA: Dosya bulunamadi: {file_path}")
+             send_message(chat_id, f"⚠️ Dosya bulunamadı: {os.path.basename(file_path)}")
+             return
+
+        with open(final_path, "rb") as f:
             safe_request(
                 f"{URL}/sendDocument",
                 method="post",
                 data={"chat_id": chat_id, "caption": caption},
-                files={"document": (os.path.basename(file_path), f)},
+                files={"document": (os.path.basename(final_path), f)},
             )
     except Exception as e:
         print(f"[send_document] HATA: {e}")
