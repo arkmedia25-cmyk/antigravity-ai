@@ -209,7 +209,8 @@ def create_reel(
         os.remove(output_path)
 
     ts_path = os.path.join(_OUTPUT_DIR, "timestamps.json")
-    # Calculate dynamic durations based on audio duration
+    
+    # 1. Calculate real audio duration
     audio_duration = 15.0
     try:
         import subprocess
@@ -219,11 +220,18 @@ def create_reel(
     except:
         pass
 
-    # Split script into sentences for dynamic flow
-    # Since we don't have word-level timestamps, we estimate based on sentence length
-    sentences = [s.strip() for s in ts[1:-1]] if len(ts) > 2 else ["Blijf kijken voor meer wellness tips!"]
+    # 2. Load timestamps for per-sentence frames
+    ts = []
+    try:
+        with open(ts_path, encoding="utf-8") as f:
+            ts = json.load(f)
+    except:
+        ts = [{"sentence": "Gezondheid en balans...", "start": 0, "end": 5}]
+
+    # 3. Dynamic content
+    sentences = [item["sentence"].strip() for item in ts] if ts else ["Ontdek wellness!"]
     total_chars = sum(len(s) for s in sentences)
-    content_duration = audio_duration - 10.0 # Reserve 5s for hook and 5s for CTA
+    content_duration = audio_duration - 10.0 # 5s hook, 5s cta
     if content_duration < 5.0: content_duration = 10.0
     
     print(f"[video_skill] Generating dynamic frames for brand: {brand}...")
