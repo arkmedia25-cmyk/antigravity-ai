@@ -178,6 +178,15 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
 
         # Stap 3: Video renderen
         send_message(chat_id, "Stap 3/3: Video renderen...")
+        
+        # 4. Generate dynamic timestamps/sentences for video_skill sync
+        import json
+        sentences = [s.strip() + "." for s in script.split(".") if len(s.strip()) > 3]
+        ts_data = [{"sentence": s, "start": i*3.0, "end": (i+1)*3.0} for i, s in enumerate(sentences)]
+        os.makedirs("outputs", exist_ok=True)
+        with open("outputs/timestamps.json", "w", encoding="utf-8") as f:
+            json.dump(ts_data, f, ensure_ascii=False, indent=2)
+
         video_path = create_reel(audio_path, output_filename=f"reel_{brand}_{ts}.mp4", brand=brand)
 
         # Verstuur video
