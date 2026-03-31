@@ -33,8 +33,16 @@ USER_PROMPT = "Generate a 'Gezellig' Wellness tip for @GlowUpNL NL audience."
 def generate_autonomous_content(topic=None):
     print(f"🤖 Asking GPT-4o for '{topic or 'Gezellig'}' Wellness content...")
     try:
+        # Load Current Trends for context
+        trends_context = ""
+        trends_path = os.path.join(os.getcwd(), "memory", "current_trends.json")
+        if os.path.exists(trends_path):
+            with open(trends_path, "r", encoding="utf-8") as f:
+                trends_data = json.load(f)
+                trends_context = f"\nCURRENT DUTCH TRENDS TO USE IF APPLICABLE: {', '.join(trends_data['trends'])}\n"
+
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        user_prompt = f"Generate a 'Gezellig' Wellness tip for @GlowUpNL. Topic: {topic or 'Random Wellness Tip'}"
+        user_prompt = f"Generate a 'Gezellig' Wellness tip for @GlowUpNL. Topic: {topic or 'Random Trending Wellness Tip'}. {trends_context}"
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[

@@ -596,6 +596,14 @@ def process_command(chat_id, text):
             response = run_cmo("Schrijf een kort video script")
             send_message(chat_id, f"🎬 Script:\n{response}")
  
+        elif text.startswith("/hunt"):
+            send_message(chat_id, "🔍 Hollanda wellness pazarı taranıyor, trendler güncelleniyor...")
+            import hunt_trends
+            if hunt_trends.hunt_trends():
+                send_message(chat_id, "✅ Pazar trendleri başarıyla güncellendi! Bir sonraki videonuz bu taze bilgilerle üretilecek.")
+            else:
+                send_message(chat_id, "⚠️ Trendler güncellenirken bir hata oluştu.")
+
         elif text.startswith("/cmo"):
             task = text.replace("/cmo", "").strip()
             if not task:
