@@ -424,19 +424,15 @@ def _run_agency_post(chat_id, brand, topic):
         send_message(chat_id, f"🔍 @{brand.capitalize()}NL için trend-odaklı görsel post planlanıyor...")
         hunt_trends.hunt_trends(brand=brand)
         
-        from autonomous_producer import generate_autonomous_content
-        send_message(chat_id, f"🎨 @{brand.capitalize()}NL statik post tasarımı (DALL-E) başlatıldı...")
+        from src.skills.post_skill import create_static_post
+        # Now passing the Dutch script to be drawn on the image
+        post_path = create_static_post(brand=brand, topic=topic, description=data.get('dutch_script', ''))
         
-        data = generate_autonomous_content(topic)
-        if not data: return
+        if not post_path: 
+            send_message(chat_id, "❌ Post tasarımı üretilirken bir hata oluştu.")
+            return
         
-        from src.skills.ai_client import generate_image
-        # Post format is 1:1, ask DALL-E for square
-        post_path = generate_image(data['image_prompt'] + " (Square 1:1 format, high-end photography, cinematic wellness style)")
-        
-        if not post_path: return
-        
-        send_document(chat_id, post_path, caption=f"🖼 @{brand.capitalize()}NL Statik Post Hazır!\n\n**Açıklama:**\n{data.get('instagram_caption', '')}\n\n**Etiketler:**\n`{data.get('hashtags', '')}`")
+        send_document(chat_id, post_path, caption=f"🖼 @{brand.capitalize()}NL Statik Post Hazır!\n\n**İpucu:** Yazı görselin üzerine profesyonelce yerleştirildi! ✨\n\n**Açıklama:**\n{data.get('instagram_caption', '')}")
     except Exception as e:
         print(f"[_run_agency_post] HATA: {e}")
         send_message(chat_id, f"❌ Agency post hatası: {e}")
@@ -455,8 +451,8 @@ def _run_agency_story(chat_id, brand, topic):
         if not data: return
         
         from src.skills.post_skill import create_static_story
-        # create_static_story already calls generate_image AND adds the 'Link in Bio' sticker
-        story_path = create_static_story(brand=brand, topic=topic)
+        # Now passing the Dutch script to be drawn on the image with the sticker
+        story_path = create_static_story(brand=brand, topic=topic, description=data.get('dutch_script', ''))
         
         if not story_path: 
             send_message(chat_id, "❌ Story tasarımı üretilirken bir hata oluştu.")
