@@ -424,6 +424,12 @@ def _run_agency_post(chat_id, brand, topic):
         send_message(chat_id, f"🔍 @{brand.capitalize()}NL için trend-odaklı görsel post planlanıyor...")
         hunt_trends.hunt_trends(brand=brand)
         
+        from autonomous_producer import generate_autonomous_content
+        send_message(chat_id, f"🎨 @{brand.capitalize()}NL statik post tasarımı (DALL-E) başlatıldı...")
+        
+        data = generate_autonomous_content(topic, brand=brand)
+        if not data: return
+
         from src.skills.post_skill import create_static_post
         # Now passing the Dutch script to be drawn on the image
         post_path = create_static_post(brand=brand, topic=topic, description=data.get('dutch_script', ''))
