@@ -330,27 +330,26 @@ def process_command(chat_id, text):
                     import time
                     
                     send_message(chat_id, f"🎬 Otonom 'Gezellig' Senarist (GPT) iş başında... {f'Konu: {topic}' if topic else ''}")
-                    data = run_production_line(topic=topic)
-                    if not data:
+                    pack = run_production_line(topic=topic)
+                    if not pack:
                          send_message(chat_id, "❌ GPT senaryo yazarken bir hata oluştu.")
                          return
                     
+                    data = pack["gpt_data"]
+                    
                     send_message(chat_id, f"🎨 Işıkçı (DALL-E) seti hazırlıyor: {data['image_prompt'][:50]}...")
-                    # In a production server, we'd call an Image Skill here.
-                    # For this environment, we'll assume the image is provided or we use a fallback aesthetic.
-                    # IMPORTANT: For the POC, we simulate the 'Artist' role.
+                    from src.skills.ai_client import generate_image
+                    bg_path = generate_image(data['image_prompt'])
+                    
+                    if not bg_path:
+                        send_message(chat_id, "⚠️ Görsel oluşturulamadı, varsayılan arka plan kullanılıyor.")
+                        bg_path = os.path.join(os.getcwd(), "outputs", "gezellig_default.png")
+                    
                     send_message(chat_id, "🎥 Stüdyo & Kameraman (FFmpeg) kayda giriyor...")
                     
-                    # For the POC, we use a default high-aesthetic background if not generated
-                    bg_path = os.path.join(os.getcwd(), "outputs", "gezellig_default.png")
-                    # (In full auto, we would trigger image_skill.generate)
-                    
                     video_path = create_reel(
-                        fragments=[
-                            {"tag": "hook", "text": data["hook"], "audio": "outputs/autonorm_frag_0_hook.mp3"},
-                            {"tag": "content", "text": data["content"], "audio": "outputs/autonorm_frag_1_content.mp3"},
-                            {"tag": "cta", "text": data["cta"], "audio": "outputs/autonorm_frag_2_cta.mp3"}
-                        ],
+                        fragments=pack["fragments"],
+                        image_path=bg_path,
                         output_filename=f"gezellig_{int(time.time())}.mp4",
                         brand="glow"
                     )
@@ -378,15 +377,17 @@ def process_command(chat_id, text):
                     
                     for i in range(count):
                         send_message(chat_id, f"🔄 Set Üretimi: {i+1}/{count} hazırlanıyor...")
-                        data = run_production_line() # Random wellness tip
-                        if not data: continue
+                        pack = run_production_line() # Random wellness tip
+                        if not pack: continue
+                        
+                        data = pack["gpt_data"]
+                        
+                        from src.skills.ai_client import generate_image
+                        bg_path = generate_image(data['image_prompt'])
                         
                         video_path = create_reel(
-                            fragments=[
-                                {"tag": "hook", "text": data["hook"], "audio": "outputs/autonorm_frag_0_hook.mp3"},
-                                {"tag": "content", "text": data["content"], "audio": "outputs/autonorm_frag_1_content.mp3"},
-                                {"tag": "cta", "text": data["cta"], "audio": "outputs/autonorm_frag_2_cta.mp3"}
-                            ],
+                            fragments=pack["fragments"],
+                            image_path=bg_path,
                             output_filename=f"gezellig_set_{i+1}_{int(time.time())}.mp4",
                             brand="glow"
                         )

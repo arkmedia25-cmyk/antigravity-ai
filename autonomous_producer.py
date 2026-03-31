@@ -62,7 +62,10 @@ def run_production_line(topic=None, output_name=None):
     ]
     
     for i, frag in enumerate(fragments):
-        filename = f"autonorm_frag_{i}_{frag['tag']}.mp3"
+        # We use a unique prefix to avoid collisions if multiple productions run
+        import time
+        ts = int(time.time())
+        filename = f"autonorm_{ts}_frag_{i}_{frag['tag']}.mp3"
         path = tts_skill.generate_dutch_audio(
             text=frag["text"],
             filename=filename,
@@ -71,11 +74,12 @@ def run_production_line(topic=None, output_name=None):
         )
         frag["audio"] = path
 
-    # 4. Rendering in the Virtual Studio (Simulated if image generation tool is not direct in script,
-    # but here we use the video_skill)
-    # We will need the image path. In autonomous mode, we expect image_skill or a tool.
-    # For now, we return the data to the orchestrator (Telegram or local script).
-    return data
+    # 4. Success - Return the full production package
+    return {
+        "gpt_data": data,
+        "fragments": fragments,
+        "image_prompt": image_prompt
+    }
 
 if __name__ == "__main__":
     # Local Test for a SINGLE otonom video

@@ -15,6 +15,7 @@ THEMES = {
         "accent":     (255, 112, 86),
         "accent2":    (255, 185, 165),
         "text":       (62, 44, 40),
+        "glass":      (255, 255, 255, 180), # Soft white glass
         "font_title": "title",
         "font_body":  "body",
         "brand_name": "@GlowUpNL",
@@ -24,6 +25,7 @@ THEMES = {
         "accent":     (130, 150, 120),
         "accent2":    (210, 220, 200),
         "text":       (40, 44, 45),
+        "glass":      (255, 255, 255, 180), # Soft white glass
         "font_title": "title",
         "font_body":  "body",
         "brand_name": "@HolistiGlow",
@@ -131,13 +133,20 @@ def _build_sentence_frame(text: str, theme: dict, index: int) -> str:
     img  = Image.new("RGB", (_W, _H), theme["bg"])
     draw = ImageDraw.Draw(img)
     text = _clean_text(text)
+    
     card_x0, card_x1 = 80, _W - 80
     card_y0, card_y1 = _H // 2 - 380, _H // 2 + 380
+    
+    # Modern Rounded Plate
     _draw_rounded_rect(draw, [card_x0, card_y0, card_x1, card_y1], 40, fill=theme["accent2"])
+    
+    # Accent Bar
     draw.rectangle([card_x0, card_y0 + 60, card_x0 + 10, card_y1 - 60], fill=theme["accent"])
+    
     f = _font(72, theme["font_body"])
     lines = _wrap(draw, text, f, max_w=870)
     _multiline(draw, lines, f, center_y=_H // 2, color=theme["text"], spacing=22)
+    
     path = os.path.join(_OUTPUT_DIR, f"frame_content_{index}.png")
     os.makedirs(_OUTPUT_DIR, exist_ok=True)
     img.save(path)
@@ -203,6 +212,7 @@ def create_reel(
         tag = frag.get("tag", "content")
         text = frag.get("sentence") or frag.get("text", "")
         
+        # Combine background and glass plate
         img = Image.new("RGB", (_W, _H), theme["bg"])
         if image_path and os.path.exists(image_path):
             try:
@@ -213,41 +223,69 @@ def create_reel(
                 top = (bg_img.height - _H) // 2
                 bg_img = bg_img.crop((left, top, left + _W, top + _H))
                 img.paste(bg_img, (0, 0))
-                overlay = Image.new('RGBA', (_W, _H), (0, 0, 0, 100))
-                img.paste(overlay, (0, 0), overlay)
-            except: pass
+            except Exception as e:
+                print(f"[video_skill] Warning background wrap: {e}")
 
-        draw = ImageDraw.Draw(img)
-        text_color = (255, 255, 255) if image_path else theme["text"]
-
+        # Create Overlay Layer for Glassmorphism
+        overlay_img = Image.new("RGBA", (_W, _H), (0,0,0,0))
+        overlay_draw = ImageDraw.Draw(overlay_img)
+        
+        text_color = theme["text"]
+        
         if tag == "hook":
-            if not image_path:
-                draw.ellipse([_CX - 380, 280, _CX + 380, 1080], outline=theme["accent2"], width=4)
-                draw.polygon([(_CX, 560), (_CX - 55, 680), (_CX + 55, 680)], fill=theme["accent"])
-            f = _font(82, theme["font_title"])
-            lines = _wrap(draw, _clean_text(text), f, max_w=950)
-            _multiline(draw, lines, f, center_y=1130, color=text_color, spacing=22)
+            # Header Plate (Glass) at the Top
+            bx0, by0, bx1, by1 = 80, 200, _W - 80, 600
+            _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, fill=theme["glass"])
+            
+            img.paste(overlay_img, (0, 0), overlay_img)
+            draw = ImageDraw.Draw(img)
+            
+            f = _font(85, theme["font_title"])
+            lines = _wrap(draw, _clean_text(text), f, max_w=850)
+            _multiline(draw, lines, f, center_y=(by0 + by1) // 2, color=text_color, spacing=25)
+            
             img_p = os.path.join(_OUTPUT_DIR, f"f_hook_{i}.png")
             img.save(img_p)
         elif tag == "cta":
+            # Quote/CTA Plate (Glass) in Middle-Bottom
+            bx0, by0, bx1, by1 = 100, 600, _W - 100, 1000
+            _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, fill=theme["glass"])
+            
+            # Action Button Plate
+            btn_bx0, btn_by0, btn_bx1, btn_by1 = 120, 1100, _W - 120, 1380
+            _draw_rounded_rect(overlay_draw, [btn_bx0, btn_by0, btn_bx1, btn_by1], 60, fill=theme["accent"])
+            
+            img.paste(overlay_img, (0, 0), overlay_img)
+            draw = ImageDraw.Draw(img)
+            
             f_q = _font(82, theme["font_title"])
-            lines_q = _wrap(draw, _clean_text(text), f_q, max_w=950)
-            _multiline(draw, lines_q, f_q, center_y=750, color=text_color, spacing=20)
-            bx0, by0, bx1, by1 = 120, 1000, _W - 120, 1280
-            _draw_rounded_rect(draw, [bx0, by0, bx1, by1], 40, fill=theme["accent"])
-            f_btn = _font(52, theme["font_body"])
-            _center(draw, "Like & Save", f_btn, cy=by0 + 75, color=(255, 255, 255))
-            _center(draw, f"Follow {theme['brand_name']}", f_btn, cy=by0 + 170, color=(255, 255, 255))
+            lines_q = _wrap(draw, _clean_text(text), f_q, max_w=820)
+            _multiline(draw, lines_q, f_q, center_y=(by0 + by1) // 2, color=text_color, spacing=25)
+            
+            f_btn = _font(55, theme["font_body"])
+            _center(draw, "Like & Save", f_btn, cy=btn_by0 + 85, color=(255, 255, 255))
+            _center(draw, f"Follow {theme['brand_name']}", f_btn, cy=btn_by0 + 185, color=(255, 255, 255))
+            
             f_link = _font(44, theme["font_body"])
             _center(draw, "Check the link in bio", f_link, cy=_H - 160, color=theme["accent"])
+            
             img_p = os.path.join(_OUTPUT_DIR, f"f_cta_{i}.png")
             img.save(img_p)
         else:
-            if not image_path:
-                _draw_rounded_rect(draw, [80, _H//2-380, _W-80, _H//2+380], 40, fill=theme["accent2"])
+            # Main Content Plate (Glass) in Center
+            bx0, by0, bx1, by1 = 80, _H//2-400, _W-80, _H//2+400
+            _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, fill=theme["glass"])
+            
+            # Accent bar on glass
+            overlay_draw.rectangle([bx0, by0 + 80, bx0 + 15, by1 - 80], fill=theme["accent"])
+            
+            img.paste(overlay_img, (0, 0), overlay_img)
+            draw = ImageDraw.Draw(img)
+            
             f = _font(72, theme["font_body"])
-            lines = _wrap(draw, _clean_text(text), f, max_w=870)
-            _multiline(draw, lines, f, center_y=_H // 2, color=text_color, spacing=22)
+            lines = _wrap(draw, _clean_text(text), f, max_w=850)
+            _multiline(draw, lines, f, center_y=_H // 2, color=text_color, spacing=25)
+            
             img_p = os.path.join(_OUTPUT_DIR, f"f_content_{i}.png")
             img.save(img_p)
 
