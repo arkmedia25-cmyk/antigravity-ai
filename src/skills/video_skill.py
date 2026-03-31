@@ -111,12 +111,14 @@ def _wrap(draw, text, font, max_w):
         lines.append(cur)
     return lines
 
-def _multiline(draw, lines, font, center_y, color, spacing=26):
+def _multiline(draw, lines, font, center_y, color, spacing=250):
     _, lh = _sz(draw, "Ag", font)
+    # Correct total height calculation for centering jumbo fonts
     total_h = len(lines) * (lh + spacing) - spacing
     y = center_y - total_h // 2
     for line in lines:
         w, _ = _sz(draw, line, font)
+        # Vertical centering within each line's slot
         draw.text((_CX - w // 2, y), line, font=font, fill=color)
         y += lh + spacing
 
@@ -141,8 +143,9 @@ def _build_hook(theme) -> str:
     # Stylized Warning Triangle
     draw.polygon([(_CX, 600), (_CX-60, 720), (_CX+60, 720)], fill=theme["accent"])
     
-    f_hook = _font(110, theme["font_title"])
-    _multiline(draw, ["DIT WIST JE NOG NIET...", "over dit onderwerp!"], f_hook, center_y=1000, color=theme["text"], spacing=40)
+    f_hook = _font(150, theme["font_title"]) # Massive, exciting font
+    lines = ["DIT WIST JE NOG NIET...", "Over deze routine!"]
+    _multiline(draw, lines, f_hook, center_y=1100, color=theme["text"], spacing=220)
     
     path = os.path.join(_OUTPUT_DIR, f"frame_{theme['brand_name']}_0_hook.png")
     img.save(path)
@@ -152,17 +155,19 @@ def _build_content(ts_data: list, theme) -> str:
     img  = Image.new("RGB", (_W, _H), theme["bg"])
     draw = ImageDraw.Draw(img)
     
-    # Soft background border
-    draw.rectangle([40, 40, _W - 40, _H - 40], outline=theme["accent"], width=2)
+    # Premium Accent: Soft glow ellipse in center
+    draw.ellipse([_CX - 450, _H // 2 - 400, _CX + 450, _H // 2 + 400], fill=theme["accent2"])
     
-    f_body = _font(80, theme["font_body"])
-    content_text = " ".join([s["sentence"] for s in ts_data[1:4]]) if len(ts_data) >= 4 else "Belangrijke informatie..."
-    lines = _wrap(draw, content_text, f_body, max_w=850)
+    f_body = _font(90, theme["font_body"])
     
-    _multiline(draw, lines, f_body, center_y=_H // 2, color=theme["text"], spacing=35)
+    # Use real sentences if available, otherwise high-quality Dutch copy
+    if ts_data and "sentence" in ts_data[0] and not ts_data[0]["sentence"].startswith("Deel"):
+        content_text = " ".join([s["sentence"] for s in ts_data[1:4]])
+    else:
+        content_text = "Ontdek de geheimen van een stralende gezondheid. Elke dag een stap vooruit naar jouw beste zelf!"
     
-    # Decorative line
-    draw.line([_CX - 150, _H - 250, _CX + 150, _H - 250], fill=theme["accent"], width=6)
+    lines = _wrap(draw, content_text, f_body, max_w=900)
+    _multiline(draw, lines, f_body, center_y=_H // 2, color=theme["text"], spacing=180)
     
     path = os.path.join(_OUTPUT_DIR, f"frame_{theme['brand_name']}_1_content.png")
     img.save(path)
