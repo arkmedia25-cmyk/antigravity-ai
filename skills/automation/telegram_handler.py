@@ -139,25 +139,30 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
     tone = "energetic and result-oriented" if brand == "glow" else "calm and holistic"
 
     try:
-        if not _video_pipeline_ok:
-            send_message(chat_id, "Video pipeline niet beschikbaar. Controleer installatie.")
-            return
+        # Load Brand-Specific Squad Manifesto
+        personality_file = f"{brand}_personality.txt"
+        personality_path = os.path.join(os.getcwd(), "agents", personality_file)
+        manifesto = ""
+        if os.path.exists(personality_path):
+            with open(personality_path, "r", encoding="utf-8") as f:
+                manifesto = f.read()
 
-        # Stap 1: AI genereert script, caption en tags
-        send_message(chat_id, f"🎬 {brand_label} için video hazırlanıyor...\nKonu: {topic}\nStrateji: Faydalı & Güven Verici")
+        # Step 1: AI generates script, caption and tags
+        send_message(chat_id, f"🎬 {brand_label} SQUAD iş başında!\nKonu: {topic}\nStrateji: {brand.upper()} Manifestosu uygulanıyor...")
         
         prompt = (
-            f"Sen uzman bir wellness içerik üreticisisin. Marka: {brand_label}. Tone: {tone}.\n"
+            f"=== SQUAD MANIFESTO - ACT AS THIS TEAM ===\n{manifesto}\n\n"
+            f"Sen uzman bir wellness içerik üreticisisin. Marka: {brand_label}.\n"
             f"Konu: {topic}\n"
-            "GÖREV: Hollanda'daki kadınlara faydalı olacak, güven veren bir video scripti yaz.\n"
+            "GÖREV: SQUAD MANIFESTO'na sadık kalarak Hollanda'daki kadınlara faydalı bir paket hazırla.\n"
             "YAPI:\n"
-            "1. HOOK (5-8 sec): Merak uyandıran veya bir soruna çözüm sunan giriş.\n"
-            "2. CONTENT (15-20 sec): 2-3 gerçekten faydalı ipucu veya bilgi.\n"
-            "3. CTA (5 sec): Nazikçe takip iste. Örn: 'Bu bilgiler için bizi takip etmeyi unutma!'\n\n"
+            "1. HOOK (5-8 sec): Manifesto tarzına uygun giriş.\n"
+            "2. CONTENT (15-20 sec): 2-3 faydalı ipucu.\n"
+            "3. CTA (5 sec): Manifesto tarzına uygun takip çağrısı.\n\n"
             "Şu 3 parçayı sağla:\n"
-            "---SCRIPT---\n[Sadece seslendirilecek Hollandaca metin]\n"
-            "---CAPTION---\n[Instagram için samimi Hollandaca açıklama]\n"
-            "---TAGS---\n[En popüler 10-15 hashtag]\n"
+            "---SCRIPT---\n[Sadece Hollandaca metin]\n"
+            "---CAPTION---\n[Instagram açıklaması]\n"
+            "---TAGS---\n[Hashtag'ler]\n"
         )
         full_response = ask_ai(prompt)
         
@@ -244,7 +249,27 @@ def _send_canva_response(chat_id, response: str):
 def process_command(chat_id, text):
     """Verwerk Telegram commando"""
     try:
-        if text.startswith("/start"):
+        if text.startswith("/squad_status"):
+            # Competition Dashboard (Simulation for now based on generated files)
+            glow_count = len([f for f in os.listdir("outputs") if "reel_glow" in f])
+            holisti_count = len([f for f in os.listdir("outputs") if "reel_holisti" in f])
+            
+            winner = "🔥 GLOWUP" if glow_count > holisti_count else "🌿 HOLISTIGLOW" if holisti_count > glow_count else "🤝 BERABERE"
+            
+            status = (
+                f"🏆 **SQUAD REKABETİ: GÜNCEL DURUM**\n\n"
+                f"🔥 **GLOWUP SQUAD (@GlowUpNL)**\n"
+                f"└ Üretilen Reel: {glow_count}\n"
+                f"└ Mood: Enerjik & Hırslı\n\n"
+                f"🌿 **HOLISTIGLOW SQUAD (@HolistiGlow)**\n"
+                f"└ Üretilen Reel: {holisti_count}\n"
+                f"└ Mood: Bilge & Huzurlu\n\n"
+                f"📊 **ŞU AN ÖNDE OLAN:** {winner}\n"
+                f"🏁 **Hedef:** 30 günde 2.000 takipçi!"
+            )
+            send_message(chat_id, status)
+
+        elif text.startswith("/start"):
             # Start the 24/7 Automated Content Factory
             start_content_factory(chat_id)
             send_message(chat_id,
