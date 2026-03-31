@@ -225,10 +225,10 @@ def create_reel(
         ts = [{"sentence": f"Deel {i}", "start": i*3.0, "end": (i+1)*3.0} for i in range(5)]
 
     # Calculate dynamic durations based on audio
-    # But since we use -shortest, we can just set long buffers for segments 2 and 3
+    # Using 60s total buffer so -shortest handles precisely any audio length
     d_hook = 5.0
-    d_content = 30.0 # Plenty of space for tips
-    d_cta = 15.0     # Plenty of space for CTA
+    d_content = 40.0 # Standard Reel length buffer
+    d_cta = 15.0     # CTA buffer
 
     print(f"[video_skill] Natively generating frames for brand: {brand}...")
     img_hook = _build_hook(theme)
