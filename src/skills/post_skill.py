@@ -25,3 +25,24 @@ def create_static_post(brand="glow", topic="wellness", prompt_override=None):
     except Exception as e:
         print(f"❌ Static post generation failed: {e}")
     return None
+
+def create_static_story(brand="glow", topic="wellness", prompt_override=None):
+    """Dikey (9:16) formatta statik story gorseli uretir."""
+    print(f"📱 Creating static story for @{brand.capitalize()}NL | Topic: {topic}")
+    
+    brand_style = (
+        "Energetic vibe, morning light, active wellness lifestyle" 
+        if brand == "glow" else 
+        "Zen atmosphere, soft afternoon shadows, mindfulness lifestyle"
+    )
+
+    final_prompt = prompt_override or f"A high-end, aesthetic vertical 9:16 Instagram Story for @{brand.capitalize()}NL. {topic}. {brand_style}, professional photography style, cinematic lighting."
+    
+    try:
+        image_path = generate_image(final_prompt + " (Ensure Vertical 9:16 aspect ratio)")
+        if image_path:
+            print(f"✅ Static story generated: {image_path}")
+            return image_path
+    except Exception as e:
+        print(f"❌ Static story generation failed: {e}")
+    return None

@@ -320,9 +320,11 @@ def route_nl_request(chat_id, text):
         "Sen @GlowUpNL markasının dijital asistanısın. Kullanıcının niyetini anla.\n"
         "Şu eylemlerden birini seç (action):\n"
         "1. 'video': Kullanıcı video/reels yapılmasını istiyor.\n"
-        "2. 'idea': Kullanıcı içerik fikri istiyor.\n"
-        "3. 'research': Kullanıcı pazar/trend araştırması istiyor.\n"
-        "4. 'chat': Sadece soru soruyor veya sohbet ediyor.\n\n"
+        "2. 'post': Kullanıcı statik feed görseli/post fazılmasını istiyor.\n"
+        "3. 'story': Kullanıcı dikey story/hikaye paylaşımı istiyor.\n"
+        "4. 'idea': Kullanıcı içerik fikri istiyor.\n"
+        "5. 'research': Kullanıcı pazar/trend araştırması istiyor.\n"
+        "6. 'chat': Sadece soru soruyor veya sohbet ediyor.\n\n"
         "JSON döndür: { \"action\": \"...\", \"topic\": \"...\", \"reply\": \"Kullanıcıya verilecek kısa ön onay mesajı\" }"
     )
     from skills.ai_client import ask_ai
@@ -356,6 +358,16 @@ def route_nl_request(chat_id, text):
                 ]]
             }
             send_message_with_markup(chat_id, "Hangi kanal için statik POST hazırlayalım?", reply_markup)
+        elif action == "story":
+            import json
+            # Ask which brand for story
+            reply_markup = {
+                "inline_keyboard": [[
+                    {"text": "🔥 @GlowUpNL (Energetic)", "callback_data": f"brand_glow_story_{topic}"},
+                    {"text": "🌿 @HolistiGlow (Calm)", "callback_data": f"brand_holisti_story_{topic}"}
+                ]]
+            }
+            send_message_with_markup(chat_id, "Hangi kanal için dikey STORY hazırlayalım?", reply_markup)
         elif action == "idea":
             send_message(chat_id, reply)
             process_command(chat_id, "/idea")
@@ -428,6 +440,31 @@ def _run_agency_post(chat_id, brand, topic):
     except Exception as e:
         print(f"[_run_agency_post] HATA: {e}")
         send_message(chat_id, f"❌ Agency post hatası: {e}")
+
+def _run_agency_story(chat_id, brand, topic):
+    """Markaya ozel statik STORY uret."""
+    try:
+        import hunt_trends
+        send_message(chat_id, f"🔍 @{brand.capitalize()}NL için dikey story planlanıyor...")
+        hunt_trends.hunt_trends(brand=brand)
+        
+        from autonomous_producer import generate_autonomous_content
+        send_message(chat_id, f"📱 @{brand.capitalize()}NL dikey story tasarımı (9:16) başlatıldı...")
+        
+        data = generate_autonomous_content(topic, brand=brand)
+        if not data: return
+        
+        from src.skills.ai_client import generate_image
+        # Story format is 9:16, ask DALL-E for vertical
+        target_prompt = data['image_prompt'] + " (Vertical 9:16 format, high-end lifestyle photography, cinematic wellness style)"
+        story_path = generate_image(target_prompt)
+        
+        if not story_path: return
+        
+        send_document(chat_id, story_path, caption=f"📱 @{brand.capitalize()}NL Story Görseli Hazır!\n\n**İpucu:** Hikayenize 'Link in Bio' çıkartması eklemeyi unutmayın!\n\n**Metin Önerisi:**\n{data.get('dutch_script', '')}")
+    except Exception as e:
+        print(f"[_run_agency_story] HATA: {e}")
+        send_message(chat_id, f"❌ Agency story hatası: {e}")
 
 
 def process_command(chat_id, text):
@@ -915,6 +952,8 @@ def main():
                             threading.Thread(target=_run_agency_video, args=(chat_id, brand, topic), daemon=True).start()
                         elif type == "post":
                              threading.Thread(target=_run_agency_post, args=(chat_id, brand, topic), daemon=True).start()
+                        elif type == "story":
+                             threading.Thread(target=_run_agency_story, args=(chat_id, brand, topic), daemon=True).start()
                         
                         safe_request(f"{URL}/answerCallbackQuery", method="post", data={"callback_query_id": cb["id"]})
                         continue
