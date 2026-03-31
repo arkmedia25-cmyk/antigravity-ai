@@ -18,11 +18,14 @@ IMPORTANT: All text (hook, content, cta, dutch_script) MUST BE IN DUTCH ONLY. NO
 SADECE HOLLANDACA (Nederlands) yazmalısın.
 
 Generate a JSON object with:
-1. 'hook': A short attention-grabbing sentence in Dutch (<3s).
-2. 'content': 2-3 relatable sentences about a health/wellness tip (in Dutch).
-3. 'cta': A clear call-to-action in Dutch (e.g., Like & Sla Op, Volg @GlowUpNL).
-4. 'image_prompt': A DALL-E 3 prompt for a WARM, NATURAL background image. Relatable Dutch wellness scenes.
-5. 'dutch_script': The exact text to be spoken by AI Nova (IN DUTCH).
+1. 'title': A short, punchy title for the video (in Dutch).
+2. 'hook': A short attention-grabbing sentence for the entrance (in Dutch, <3s).
+3. 'content': 2-3 relatable sentences about a health/wellness tip (in Dutch).
+4. 'cta': A clear call-to-action (in Dutch, e.g., Like & Sla Op, Volg @GlowUpNL).
+5. 'instagram_caption': An engaging Instagram caption with emojis (in Dutch).
+6. 'hashtags': 5-8 strategic Dutch hashtags (Space separated).
+7. 'image_prompt': A DALL-E 3 prompt for a WARM, NATURAL background image (in English).
+8. 'dutch_script': The exact text to be spoken by AI Nova (IN DUTCH).
 """
 
 USER_PROMPT = "Generate a 'Gezellig' Wellness tip for @GlowUpNL NL audience."

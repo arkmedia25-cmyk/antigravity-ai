@@ -380,6 +380,15 @@ def process_command(chat_id, text):
                     )
                     
                     send_video(chat_id, video_path, caption=f"✨ Otonom Gezellig Wellness!\n\nSenaryo: {data['dutch_script']}")
+                    
+                    # Send Instagram Posting Kit (Copy-Paste friendly)
+                    posting_kit = (
+                        f"📝 **INSTAGRAM POSTING KIT**\n\n"
+                        f"**Titel:** {data.get('title', 'Wellness Tip')}\n\n"
+                        f"**Caption:**\n{data.get('instagram_caption', 'Ontdek wellness tips bij @GlowUpNL!')}\n\n"
+                        f"**Tags:**\n`{data.get('hashtags', '#wellness #gezellig #glowup')}`"
+                    )
+                    send_message(chat_id, posting_kit)
                 except Exception as e:
                     send_message(chat_id, f"❌ Otonom üretim hatası: {e}")
             
