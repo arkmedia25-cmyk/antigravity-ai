@@ -1,0 +1,436 @@
+Claude Code
+Skills Rehberi
+ Skill Creator Guncellemesi | En Iyi 30 Skill | GitHub Repo Linkleri
+ 4 Mod
+Create / Eval
+Improve / Benchmark
+ 4 Sub-Agent
+ Executor / Grader
+Comparator / Analyzer
+ Trigger +%70
+ Optimize edilmis
+ description ile
+ 30 Top Skill
+Kategorilere gore
+ siralandi
+Bu rehber, Claude Code Skills sisteminin Mart 2026 guncellemesini, Skill Creator'in yeni ozelliklerini ve
+topluluk tarafindan en cok kullanilan 30 skill'i kapsamli bicimde ele almaktadir. Tum GitHub linkleri son
+sayfada.
+Claude Code Skills
+Kapsamli Rehber & En Iyi 30 Skill
+claude.ai  |  code.claude.com  |  github.com/anthropics/skills
+Sayfa 1 / 7
+
+1. Claude Code Skills Nedir?
+Temel Kavramlar ve Mimari
+Claude Code Skills (Agent Skills), Claude'un yeteneklerini modüler, tasinabilir paketlerle genisletir. Her
+skill bir SKILL.md dosyasi etrafinda insa edilir: YAML frontmatter (ad + aciklama) ve Markdown
+talimatlari. Claude, goreviyle en ilgili skill'i otomatik olarak secer ve devreye alir. Ayni skill Claude.ai,
+Claude Code ve API uzerinde calisir.
+Temel Ilke: Skills, Claude'u kendi basina yapamayacagi seyleri yapabilen veya sizin spesifik is akisinizi
+kodlayan uzman asistanlara donusturur. Bir kez yaz, her yerde kullan.
+Skill Turleri
+ Tur
+ Aciklama
+ Ornek
+ Dayaniklilik
+Capability Uplift
+Model'in tutarsiz yaptigi seyleri
+guvenilir hale getirir
+PDF form doldurma, DOCX
+olusturma
+Model gelistikce
+azalir
+Workflow /
+Preference
+Ekibin spesifik is akisini kodlar ve
+tekrarlanabilir yapar
+PR review sureci, haftalik rapor
+formati
+Cok dayanikli
+Progressive Disclosure Mimarisi
+Skills, 3 kademeli yukleme sistemi kullanir. 100+ skill ayni anda hazirda bekleyebilir, bagiam penceresi
+dolmaz:
+ Katman
+ Icerik
+ Token Maliyeti
+ Ne Zaman Yuklenir
+1 — Metadata
+Ad + description (frontmatter)
+~30-100 token
+Her zaman
+2 — SKILL.md govdesi
+Tam talimatlar (ideal: <500 satir)
+<5.000 token
+Skill tetiklendiginde
+3 — Bundled
+Resources
+Script'ler, referanslar, asset'ler
+Sinirsiz
+Gerektiginde
+Claude Code Skills
+Kapsamli Rehber & En Iyi 30 Skill
+claude.ai  |  code.claude.com  |  github.com/anthropics/skills
+Sayfa 2 / 7
+
+2. Skill Creator — Mart 2026 Guncellemesi
+Test, Olc, Iyilestir
+Anthropic, Mart 2026'da Skill Creator'a yazilim gelistirme disiplinini getirdi. Artik kod yazmadan
+skill'lerinizi test edebilir, kiyaslayabilir ve otomatik olarak optimize edebilirsiniz. Guncelleme Claude.ai,
+Cowork ve Claude Code plugin olarak mevcuttur.
+4 Calisma Modu
+CREATE
+Sifirdan skill insa et. Gereksinim toplama, SKILL.md taslagi, test case olusturma ve
+iteratif iyilestirme dongusu.
+EVAL
+Skill'in gercekten calisip calismadigini olc. Her test case icin pass/fail orani, sure ve token
+kullanimi raporlanir.
+IMPROVE
+Basarisiz test case'lerini analiz ederek skill govdesini veya description'i otomatik
+gunceller.
+BENCHMAR
+K
+Model guncellemelerinden once/sonra standart bir kiyaslama calistirir. CI pipeline'ina
+entegre edilebilir.
+4 Composable Sub-Agent
+ Agent
+ Gorevi
+ Calisma Sekli
+Executor
+Skill'i test prompt'larina karsi calistirir
+Temiz baglamda bagimsiz, paralel
+Grader
+Ciktilari tanimli beklentilerle karsilastirir
+JSON assertion'larini degerlendirir
+Comparator
+Iki skill versiyonu arasinda kor A/B testi yapar
+Hangi versiyonun hangisi oldugunu bilmeden
+deger.
+Analyzer
+Basarisizlik pattern'lerini tespit eder
+Aggregate istatistiklerin gizledigi sorunlari ortaya
+cikan.
+Trigger Optimizasyon Dongusu (run_loop.py)
+Description kalitesi, skill'in ne zaman tetiklenecegini belirleyen en kritik faktordu. Arastirmalar, optimize
+edilmis description ile tetiklenme oraninin %20'den %90'a cikabildigini gosterdi. Otomasyon dongusu:
+- Adim 1: Eval set'i %60 train / %40 held-out test olarak boler
+ 
+- Adim 2: Mevcut description'i her query icin 3 kez test eder (guvenilirlik icin)
+ 
+- Adim 3: Basarisiz olanlari analiz ederek yeni description onerir (max 200 kelime)
+ 
+- Adim 4: Yeni description'i hem train hem test uzerinde degerlendirir
+ 
+- Adim 5: 5 iterasyon boyunca tekrarlar; en iyi test skorunu secer (overfit onlenir)
+ 
+- Adim 6: HTML raporu olusturur, best_description JSON olarak doner
+ 
+Pratik Sonuc: Description bir 'metadata' degil, ogrenilir bir parametredir. Artik description'i tahmin
+etmek yerine, test sonuclarina gore muhendislik yapabilirsiniz.
+Claude Code Skills
+Kapsamli Rehber & En Iyi 30 Skill
+claude.ai  |  code.claude.com  |  github.com/anthropics/skills
+Sayfa 3 / 7
+
+3. Sifirdan Skill Olusturma
+Adim Adim Rehber
+SKILL.md Anatomisi
+---
+name: skill-adi
+description: Ne yapar ve NE ZAMAN tetiklenir.
+Use when the user asks to...
+---
+# Skill Basligi
+## Genel Bakis
+[Skill'in amacini acikla]
+## Adimlar
+1. Kullanicinin istegini degerlendir
+2. Gerekli kaynaklari yukle
+3. Gorevi yurut
+## Cikti Formati
+[Beklenen ciktiyi tanimla]
+Description Yazma Altin Kurallari
+Eylem diliyle basla: 'Use when the user asks to...' — Claude'un ic routing mekanizmasi icin kritik
+DOGRU
+Asiri genis olmaktan kacin: 'code tool' gibi jenerik aciklamalar false-trigger'a yol acar
+DIKKAT
+Somut tetikleyici kelimeler ekle: 'PDF, form, merge, extract' gibi spesifik terimler
+DOGRU
+200 kelimeyi gecme: Kisa, yogun, netlik oncelikli
+KURAL
+'Pushy' ol: Anthropic'in onerisi — biraz 'zorba' bir dil tetiklenme oranini artiriyor
+IPUCU
+Skill Kurulum Komutlari
+Marketplace'e ekle
+/plugin marketplace add anthropics/skills
+Belirli bir skill'i kur
+/plugin install document-skills@anthropic-agent-skills
+Yerel skill ekle
+/plugin add /path/to/skill-directory
+Skill'i manuel tetikle
+/skill-adi [argumanlar]
+Mevcut skill'leri listele
+/skills
+Claude Code Skills
+Kapsamli Rehber & En Iyi 30 Skill
+claude.ai  |  code.claude.com  |  github.com/anthropics/skills
+Sayfa 4 / 7
+
+4. En Iyi 30 Claude Code Skill
+Kategori | Aciklama | GitHub Linki
+Asagidaki liste; Anthropic'in resmi skill repo'su, topluluk kuratorleri (awesome-claude-skills) ve uretim
+kullanim verileri esas alinarak derlenmistir.
+ #
+ Skill Adi
+ Kategori
+ Ne Yapar?
+ Kaynak
+1
+pdf
+Dokuman
+PDF okuma, birlestirme, form doldurma, tablo
+cikartma. Anthropic'in en cok kullanilan resmi
+skill'i.
+github.com/anthropics/skills
+2
+docx
+Dokuman
+Word belgesi olusturma ve duzenleme; basliklar,
+icindekiler, takip degisiklikleri.
+github.com/anthropics/skills
+3
+pptx
+Dokuman
+Sunum olusturma ve guncelleme; sablonlar, notlar,
+duzenler.
+github.com/anthropics/skills
+4
+xlsx
+Dokuman
+Excel analizi, pivot tablo, grafik, formul. Karmasik
+tablo islemleri.
+github.com/anthropics/skills
+5
+skill-creator
+Meta
+Yeni skill insa etme, eval calistirma, description
+optimize etme, benchmark. Bu rehberin konusu!
+github.com/anthropics/skills
+6
+mcp-builder
+Entegrasyon
+MCP sunuculari olusturma. Python (FastMCP) veya
+TypeScript SDK ile harici API entegrasyonu.
+github.com/anthropics/skills
+7
+test-driven-dev
+.
+Gelistirme
+TDD uygula: once test yaz, sonra implement et.
+Her ozellik/bugfix icin otomatik tetiklenir.
+github.com/anthropics/skills
+8
+systematic-deb
+ugging
+Gelistirme
+Bug, test basarisizligi veya beklenmedik davranisla
+karsilasinca sistematik debug sureci.
+github.com/anthropics/skills
+9
+git-worktrees
+Gelistirme
+Izole git worktree'ler olusturur; akilli dizin secimi ve
+guvenlik dogrulamasi.
+github.com/anthropics/skills
+10
+software-arch.
+Gelistirme
+Clean Architecture, SOLID prensipleri ve kapsamli
+yazilim tasarim best practice'leri.
+ComposioHQ/awesome-claude-
+skills
+11
+subagent-dev.
+Otomasyon
+Bagimsiz subagent'lar gorevlere atanir;
+iterasyonlar arasinda kod inceleme kontrol
+noktalari.
+ComposioHQ/awesome-claude-
+skills
+12
+webapp-testing
+Test
+Playwright ile yerel web uygulamalarini test et; UI
+dogrulama ve hata ayiklama.
+github.com/anthropics/skills
+13
+frontend-desig
+n
+Tasarim
+Ayirt edici, produksiyon kalitesinde frontend
+arayuzler. Jenerik AI estetiginden kacinen ozgun
+tasarim.
+github.com/anthropics/skills
+14
+web-artifacts
+Tasarim
+React, Tailwind CSS ve shadcn/ui ile karmasik cok
+bilesenli HTML artifact'leri.
+github.com/anthropics/skills
+15
+prompt-engine
+ering
+Egitim
+Bilinen prompt muhendisligi tekniklerini ogretir;
+Anthropic best practice ve agent ikna prensipleri.
+ComposioHQ/awesome-claude-
+skills
+Claude Code Skills
+Kapsamli Rehber & En Iyi 30 Skill
+claude.ai  |  code.claude.com  |  github.com/anthropics/skills
+Sayfa 5 / 7
+
+4. En Iyi 30 Skill (devam)
+#16 - #30 ve GitHub Kaynaklari
+ #
+ Skill Adi
+ Kategori
+ Ne Yapar?
+ Kaynak
+16
+owasp-security
+Guvenlik
+OWASP Top 10:2025 ve ASVS 5.0 ile kod
+inceleme; 20+ dil icin guvenli kaliplar.
+BehiSecc/awesome-claude-skill
+s
+17
+trail-of-bits-sec.
+Guvenlik
+CodeQL/Semgrep ile statik analiz, variant analizi,
+guvenlik acigi tespiti ve duzeltme dogrulamasi.
+travisvn/awesome-claude-skills
+18
+sanitize
+Guvenlik
+15 kategoride PII tespiti ve temizleme (SSN, kredi
+karti, API key). Sifir bagimlillik, yerel islem.
+BehiSecc/awesome-claude-skill
+s
+19
+revealjs-skill
+Sunum
+Reveal.js HTML sunum frameworku ile sik,
+profesyonel slaytlar olustur.
+travisvn/awesome-claude-skills
+20
+OpenPaw (38
+skill)
+Otomasyon
+git, Telegram, Discord, Obsidian, gunluk brifing
+dahil 38 skill paketi. npx pawmode ile kurulur.
+travisvn/awesome-claude-skills
+21
+ln-1000
+Orchestrator
+Mimari
+Tam gelistirme yasam dongusu yoneten
+multi-agent sistemi: planlama > uygulama >
+kalite kapisi.
+levnikolaevich/claude-code-skil
+ls
+22
+agile-workflow
+Proje Ynt.
+Kapsam ayristirma, epic/story koordinasyonu,
+RICE onceliklendirme, sprint yonetimi.
+levnikolaevich/claude-code-skil
+ls
+23
+claude-starter
+(40)
+Baslangic
+8 alanda 40 otomatik etkinlesen skill; TOON
+format ile %30-60 token tasarrufu.
+travisvn/awesome-claude-skills
+24
+Skill Seekers
+Arac
+Herhangi bir dokumantasyon sitesini dakikalar
+icinde Claude skill'ine donusturur.
+ComposioHQ/awesome-claude-
+skills
+25
+aws-skills
+Cloud
+CDK best practice, maliyet optimizasyonu MCP
+sunuculari, sunucusuz mimari kaliplari.
+travisvn/awesome-claude-skills
+26
+LangSmith Fetch
+Gozlemleneb.
+LangChain/LangGraph agent'lari hata ayiklamak
+icin LangSmith Studio'dan izleri otomatik ceker.
+ComposioHQ/awesome-claude-
+skills
+27
+claude-skills
+(169)
+Kurumsal
+Muhendislik, pazarlama, urun, uyumluluk,
+C-seviye danismanlik dahil 169 produksiyon skill.
+alirezarezvani/claude-skills
+28
+fullstack (66
+skill)
+Full-Stack
+12 kategoride 66 skill; dil, backend/frontend,
+guvenlik, DevOps ve veri/ML uzmanlari.
+Jeffallan/claude-skills
+29
+pypict-skill
+Test
+PICT (Pairwise Independent Combinatorial
+Testing) ile kapsamli test case tasarimi.
+BehiSecc/awesome-claude-skill
+s
+30
+plugin-authoring
+Meta
+Claude Code plugin'leri olusturma ve hata
+ayiklama; semalar, sablonlar, dogrulama is
+akislari.
+BehiSecc/awesome-claude-skill
+s
+Temel GitHub Kaynaklari
+github.com/anthropics/skills
+Resmi Anthropic repo — docx, pdf, pptx, xlsx, mcp-builder,
+frontend-design ve daha fazlasi
+github.com/travisvn/awesome-claude-skills
+En kapsamli community listesi — dogrulanmis, aktif surdurulen
+github.com/ComposioHQ/awesome-claude-skills
+Composio'nun kurator listesi — API entegrasyonuna odakli
+github.com/BehiSecc/awesome-claude-skills
+Guvenlik ve ozel araclar odakli kurator listesi
+github.com/alirezarezvani/claude-skills
+169 produksiyon skill — kurumsal, pazarlama, muhendislik
+github.com/levnikolaevich/claude-code-skills
+Cevikis akisi ve multi-agent pipeline koleksiyonu
+github.com/Jeffallan/claude-skills
+66 full-stack skill — dil ve framework uzmanligi
+claude.com/plugins/skill-creator
+Skill Creator resmi plugin sayfasi — kurulum ve dokumantasyon
+Claude Code Skills
+Kapsamli Rehber & En Iyi 30 Skill
+claude.ai  |  code.claude.com  |  github.com/anthropics/skills
+Sayfa 6 / 7
+
+code.claude.com/docs/en/skills
+Claude Code resmi skill dokumantasyonu
+Hizli Baslangic: Claude Code'u acin ve yazin: /plugin marketplace add anthropics/skills Ardindan
+/skill-creator ile ilk skill'inizi insa etmeye baslayin. Skills sistemi Pro, Max, Team ve Enterprise planlarda
+kullanilabilir.
+Claude Code Skills
+Kapsamli Rehber & En Iyi 30 Skill
+claude.ai  |  code.claude.com  |  github.com/anthropics/skills
+Sayfa 7 / 7
