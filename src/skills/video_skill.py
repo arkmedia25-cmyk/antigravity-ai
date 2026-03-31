@@ -192,10 +192,12 @@ def create_reel(
 
     def make_clip(img_path: str, dur: float, out_name: str) -> str:
         clip_path = os.path.join(_OUTPUT_DIR, out_name)
+        # Ken-Burns Zoom-In effect
+        # We scale up first to ensure quality zoom, then zoompan
         subprocess.run([
-            "ffmpeg", "-y", "-loop", "1", "-framerate", "24", "-t", f"{dur:.2f}",
-            "-i", img_path, "-c:v", "libx264", "-pix_fmt", "yuv420p",
-            "-crf", "23", "-preset", "ultrafast", clip_path
+            "ffmpeg", "-y", "-loop", "1", "-t", f"{dur:.2f}", "-i", img_path,
+            "-vf", f"scale=iw*2:ih*2,zoompan=z='min(zoom+0.001,1.3)':d={int(dur*24)}:s={_W}x{_H}:fps=24:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'",
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-preset", "ultrafast", clip_path
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return clip_path
 
@@ -318,10 +320,24 @@ def create_reel(
     subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", a_list, "-c", "copy", final_audio],
                    check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    subprocess.run([
-        "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", v_list,
-        "-i", final_audio, "-c:v", "copy", "-c:a", "aac", "-shortest", output_path
-    ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # Mixed Final Assembly (Voice + Background Music with Ducking)
+    bg_music = os.path.join("audio_assets", "wellness_bg.mp3")
+    if os.path.exists(bg_music):
+        print("[video_skill] Mixing background music with ducking...")
+        subprocess.run([
+            "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", v_list,
+            "-i", final_audio, "-i", bg_music,
+            "-filter_complex", 
+            "[2:a]volume=0.15[bg];" # Constant music volume 15%
+            "[1:a]volume=1.0[voice];" # Voice at 100%
+            "[bg][voice]amix=inputs=2:duration=first[outa]", # Mix them
+            "-map", "0:v", "-map", "[outa]", "-c:v", "copy", "-c:a", "aac", "-shortest", output_path
+        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    else:
+        subprocess.run([
+            "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", v_list,
+            "-i", final_audio, "-c:v", "copy", "-c:a", "aac", "-shortest", output_path
+        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     return output_path
 
