@@ -106,13 +106,25 @@ def _multiline(draw, lines: list, font, center_y: int, color, spacing: int = 20)
         draw.text((_CX - w // 2, y), line, font=font, fill=color)
         y += lh + spacing
 
+def _clean_text(text: str) -> str:
+    """Removes unsupported characters (emojis, icons, special symbols)
+    that cause 'hollow squares' in standard fonts."""
+    import re
+    if not text: return ""
+    # Only keep characters supported by Montserrat/Playfair + Dutch basics
+    clean = re.sub(r'[^\x00-\x7F\xC0-\xFF\.,!?\'\":\- ]+', '', text)
+    # Remove leading numbering like "1. ", "- ", "• "
+    clean = re.sub(r'^\s*[\d\.\-\•\*\>]+\s*', '', clean)
+    return clean.strip()
+
 def _draw_rounded_rect(draw, coords, radius: int, fill):
-    """Draw a rounded rectangle."""
+    """Draw a truly solid rounded rectangle to avoid rendering artifacts."""
     x0, y0, x1, y1 = coords
-    draw.pieslice([x0, y0, x0 + radius * 2, y0 + radius * 2], 180, 270, fill=fill)
-    draw.pieslice([x1 - radius * 2, y0, x1, y0 + radius * 2], 270, 360, fill=fill)
-    draw.pieslice([x1 - radius * 2, y1 - radius * 2, x1, y1], 0, 90, fill=fill)
-    draw.pieslice([x0, y1 - radius * 2, x0 + radius * 2, y1], 90, 180, fill=fill)
+    # Use 4 solid circles for corners and 2 rectangles for the body
+    draw.ellipse([x0, y0, x0 + radius * 2, y0 + radius * 2], fill=fill)
+    draw.ellipse([x1 - radius * 2, y0, x1, y0 + radius * 2], fill=fill)
+    draw.ellipse([x1 - radius * 2, y1 - radius * 2, x1, y1], fill=fill)
+    draw.ellipse([x0, y1 - radius * 2, x0 + radius * 2, y1], fill=fill)
     draw.rectangle([x0 + radius, y0, x1 - radius, y1], fill=fill)
     draw.rectangle([x0, y0 + radius, x1, y1 - radius], fill=fill)
 
@@ -149,14 +161,16 @@ def _build_sentence_frame(text: str, theme: dict, index: int) -> str:
     img  = Image.new("RGB", (_W, _H), theme["bg"])
     draw = ImageDraw.Draw(img)
 
-    # Card background — solid, clean, no hollow artifacts
+    # Sanitization
+    text = _clean_text(text)
+
+    # Card background — solid, clean
     card_x0, card_x1 = 80, _W - 80
     card_y0, card_y1 = _H // 2 - 380, _H // 2 + 380
     _draw_rounded_rect(draw, [card_x0, card_y0, card_x1, card_y1], 40, fill=theme["accent2"])
 
     # Left accent bar
-    draw.rectangle([card_x0, card_y0 + 60, card_x0 + 10, card_y1 - 60],
-                   fill=theme["accent"])
+    draw.rectangle([card_x0, card_y0 + 60, card_x0 + 10, card_y1 - 60], fill=theme["accent"])
 
     f = _font(72, theme["font_body"])
     lines = _wrap(draw, text, f, max_w=870)
@@ -174,7 +188,7 @@ def _build_cta(theme: dict) -> str:
 
     # Main CTA question
     f_q = _font(82, theme["font_title"])
-    lines_q = _wrap(draw, "Wat ga jij vandaag doen?", f_q, max_w=950)
+    lines_q = _wrap(draw, _clean_text("Wat ga jij vandaag doen?"), f_q, max_w=950)
     _multiline(draw, lines_q, f_q, center_y=750, color=theme["text"], spacing=20)
 
     # Rounded action button
@@ -187,9 +201,9 @@ def _build_cta(theme: dict) -> str:
         _center(draw, label, f_btn, cy=y_btn, color=(255, 255, 255))
         y_btn += 95
 
-    # Bottom link — wrapped so it never overflows
+    # Bottom link
     f_link = _font(44, theme["font_body"])
-    lines_link = _wrap(draw, "Klik op de link in bio voor meer hulp", f_link, max_w=950)
+    lines_link = _wrap(draw, _clean_text("Klik op de link in bio voor meer hulp"), f_link, max_w=950)
     _multiline(draw, lines_link, f_link, center_y=_H - 160, color=theme["accent"], spacing=10)
 
     path = os.path.join(_OUTPUT_DIR, f"frame_{theme['brand_name']}_2_cta.png")
@@ -236,11 +250,15 @@ def create_reel(
     if not sentences:
         sentences = ["Gezondheid begint met kleine keuzes.", "Elke dag een stap vooruit!"]
 
-    # ── 3. Calculate durations ──
+    # ── 3. SMART SYNC: Adaptive Timing ──
+    # Formula: Base(1.8s) + Character-based weight
     hook_dur = 5.0
     cta_dur  = 8.0
     content_dur = max(audio_duration - hook_dur - cta_dur, 5.0)
-    total_chars = sum(len(s) for s in sentences) or 1
+
+    # Calculate weights for each sentence: 1.8s base + proportional part
+    weights = [1.8 + (len(s) / 20.0) for s in sentences]
+    total_weight = sum(weights) or 1.0
 
     # ── 4. Build frames ──
     print(f"[video_skill] Building frames for brand: {brand}")
@@ -251,7 +269,7 @@ def create_reel(
     def make_clip(img_path: str, dur: float, out_name: str) -> str:
         clip_path = os.path.join(_OUTPUT_DIR, out_name)
         subprocess.run([
-            "ffmpeg", "-y", "-loop", "1", "-framerate", "24", "-t", str(dur),
+            "ffmpeg", "-y", "-loop", "1", "-framerate", "24", "-t", f"{dur:.2f}",
             "-i", img_path, "-c:v", "libx264", "-pix_fmt", "yuv420p",
             "-crf", "23", "-preset", "ultrafast", clip_path
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -264,8 +282,9 @@ def create_reel(
     print(f"[video_skill] Encoding {len(sentences)} sentence clips...")
     content_clips = []
     for i, text in enumerate(sentences):
-        dur = (len(text) / total_chars) * content_dur
-        dur = max(dur, 1.5)
+        # Proportional share of the available content duration based on weight
+        dur = (weights[i] / total_weight) * content_dur
+        dur = max(dur, 1.8) # Hard minimum so text is readable
         img_p = _build_sentence_frame(text, theme, i)
         c_p = make_clip(img_p, dur, f"v_c{i}.mp4")
         content_clips.append(c_p)
