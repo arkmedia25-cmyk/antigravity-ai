@@ -172,32 +172,37 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         caption_body = full_response.split("---CAPTION---")[-1].split("---TAGS---")[0].strip()
         tags = full_response.split("---TAGS---")[-1].strip()
 
-        # Stap 2: TTS audio
-        send_message(chat_id, "Stap 2/3: Stem inspreken...")
-        audio_path = generate_dutch_audio(script, filename=f"video_audio_{ts}.mp3")
-
-        # Stap 3: Video renderen
-        send_message(chat_id, "Stap 3/3: Video renderen...")
+        # Stap 2: Fragmented TTS (Per sentence for perfect sync)
+        send_message(chat_id, f"Stap 2/3: {brand_label} seslendirme motoru çalışıyor (Enerjik Nova 1.15x)...")
         
-        # 4. Generate dynamic timestamps/sentences for video_skill sync
+        # Split script into clean sentences
         import json, re
         raw_sentences = re.split(r'(?<=[.!?])\s+', script.strip())
         clean_sentences = []
         for s in raw_sentences:
-            # Remove numbered list markers like "1.", "2.", "•", "-" at start
-            s = re.sub(r'^\s*[\d]+[\.\)]\s*', '', s).strip()
-            s = re.sub(r'^\s*[-•*]\s*', '', s).strip()
-            # Keep only real sentences (at least 15 chars, not just a number)
-            if len(s) >= 15 and not re.match(r'^\d+$', s):
-                clean_sentences.append(s)
+            s_clean = re.sub(r'^\s*[\d]+[\.\)]\s*', '', s).strip()
+            s_clean = re.sub(r'^\s*[-•*]\s*', '', s_clean).strip()
+            if len(s_clean) >= 10: # More inclusive but still safe
+                clean_sentences.append(s_clean)
+        
         if not clean_sentences:
-            clean_sentences = ["Gezondheid begint met kleine keuzes elke dag!"]
-        ts_data = [{"sentence": s, "start": i*3.0, "end": (i+1)*3.0} for i, s in enumerate(clean_sentences)]
-        os.makedirs("outputs", exist_ok=True)
-        with open("outputs/timestamps.json", "w", encoding="utf-8") as f:
-            json.dump(ts_data, f, ensure_ascii=False, indent=2)
+            clean_sentences = ["Ontdek je beste zelf vandaag!"]
 
-        video_path = create_reel(audio_path, output_filename=f"reel_{brand}_{ts}.mp4", brand=brand)
+        # Generate each audio fragment and store durations
+        fragment_data = []
+        for i, text in enumerate(clean_sentences):
+            f_name = f"audio_frag_{ts}_{i}.mp3"
+            f_path = generate_dutch_audio(text, filename=f_name, voice="nova", speed=1.15)
+            fragment_data.append({"sentence": text, "audio": f_path})
+
+        # Save fragments for video_skill
+        os.makedirs("outputs", exist_ok=True)
+        with open("outputs/fragments.json", "w", encoding="utf-8") as f:
+            json.dump(fragment_data, f, ensure_ascii=False, indent=2)
+
+        # Stap 3: Video renderen (create_reel picks up fragments.json)
+        send_message(chat_id, "Stap 3/3: Video renderen (Kusursuz Senkronizasyon)...")
+        video_path = create_reel(brand=brand, output_filename=f"reel_{brand}_{ts}.mp4")
 
         # Verstuur video
         final_caption = f"✨ {brand_label} Video Ready!\n\nCheck below for your caption & tags 👇"
