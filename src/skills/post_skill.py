@@ -24,24 +24,32 @@ def _add_link_sticker(image_path, brand="glow"):
         # Marka Renkleri
         accent = (255, 112, 86, 230) if brand == "glow" else (130, 150, 120, 230)
         
-        # Buton Boyutlari ve Konumu (Orta-Alt)
-        bw, bh = 450, 100
-        bx0, by0 = (w - bw) // 2, h - 450
+        # Buton Boyutlari ve Konumu (Daha Belirgin)
+        bw, bh = 600, 140
+        bx0, by0 = (w - bw) // 2, h - 550
         bx1, by1 = bx0 + bw, by0 + bh
         
         # Sticker Cizimi (Modern Yuvarlak)
-        _draw_rounded_rect(draw, [bx0, by0, bx1, by1], 40, fill=accent)
+        _draw_rounded_rect(draw, [bx0, by0, bx1, by1], 70, fill=accent)
         
-        # Yazi Ekleme (Basit Font Fallback)
+        # Profesyonel Font Yukleme (Montserrat)
         try:
-            # Try to find a font or use default
-            font = ImageFont.load_default()
+            base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            font_path = os.path.join(base, "Montserrat-Medium.ttf")
+            if not os.path.exists(font_path):
+                 font = ImageFont.load_default()
+            else:
+                 font = ImageFont.truetype(font_path, 60)
+            
             text = "LINK IN BIO"
-            # Calculate text size manually for default font
-            tw = len(text) * 10
-            draw.text(((bx0 + bx1 - tw) // 2, by0 + 35), text, fill="white", font=font)
-        except:
-             draw.text((bx0 + 50, by0 + 35), "LINK IN BIO", fill="white")
+            # Text bbox matching for centering
+            bb = draw.textbbox((0, 0), text, font=font)
+            tw = bb[2] - bb[0]
+            th = bb[3] - bb[1]
+            draw.text(((bx0 + bx1 - tw) // 2, by0 + (bh - th) // 2 - 10), text, fill="white", font=font)
+        except Exception as e:
+             print(f"Font error: {e}")
+             draw.text((bx0 + 80, by0 + 40), "LINK IN BIO", fill="white")
 
         # Save back
         img = img.convert("RGB")
