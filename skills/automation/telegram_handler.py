@@ -110,25 +110,50 @@ def _safe_text(text) -> str:
 
 
 def send_video(chat_id, video_path: str, caption: str = ""):
-    """Stuur video bestand naar Telegram chat."""
+    """Stuur video bestand naar Telegram chat met download button."""
     print(f"[send_video] chat_id={chat_id} | path={video_path}")
-    import os
+    import json
     try:
         with open(video_path, "rb") as f:
+            # Add a button to download as a document (File)
+            reply_markup = {
+                "inline_keyboard": [[
+                    {"text": "💾 Dosya Olarak İndir (Yüksek Kalite)", "callback_data": f"dl_doc_{os.path.basename(video_path)}"}
+                ]]
+            }
             safe_request(
                 f"{URL}/sendVideo",
                 method="post",
                 data={
                     "chat_id": chat_id, 
                     "caption": caption,
-                    "width": 1080,
-                    "height": 1920
+                    "supports_streaming": True,
+                    "reply_markup": json.dumps(reply_markup)
                 },
                 files={"video": (os.path.basename(video_path), f, "video/mp4")},
             )
     except Exception as e:
         print(f"[send_video] HATA: {e}")
         send_message(chat_id, f"Video gonderilirken hata: {e}")
+
+def send_document(chat_id, file_path: str, caption: str = ""):
+    """Stuur bestand als Document (onverpakt) naar Telegram."""
+    print(f"[send_document] chat_id={chat_id} | path={file_path}")
+    try:
+        if not os.path.exists(file_path):
+            # Try to look in outputs/ if not absolute
+            file_path = os.path.join("outputs", os.path.basename(file_path))
+            
+        with open(file_path, "rb") as f:
+            safe_request(
+                f"{URL}/sendDocument",
+                method="post",
+                data={"chat_id": chat_id, "caption": caption},
+                files={"document": (os.path.basename(file_path), f)},
+            )
+    except Exception as e:
+        print(f"[send_document] HATA: {e}")
+        send_message(chat_id, f"Dosya gonderilirken hata: {e}")
 
 
 def _generate_and_send_video(chat_id, topic, brand="holisti"):
@@ -709,12 +734,27 @@ def main():
  
             for update in updates.get("result", []):
                 last_update_id = update["update_id"] + 1
- 
+
+                # Handle callback queries (Inline Buttons)
+                if "callback_query" in update:
+                    cb = update["callback_query"]
+                    chat_id = cb["message"]["chat"]["id"]
+                    data = cb["data"]
+                    
+                    if data.startswith("dl_doc_"):
+                        filename = data.replace("dl_doc_", "")
+                        send_message(chat_id, "📤 Dosya hazırlanıyor, yüksek kaliteli versiyon gönderiliyor...")
+                        send_document(chat_id, filename, caption="✨ İşte yüksek kaliteli videonuz!")
+                    
+                    # Answer callback query to stop loading spinner
+                    safe_request(f"{URL}/answerCallbackQuery", method="post", data={"callback_query_id": cb["id"]})
+                    continue
+
                 if "message" in update and "text" in update["message"]:
                     chat_id = update["message"]["chat"]["id"]
                     text = update["message"]["text"]
                     print("Ontvangen bericht:", text)
-                    handle_command(chat_id, text)
+                    process_command(chat_id, text)
  
             time.sleep(1)
  
