@@ -64,15 +64,28 @@ _FADE_OUT = 0.30   # fade-out duration
 # ── Font & drawing helpers ─────────────────────────────────────────────────────
 
 def _font(size: int, type: str = "body") -> ImageFont.FreeTypeFont:
-    # Use absolute path to ensure server-side loading
-    path = os.path.join(os.getcwd(), _FONTS.get(type, "Montserrat-Medium.ttf"))
-    # Double the size for 1080x1920 canvas to ensure visibility
-    final_size = size + 80 if size < 120 else size + 100
+    # Use the script's directory to find the root
+    # video_skill.py is in src/skills/, so root is 2 levels up
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    font_filename = _FONTS.get(type, "Montserrat-Medium.ttf")
+    path = os.path.join(base_dir, font_filename)
+    
+    # Scale up size for 1080x1920 canvas
+    final_size = size + 100 if size < 120 else size + 150
+    
     try:
         if os.path.exists(path):
             return ImageFont.truetype(path, final_size)
+        else:
+            # Try searching in current directory just in case
+            alt_path = os.path.join(os.getcwd(), font_filename)
+            if os.path.exists(alt_path):
+                return ImageFont.truetype(alt_path, final_size)
     except IOError:
         print(f"[video_skill] Warning: Font {path} failed, using default.")
+    
+    # If all fails, use default (which is tiny, but we can't change its size)
+    # We will print a big warning in the terminal
     return ImageFont.load_default()
 
 def _sz(draw, text, font):
