@@ -152,17 +152,17 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         
         prompt = (
             f"=== SQUAD MANIFESTO - ACT AS THIS TEAM ===\n{manifesto}\n\n"
-            f"Sen uzman bir wellness içerik üreticisisin. Marka: {brand_label}.\n"
-            f"Konu: {topic}\n"
-            "GÖREV: SQUAD MANIFESTO'na sadık kalarak Hollanda'daki kadınlara faydalı bir paket hazırla.\n"
-            "YAPI:\n"
-            "1. HOOK (5-8 sec): Manifesto tarzına uygun giriş.\n"
-            "2. CONTENT (15-20 sec): 2-3 faydalı ipucu.\n"
-            "3. CTA (5 sec): Manifesto tarzına uygun takip çağrısı.\n\n"
-            "Şu 3 parçayı sağla:\n"
-            "---SCRIPT---\n[Sadece Hollandaca metin]\n"
-            "---CAPTION---\n[Instagram açıklaması]\n"
-            "---TAGS---\n[Hashtag'ler]\n"
+            f"Role: Expert Wellness Content Creator. Brand: {brand_label}.\n"
+            f"Topic: {topic}\n"
+            "GOAL: Create a high-conversion, trust-building Instagram package for Dutch women.\n"
+            "STRUCTURE:\n"
+            "1. HOOK (5-8 sec): Curiosity or problem-solving entrance.\n"
+            "2. CONTENT (15-20 sec): 2-3 genuinely helpful tips.\n"
+            "3. CTA (5 sec): Polite follow invitation.\n\n"
+            "PROVIDE THESE 3 PARTS IN DUTCH ONLY:\n"
+            "---SCRIPT---\n[STRICTLY DUTCH - Voiceover text only]\n"
+            "---CAPTION---\n[STRICTLY DUTCH - Engaging Instagram caption]\n"
+            "---TAGS---\n[Strategic Hashtags]\n"
         )
         full_response = ask_ai(prompt)
         
