@@ -192,12 +192,12 @@ def create_reel(
 
     def make_clip(img_path: str, dur: float, out_name: str) -> str:
         clip_path = os.path.join(_OUTPUT_DIR, out_name)
-        # Ken-Burns Zoom-In effect
-        # We scale up first to ensure quality zoom, then zoompan
+        # Optimized Ken-Burns (Subtle & Fast)
+        # We scale slightly (1.1x) to allow for movement without high CPU load
         subprocess.run([
             "ffmpeg", "-y", "-loop", "1", "-t", f"{dur:.2f}", "-i", img_path,
-            "-vf", f"scale=iw*2:ih*2,zoompan=z='min(zoom+0.001,1.3)':d={int(dur*24)}:s={_W}x{_H}:fps=24:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'",
-            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-preset", "ultrafast", clip_path
+            "-vf", f"scale=iw*1.1:-1,zoompan=z='min(zoom+0.0005,1.1)':d={int(dur*24)}:s={_W}x{_H}:fps=24:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'",
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "26", "-preset", "ultrafast", clip_path
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return clip_path
 
