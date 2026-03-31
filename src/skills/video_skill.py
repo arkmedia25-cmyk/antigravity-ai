@@ -64,12 +64,15 @@ _FADE_OUT = 0.30   # fade-out duration
 # ── Font & drawing helpers ─────────────────────────────────────────────────────
 
 def _font(size: int, type: str = "body") -> ImageFont.FreeTypeFont:
-    path = _FONTS.get(type, _FONTS["body"])
+    # Use absolute path to ensure server-side loading
+    path = os.path.join(os.getcwd(), _FONTS.get(type, "Montserrat-Medium.ttf"))
+    # Double the size for 1080x1920 canvas to ensure visibility
+    final_size = size + 80 if size < 120 else size + 100
     try:
         if os.path.exists(path):
-            return ImageFont.truetype(path, size)
+            return ImageFont.truetype(path, final_size)
     except IOError:
-        pass
+        print(f"[video_skill] Warning: Font {path} failed, using default.")
     return ImageFont.load_default()
 
 def _sz(draw, text, font):

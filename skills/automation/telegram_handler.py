@@ -180,18 +180,14 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         video_path = create_reel(audio_path, output_filename=f"reel_{brand}_{ts}.mp4", brand=brand)
 
         # Verstuur video
-        final_caption = (
-            f"🌟 {brand_label} Hazır!\n\n"
-            f"Konu: {topic}\n"
-            f"Kopyalamak için aşağıya bak 👇"
-        )
+        final_caption = f"✨ {brand_label} Video Ready!\n\nCheck below for your caption & tags 👇"
         send_video(chat_id, video_path, caption=final_caption)
         
         # Send Copy-Paste Package
         package = (
-            f"📝 **INSTAGRAM PAKETİ**\n\n"
-            f"**Açıklama:**\n{caption_body}\n\n"
-            f"**Etiketler:**\n`{tags}`"
+            f"📝 **INSTAGRAM PACKAGE**\n\n"
+            f"**Caption:**\n{caption_body}\n\n"
+            f"**Hashtags:**\n`{tags}`"
         )
         send_message(chat_id, package)
 
