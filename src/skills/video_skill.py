@@ -226,16 +226,19 @@ def create_reel(
     if os.path.exists(output_path):
         os.remove(output_path)
 
-    # ── 1. Check for Fragmented Mode (Perfect Sync) ──
+    # ── 1. Load Fragments (Required for Zero-Delay Mode) ──
     frag_path = os.path.join(_OUTPUT_DIR, "fragments.json")
     fragments = []
-    if os.path.exists(frag_path):
-        try:
+    try:
+        if os.path.exists(frag_path):
             with open(frag_path, encoding="utf-8") as f:
                 fragments = json.load(f)
-            print(f"[video_skill] Fragmented mode active: {len(fragments)} fragments found.")
-        except Exception:
-            pass
+    except Exception:
+        pass
+
+    if not fragments:
+        print("[video_skill] ERROR: No fragments.json found. Cannot proceed with Zero-Delay Sync.")
+        return ""
 
     # ── 2. Utility for duration ──
     def get_duration(p: str) -> float:
@@ -249,7 +252,7 @@ def create_reel(
         except Exception:
             return 3.0
 
-    # ── 3. Encode clips ──
+    # ── 3. Encode Clips Dynamically ──
     def make_clip(img_path: str, dur: float, out_name: str) -> str:
         clip_path = os.path.join(_OUTPUT_DIR, out_name)
         subprocess.run([
@@ -259,75 +262,78 @@ def create_reel(
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return clip_path
 
-    # Step A: Build Fixed Hook & CTA
-    img_hook = _build_hook(theme)
-    img_cta  = _build_cta(theme)
-    v_hook = make_clip(img_hook, 5.0, "v_hook.mp4")
-    v_cta  = make_clip(img_cta,  8.0, "v_cta.mp4")
+    all_video_clips = []
+    all_audio_files = []
 
-    # Step B: Build Content Fragments
-    content_video_clips = []
-    all_audio_files = [] # We will concatenate these later
-    
-    if fragments:
-        print("[video_skill] Encoding fragments for 100% sync...")
-        for i, frag in enumerate(fragments):
-            dur = get_duration(frag["audio"])
-            img_p = _build_sentence_frame(frag["sentence"], theme, i)
-            c_p = make_clip(img_p, dur, f"v_c{i}.mp4")
-            content_video_clips.append(c_p)
-            all_audio_files.append(frag["audio"])
-    else:
-        # Fallback to old linear/weighted logic if no fragments
-        print("[video_skill] Fallback to weighted sync...")
-        sentences = ["Kusursuz biyo-hacker rutini!"] # Mock
-        weights = [1.2 + (len(s.split()) / 2.5) for s in sentences]
-        total_w = sum(weights) or 1.0
-        for i, s in enumerate(sentences):
-            img_p = _build_sentence_frame(s, theme, i)
-            c_p = make_clip(img_p, 3.0, f"v_c{i}.mp4") # Mock dur
-            content_video_clips.append(c_p)
+    print(f"[video_skill] Rendering {len(fragments)} fragments for Zero-Delay Flow...")
 
-    # ── 4. Final Assembly ──
-    # Join video clips
-    list_path = os.path.join(_OUTPUT_DIR, "concat_v.txt")
-    with open(list_path, "w", encoding="utf-8") as f:
-        f.write("file 'v_hook.mp4'\n")
-        for i in range(len(content_video_clips)):
-            f.write(f"file 'v_c{i}.mp4'\n")
-        f.write("file 'v_cta.mp4'\n")
+    for i, frag in enumerate(fragments):
+        dur = get_duration(frag["audio"])
+        tag = frag.get("tag", "content")
+        text = frag["sentence"]
+        
+        # Build specific frame based on tag
+        if tag == "hook":
+            # Hook logic (Big title, circle decor)
+            img = Image.new("RGB", (_W, _H), theme["bg"])
+            draw = ImageDraw.Draw(img)
+            draw.ellipse([_CX - 380, 280, _CX + 380, 1080], outline=theme["accent2"], width=4)
+            draw.polygon([(_CX, 560), (_CX - 55, 680), (_CX + 55, 680)], fill=theme["accent"])
+            f = _font(82, theme["font_title"])
+            lines = _wrap(draw, _clean_text(text), f, max_w=950)
+            _multiline(draw, lines, f, center_y=1130, color=theme["text"], spacing=22)
+            img_p = os.path.join(_OUTPUT_DIR, f"f_hook_{i}.png")
+            img.save(img_p)
+        elif tag == "cta":
+            # CTA logic (Buttons, specific layout)
+            img = Image.new("RGB", (_W, _H), theme["bg"])
+            draw = ImageDraw.Draw(img)
+            f_q = _font(82, theme["font_title"])
+            lines_q = _wrap(draw, _clean_text(text), f_q, max_w=950)
+            _multiline(draw, lines_q, f_q, center_y=750, color=theme["text"], spacing=20)
+            bx0, by0, bx1, by1 = 120, 1000, _W - 120, 1280
+            _draw_rounded_rect(draw, [bx0, by0, bx1, by1], 40, fill=theme["accent"])
+            f_btn = _font(52, theme["font_body"])
+            _center(draw, "Like & Save", f_btn, cy=by0 + 75, color=(255, 255, 255))
+            _center(draw, f"Volg {theme['brand_name']}", f_btn, cy=by0 + 170, color=(255, 255, 255))
+            f_link = _font(44, theme["font_body"])
+            _center(draw, "Klik op de link in bio voor meer", f_link, cy=_H - 160, color=theme["accent"])
+            img_p = os.path.join(_OUTPUT_DIR, f"f_cta_{i}.png")
+            img.save(img_p)
+        else:
+            # Standard sentence card
+            img_p = _build_sentence_frame(text, theme, i)
 
-    # Join audio clips (Hook silence + fragments + CTA silence)
-    # We create a silent 5s hook and 8s cta audio if none exist
-    silence_hook = os.path.join(_OUTPUT_DIR, "silence_5.mp3")
-    silence_cta  = os.path.join(_OUTPUT_DIR, "silence_8.mp3")
-    for s_path, s_dur in [(silence_hook, 5.0), (silence_cta, 8.0)]:
-        if not os.path.exists(s_path):
-            subprocess.run(["ffmpeg", "-y", "-f", "lavfi", "-i", f"anullsrc=r=44100:cl=stereo", "-t", str(s_dur), s_path],
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # Create video clip
+        c_p = make_clip(img_p, dur, f"v_frag_{i}.mp4")
+        all_video_clips.append(c_p)
+        all_audio_files.append(frag["audio"])
 
-    audio_list_path = os.path.join(_OUTPUT_DIR, "concat_a.txt")
-    with open(audio_list_path, "w", encoding="utf-8") as f:
-        f.write(f"file 'silence_5.mp3'\n")
-        for af in all_audio_files:
-            # Must write relative or absolute path correctly
-            f.write(f"file '{os.path.basename(af)}'\n")
-        f.write(f"file 'silence_8.mp3'\n")
+    # ── 4. Final Assembly (No Silences) ──
+    v_list = os.path.join(_OUTPUT_DIR, "v_list.txt")
+    with open(v_list, "w", encoding="utf-8") as f:
+        for i in range(len(all_video_clips)):
+            f.write(f"file 'v_frag_{i}.mp4'\n")
+
+    a_list = os.path.join(_OUTPUT_DIR, "a_list.txt")
+    with open(a_list, "w", encoding="utf-8") as f:
+        for i in range(len(all_audio_files)):
+            f.write(f"file '{os.path.basename(all_audio_files[i])}'\n")
 
     # Concatenate Audio
-    final_audio = os.path.join(_OUTPUT_DIR, "audio_combined.mp3")
-    subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", audio_list_path, "-c", "copy", final_audio],
+    final_audio = os.path.join(_OUTPUT_DIR, "audio_full.mp3")
+    subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", a_list, "-c", "copy", final_audio],
                    check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    # Concatenate Video + Audio Merge
-    print("[video_skill] Merging final Reel...")
+    # Concatenate Video + Merge
+    print("[video_skill] Merging final Reel (Zero-Delay)...")
     subprocess.run([
-        "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_path,
+        "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", v_list,
         "-i", final_audio, "-c:v", "copy", "-c:a", "aac", "-shortest", output_path
     ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     size_mb = os.path.getsize(output_path) / 1_000_000
-    print(f"[video_skill] Completed Fragmented Reel: {output_path} ({size_mb:.1f} MB)")
+    print(f"[video_skill] Done: {output_path} ({size_mb:.1f} MB)")
     return output_path
 
 

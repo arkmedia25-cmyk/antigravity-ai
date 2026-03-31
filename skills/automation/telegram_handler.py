@@ -172,8 +172,8 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         caption_body = full_response.split("---CAPTION---")[-1].split("---TAGS---")[0].strip()
         tags = full_response.split("---TAGS---")[-1].strip()
 
-        # Stap 2: Fragmented TTS (Per sentence for perfect sync)
-        send_message(chat_id, f"Stap 2/3: {brand_label} seslendirme motoru çalışıyor (Enerjik Nova 1.15x)...")
+        # Stap 2: Fragmented TTS (Zero Delay Mode)
+        send_message(chat_id, f"Stap 2/3: {brand_label} seslendirme motoru çalışıyor (Kusursuz Akış & Enerji)...")
         
         # Split script into clean sentences
         import json, re
@@ -182,18 +182,20 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         for s in raw_sentences:
             s_clean = re.sub(r'^\s*[\d]+[\.\)]\s*', '', s).strip()
             s_clean = re.sub(r'^\s*[-•*]\s*', '', s_clean).strip()
-            if len(s_clean) >= 10: # More inclusive but still safe
+            if len(s_clean) >= 8: # More inclusive
                 clean_sentences.append(s_clean)
         
         if not clean_sentences:
-            clean_sentences = ["Ontdek je beste zelf vandaag!"]
+            clean_sentences = ["Welkom bij Holisti Glow. Ontdek je beste zelf vandaag!"]
 
-        # Generate each audio fragment and store durations
+        # Generate each audio fragment and store metadata
         fragment_data = []
         for i, text in enumerate(clean_sentences):
             f_name = f"audio_frag_{ts}_{i}.mp3"
             f_path = generate_dutch_audio(text, filename=f_name, voice="nova", speed=1.15)
-            fragment_data.append({"sentence": text, "audio": f_path})
+            # Tag metadata for video_skill (0=hook, middle=content, last=cta)
+            tag = "hook" if i == 0 else ("cta" if i == len(clean_sentences) - 1 else "content")
+            fragment_data.append({"sentence": text, "audio": f_path, "tag": tag})
 
         # Save fragments for video_skill
         os.makedirs("outputs", exist_ok=True)
@@ -201,7 +203,7 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
             json.dump(fragment_data, f, ensure_ascii=False, indent=2)
 
         # Stap 3: Video renderen (create_reel picks up fragments.json)
-        send_message(chat_id, "Stap 3/3: Video renderen (Kusursuz Senkronizasyon)...")
+        send_message(chat_id, "Stap 3/3: Video renderen (Sıfır Gecikme, Tam Senkronizasyon)...")
         video_path = create_reel(brand=brand, output_filename=f"reel_{brand}_{ts}.mp4")
 
         # Verstuur video
