@@ -230,60 +230,68 @@ def create_reel(
         overlay_img = Image.new("RGBA", (_W, _H), (0,0,0,0))
         overlay_draw = ImageDraw.Draw(overlay_img)
         
+        draw = ImageDraw.Draw(img) # Draw on the main image for measuerement first
         text_color = theme["text"]
         
         if tag == "hook":
-            # Header Plate (Glass) at the Top
-            bx0, by0, bx1, by1 = 80, 200, _W - 80, 600
+            f = _font(85, theme["font_title"])
+            lines = _wrap(draw, _clean_text(text), f, max_w=850)
+            _, lh = _sz(draw, "Ag", f)
+            total_h = len(lines) * lh + (len(lines) - 1) * 25
+            
+            # Header Plate (Glass) - Dynamic Height
+            bx0, by0, bx1, by1 = 80, 200, _W - 80, 200 + total_h + 100
             _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, fill=theme["glass"])
             
             img.paste(overlay_img, (0, 0), overlay_img)
             draw = ImageDraw.Draw(img)
-            
-            f = _font(85, theme["font_title"])
-            lines = _wrap(draw, _clean_text(text), f, max_w=850)
             _multiline(draw, lines, f, center_y=(by0 + by1) // 2, color=text_color, spacing=25)
             
             img_p = os.path.join(_OUTPUT_DIR, f"f_hook_{i}.png")
             img.save(img_p)
         elif tag == "cta":
-            # Quote/CTA Plate (Glass) in Middle-Bottom
-            bx0, by0, bx1, by1 = 100, 600, _W - 100, 1000
+            f_q = _font(82, theme["font_title"])
+            lines_q = _wrap(draw, _clean_text(text), f_q, max_w=820)
+            _, lh_q = _sz(draw, "Ag", f_q)
+            total_h_q = len(lines_q) * lh_q + (len(lines_q) - 1) * 25
+            
+            # Quote/CTA Plate (Glass) - Dynamic Height
+            p_cy = 650
+            bx0, by0, bx1, by1 = 100, p_cy - total_h_q//2 - 50, _W - 100, p_cy + total_h_q//2 + 50
             _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, fill=theme["glass"])
             
             # Action Button Plate
-            btn_bx0, btn_by0, btn_bx1, btn_by1 = 120, 1100, _W - 120, 1380
+            btn_bx0, btn_by0, btn_bx1, btn_by1 = 120, _H - 550, _W - 120, _H - 270
             _draw_rounded_rect(overlay_draw, [btn_bx0, btn_by0, btn_bx1, btn_by1], 60, fill=theme["accent"])
             
             img.paste(overlay_img, (0, 0), overlay_img)
             draw = ImageDraw.Draw(img)
-            
-            f_q = _font(82, theme["font_title"])
-            lines_q = _wrap(draw, _clean_text(text), f_q, max_w=820)
             _multiline(draw, lines_q, f_q, center_y=(by0 + by1) // 2, color=text_color, spacing=25)
             
             f_btn = _font(55, theme["font_body"])
-            _center(draw, "Like & Save", f_btn, cy=btn_by0 + 85, color=(255, 255, 255))
-            _center(draw, f"Follow {theme['brand_name']}", f_btn, cy=btn_by0 + 185, color=(255, 255, 255))
+            _center(draw, "Like & Sla Op", f_btn, cy=btn_by0 + 85, color=(255, 255, 255))
+            _center(draw, f"Volg {theme['brand_name']}", f_btn, cy=btn_by0 + 185, color=(255, 255, 255))
             
             f_link = _font(44, theme["font_body"])
-            _center(draw, "Check the link in bio", f_link, cy=_H - 160, color=theme["accent"])
+            _center(draw, "Bekijk de link in bio", f_link, cy=_H - 160, color=theme["accent"])
             
             img_p = os.path.join(_OUTPUT_DIR, f"f_cta_{i}.png")
             img.save(img_p)
         else:
-            # Main Content Plate (Glass) in Center
-            bx0, by0, bx1, by1 = 80, _H//2-400, _W-80, _H//2+400
+            f = _font(72, theme["font_body"])
+            lines = _wrap(draw, _clean_text(text), f, max_w=850)
+            _, lh = _sz(draw, "Ag", f)
+            total_h = len(lines) * lh + (len(lines) - 1) * 25
+            
+            # Main Content Plate (Glass) - Dynamic Height
+            bx0, by0, bx1, by1 = 80, _H//2 - total_h//2 - 60, _W - 80, _H//2 + total_h//2 + 60
             _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, fill=theme["glass"])
             
             # Accent bar on glass
-            overlay_draw.rectangle([bx0, by0 + 80, bx0 + 15, by1 - 80], fill=theme["accent"])
+            overlay_draw.rectangle([bx0, by0 + 40, bx0 + 15, by1 - 40], fill=theme["accent"])
             
             img.paste(overlay_img, (0, 0), overlay_img)
             draw = ImageDraw.Draw(img)
-            
-            f = _font(72, theme["font_body"])
-            lines = _wrap(draw, _clean_text(text), f, max_w=850)
             _multiline(draw, lines, f, center_y=_H // 2, color=text_color, spacing=25)
             
             img_p = os.path.join(_OUTPUT_DIR, f"f_content_{i}.png")
