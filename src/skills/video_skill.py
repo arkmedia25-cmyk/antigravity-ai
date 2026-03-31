@@ -221,6 +221,7 @@ def create_reel(
         pass
 
     # 2. Load timestamps for per-sentence frames
+    ts_path = os.path.join(_OUTPUT_DIR, "timestamps.json")
     ts = []
     try:
         with open(ts_path, encoding="utf-8") as f:
