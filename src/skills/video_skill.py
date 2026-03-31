@@ -274,7 +274,9 @@ def create_reel(
             abs_a = os.path.abspath(local_a)
             f.write(f"file '{abs_a.replace('\\', '/')}'\n")
 
-    final_audio = os.path.join(_OUTPUT_DIR, "audio_full.mp3")
+    # Use unique name for intermediate audio to avoid file locks (Status 183 fix)
+    import time
+    final_audio = os.path.join(_OUTPUT_DIR, f"audio_full_{int(time.time())}.mp3")
     subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", a_list, "-c", "copy", final_audio],
                    check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
