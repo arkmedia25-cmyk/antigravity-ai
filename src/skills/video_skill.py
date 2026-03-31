@@ -143,33 +143,26 @@ def _build_hook(theme) -> str:
     # Stylized Warning Triangle
     draw.polygon([(_CX, 600), (_CX-60, 720), (_CX+60, 720)], fill=theme["accent"])
     
-    f_hook = _font(150, theme["font_title"]) 
+    f_hook = _font(120, theme["font_title"]) # Uniform size
     lines = ["DIT WIST JE NOG NIET...", "Over deze routine!"]
-    _multiline(draw, lines, f_hook, center_y=1100, color=theme["text"], spacing=60)
+    _multiline(draw, lines, f_hook, center_y=1100, color=theme["text"], spacing=50)
     
     path = os.path.join(_OUTPUT_DIR, f"frame_{theme['brand_name']}_0_hook.png")
     img.save(path)
     return path
 
-def _build_content(ts_data: list, theme) -> str:
+def _build_sentence_frame(text: str, theme, index: int) -> str:
     img  = Image.new("RGB", (_W, _H), theme["bg"])
     draw = ImageDraw.Draw(img)
     
-    # Premium Accent: Soft glow ellipse in center
-    draw.ellipse([_CX - 450, _H // 2 - 400, _CX + 450, _H // 2 + 400], fill=theme["accent2"])
+    # Premium Accent: Subtle glow
+    draw.ellipse([_CX - 400, _H // 2 - 350, _CX + 400, _H // 2 + 350], fill=theme["accent2"])
     
-    f_body = _font(120, theme["font_body"]) # Uniform professional size
+    f_body = _font(110, theme["font_body"])
+    lines = _wrap(draw, text, f_body, max_w=900)
+    _multiline(draw, lines, f_body, center_y=_H // 2, color=theme["text"], spacing=50)
     
-    # Use real sentences if available, otherwise high-quality Dutch copy
-    if ts_data and "sentence" in ts_data[0] and not ts_data[0]["sentence"].startswith("Deel"):
-        content_text = " ".join([s["sentence"] for s in ts_data[1:4]])
-    else:
-        content_text = "Ontdek de geheimen van een stralende gezondheid. Elke dag een stap vooruit!"
-    
-    lines = _wrap(draw, content_text, f_body, max_w=900)
-    _multiline(draw, lines, f_body, center_y=_H // 2, color=theme["text"], spacing=45)
-    
-    path = os.path.join(_OUTPUT_DIR, f"frame_{theme['brand_name']}_1_content.png")
+    path = os.path.join(_OUTPUT_DIR, f"frame_content_{index}.png")
     img.save(path)
     return path
 
@@ -216,25 +209,28 @@ def create_reel(
         os.remove(output_path)
 
     ts_path = os.path.join(_OUTPUT_DIR, "timestamps.json")
+    # Calculate dynamic durations based on audio duration
+    audio_duration = 15.0
     try:
-        with open(ts_path, encoding="utf-8") as f:
-            ts = json.load(f)
+        import subprocess
+        res = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", audio_path], 
+                             capture_output=True, text=True)
+        audio_duration = float(res.stdout.strip())
     except:
-        ts = [{"sentence": f"Deel {i}", "start": i*3.0, "end": (i+1)*3.0} for i in range(5)]
-    if len(ts) < 5:
-        ts = [{"sentence": f"Deel {i}", "start": i*3.0, "end": (i+1)*3.0} for i in range(5)]
+        pass
 
-    # Calculate dynamic durations based on audio
-    # Using 60s total buffer so -shortest handles precisely any audio length
-    d_hook = 5.0
-    d_content = 40.0 # Standard Reel length buffer
-    d_cta = 15.0     # CTA buffer
-
-    print(f"[video_skill] Natively generating frames for brand: {brand}...")
+    # Split script into sentences for dynamic flow
+    # Since we don't have word-level timestamps, we estimate based on sentence length
+    sentences = [s.strip() for s in ts[1:-1]] if len(ts) > 2 else ["Blijf kijken voor meer wellness tips!"]
+    total_chars = sum(len(s) for s in sentences)
+    content_duration = audio_duration - 10.0 # Reserve 5s for hook and 5s for CTA
+    if content_duration < 5.0: content_duration = 10.0
+    
+    print(f"[video_skill] Generating dynamic frames for brand: {brand}...")
     img_hook = _build_hook(theme)
-    img_content = _build_content(ts, theme)
     img_cta = _build_cta(theme)
-
+    
+    # Clip generation helpers
     def make_clip(img_path, dur, out_name):
         clip_path = os.path.join(_OUTPUT_DIR, out_name)
         cmd = [
@@ -245,33 +241,31 @@ def create_reel(
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return clip_path
 
-    def make_black(dur, out_name):
-        clip_path = os.path.join(_OUTPUT_DIR, out_name)
-        cmd = [
-            "ffmpeg", "-y", "-f", "lavfi", "-t", str(dur),
-            "-i", "color=c=black:s=1080x1920:r=24", "-c:v", "libx264", "-pix_fmt", "yuv420p",
-            "-crf", "23", "-preset", "ultrafast", clip_path
-        ]
-        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return clip_path
+    # Build individual clips for each sentence
+    content_clips = []
+    for i, text in enumerate(sentences):
+        # Calculate proportional duration
+        sent_dur = (len(text) / total_chars) * content_duration
+        img_p = _build_sentence_frame(text, theme, i)
+        c_p = make_clip(img_p, sent_dur, f"c_{i}.mp4")
+        content_clips.append(c_p)
 
-    print("[video_skill] Encoding lightweight segments (ZERO Memory Mode)...")
-    v1 = make_clip(img_hook, d_hook, "v1.mp4")
-    b1 = make_black(_GAP, "b1.mp4")
-    v2 = make_clip(img_content, d_content, "v2.mp4")
-    b2 = make_black(_GAP, "b2.mp4")
-    v3 = make_clip(img_cta, d_cta, "v3.mp4")
-
+    print("[video_skill] Assembling final dynamic pipeline...")
+    v1 = make_clip(img_hook, 5.0, "v1.mp4")
+    v3 = make_clip(img_cta, 10.0, "v3.mp4")
+    
     list_path = os.path.join(_OUTPUT_DIR, "concat.txt")
     with open(list_path, "w", encoding="utf-8") as f:
-        f.write(f"file 'v1.mp4'\nfile 'b1.mp4'\nfile 'v2.mp4'\nfile 'b2.mp4'\nfile 'v3.mp4'\n")
+        f.write("file 'v1.mp4'\n")
+        for i in range(len(content_clips)):
+            f.write(f"file 'c_{i}.mp4'\n")
+        f.write("file 'v3.mp4'\n")
 
-    print("[video_skill] Assembling final pipeline...")
     cmd_final = [
         "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_path,
         "-i", audio_path, "-c:v", "copy", "-c:a", "aac", "-shortest", output_path
     ]
-
+    
     try:
         subprocess.run(cmd_final, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except subprocess.CalledProcessError as e:
@@ -279,7 +273,7 @@ def create_reel(
         raise RuntimeError(f"FFmpeg error: {e.stderr.decode('utf-8', errors='ignore')}")
 
     size_mb = os.path.getsize(output_path) / 1_000_000
-    print(f"[video_skill] Video assembled flawlessly: {output_path} ({size_mb:.1f} MB)")
+    print(f"[video_skill] Dynamic Video assembled: {output_path} ({size_mb:.1f} MB)")
     return output_path
 
 if __name__ == "__main__":
