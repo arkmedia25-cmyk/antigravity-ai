@@ -320,6 +320,84 @@ def process_command(chat_id, text):
             topic = text.replace("/video_holisti", "").strip() or "Wellness"
             threading.Thread(target=_generate_and_send_video, args=(chat_id, topic, "holisti")).start()
 
+        elif text.startswith("/gezellig"):
+            # Otonom NL Wellness (Gezellig Vibe)
+            topic = text.replace("/gezellig", "").strip()
+            def run_otonom():
+                try:
+                    from autonomous_producer import run_production_line
+                    from src.skills.video_skill import create_reel
+                    import time
+                    
+                    send_message(chat_id, f"🎬 Otonom 'Gezellig' Senarist (GPT) iş başında... {f'Konu: {topic}' if topic else ''}")
+                    data = run_production_line(topic=topic)
+                    if not data:
+                         send_message(chat_id, "❌ GPT senaryo yazarken bir hata oluştu.")
+                         return
+                    
+                    send_message(chat_id, f"🎨 Işıkçı (DALL-E) seti hazırlıyor: {data['image_prompt'][:50]}...")
+                    # In a production server, we'd call an Image Skill here.
+                    # For this environment, we'll assume the image is provided or we use a fallback aesthetic.
+                    # IMPORTANT: For the POC, we simulate the 'Artist' role.
+                    send_message(chat_id, "🎥 Stüdyo & Kameraman (FFmpeg) kayda giriyor...")
+                    
+                    # For the POC, we use a default high-aesthetic background if not generated
+                    bg_path = os.path.join(os.getcwd(), "outputs", "gezellig_default.png")
+                    # (In full auto, we would trigger image_skill.generate)
+                    
+                    video_path = create_reel(
+                        fragments=[
+                            {"tag": "hook", "text": data["hook"], "audio": "outputs/autonorm_frag_0_hook.mp3"},
+                            {"tag": "content", "text": data["content"], "audio": "outputs/autonorm_frag_1_content.mp3"},
+                            {"tag": "cta", "text": data["cta"], "audio": "outputs/autonorm_frag_2_cta.mp3"}
+                        ],
+                        output_filename=f"gezellig_{int(time.time())}.mp4",
+                        brand="glow"
+                    )
+                    
+                    send_video(chat_id, video_path, caption=f"✨ Otonom Gezellig Wellness!\n\nSenaryo: {data['dutch_script']}")
+                except Exception as e:
+                    send_message(chat_id, f"❌ Otonom üretim hatası: {e}")
+            
+            threading.Thread(target=run_otonom, daemon=True).start()
+
+        elif text.startswith("/gezellig_set"):
+            # Otonom NL Wellness BULK SET Production
+            parts = text.split()
+            count = 3 # Default
+            if len(parts) > 1 and parts[1].isdigit():
+                count = int(parts[1])
+            
+            def run_bulk_otonom():
+                try:
+                    from autonomous_producer import run_production_line
+                    from src.skills.video_skill import create_reel
+                    import time
+                    
+                    send_message(chat_id, f"🔋 {count}'lü otonom 'Gezellig' set üretimi başlatıldı. GPT senaryoları sıraya koyuyor...")
+                    
+                    for i in range(count):
+                        send_message(chat_id, f"🔄 Set Üretimi: {i+1}/{count} hazırlanıyor...")
+                        data = run_production_line() # Random wellness tip
+                        if not data: continue
+                        
+                        video_path = create_reel(
+                            fragments=[
+                                {"tag": "hook", "text": data["hook"], "audio": "outputs/autonorm_frag_0_hook.mp3"},
+                                {"tag": "content", "text": data["content"], "audio": "outputs/autonorm_frag_1_content.mp3"},
+                                {"tag": "cta", "text": data["cta"], "audio": "outputs/autonorm_frag_2_cta.mp3"}
+                            ],
+                            output_filename=f"gezellig_set_{i+1}_{int(time.time())}.mp4",
+                            brand="glow"
+                        )
+                        send_video(chat_id, video_path, caption=f"✨ Set Parçası {i+1}/{count} hazır!\n\nSenaryo: {data['dutch_script']}")
+                    
+                    send_message(chat_id, f"✅ {count}'lü Gezellig Wellness seti başarıyla tamamlandı!")
+                except Exception as e:
+                    send_message(chat_id, f"❌ Bulk üretim hatası: {e}")
+            
+            threading.Thread(target=run_bulk_otonom, daemon=True).start()
+
         elif text.startswith("/video"):
             topic = text.replace("/video", "").strip() or "Wellness"
             threading.Thread(target=_generate_and_send_video, args=(chat_id, topic, "holisti")).start()

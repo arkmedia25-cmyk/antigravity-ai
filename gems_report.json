@@ -1,0 +1,940 @@
+{
+  "summary": {
+    "total_scanned": 2055,
+    "gems_found": 983,
+    "by_category": {
+      "Wellness": 14,
+      "Mindset": 86,
+      "SocialMedia": 562,
+      "AI-Prompts": 741
+    }
+  },
+  "top_gems": [
+    {
+      "file": "1342_Linkedin_Telegram_Automate_Webhook.json",
+      "name": "✨🩷Automated Social Media Content Publishing Factory + System Prompt Composition",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia",
+        "Mindset"
+      ],
+      "score": 200
+    },
+    {
+      "file": "1807_Linkedin_Googledocs_Automate_Webhook.json",
+      "name": "✨🩷Automated Social Media Content Publishing Factory + System Prompt Composition",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia",
+        "Mindset"
+      ],
+      "score": 125
+    },
+    {
+      "file": "1272_Datetime_Webhook_Create_Webhook.json",
+      "name": "AI-Generated Summary Block for WordPress Posts - with OpenAI, WordPress, Google Sheets & Slack",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 110
+    },
+    {
+      "file": "1273_Datetime_Webhook_Create_Webhook.json",
+      "name": "AI-Generated Summary Block for WordPress Posts - with OpenAI, WordPress, Google Sheets & Slack",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 110
+    },
+    {
+      "file": "1639_Wait_Webhook_Automation_Webhook.json",
+      "name": "Resume Screening & Behavioral Interviews with Gemini, Elevenlabs, & Notion ATS copy",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia",
+        "Mindset"
+      ],
+      "score": 105
+    },
+    {
+      "file": "0905_Wait_Schedule_Create_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia",
+        "Mindset"
+      ],
+      "score": 90
+    },
+    {
+      "file": "1470_Telegram_Code_Create_Webhook.json",
+      "name": "Generate Instagram Content from Top Trends with AI Image Generation",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 85
+    },
+    {
+      "file": "1482_Telegram_Code_Create_Webhook.json",
+      "name": "Generate Instagram Content from Top Trends with AI Image Generation",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 85
+    },
+    {
+      "file": "1291_Telegram_Code_Automation_Webhook.json",
+      "name": "✍️🌄 Your First Wordpress Content Creator - Quick Start",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia",
+        "Mindset"
+      ],
+      "score": 80
+    },
+    {
+      "file": "0603_Wait_Splitout_Create_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 75
+    },
+    {
+      "file": "0719_Stopanderror_Splitout_Create_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 75
+    },
+    {
+      "file": "1278_Code_Schedule_Monitor_Webhook.json",
+      "name": "AI-Powered Information Monitoring with OpenAI, Google Sheets, Jina AI and Slack",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 75
+    },
+    {
+      "file": "1281_Code_Schedule_Monitor_Webhook.json",
+      "name": "AI-Powered Information Monitoring with OpenAI, Google Sheets, Jina AI and Slack",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 75
+    },
+    {
+      "file": "1566_Wait_Splitout_Automation_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 75
+    },
+    {
+      "file": "1646_Code_Schedule_Create_Scheduled.json",
+      "name": "News Extraction",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 75
+    },
+    {
+      "file": "1977_Wait_Splitout_Automation_Webhook.json",
+      "name": "Test Webhooks in n8n Without Changing WEBHOOK_URL (PostBin & BambooHR Example)",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 75
+    },
+    {
+      "file": "2012_Code_Schedule_Create_Scheduled.json",
+      "name": "News Extraction",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 75
+    },
+    {
+      "file": "0632_Webhook_Manual_Create_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 70
+    },
+    {
+      "file": "0931_Telegram_Splitout_Monitor_Scheduled.json",
+      "name": "N8N Financial Tracker Telegram Invoices to Notion with AI Summaries & Reports",
+      "categories": [
+        "Wellness",
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 70
+    },
+    {
+      "file": "0971_Limit_Splitout_Automation_Webhook.json",
+      "name": "⚡AI-Powered YouTube Playlist & Video Summarization and Analysis v2",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 70
+    },
+    {
+      "file": "1282_Wait_Code_Import_Webhook.json",
+      "name": "AI-Powered Short-Form Video Generator with OpenAI, Flux, Kling, and ElevenLabs and upload to all social networks",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 70
+    },
+    {
+      "file": "1313_Code_HTTP_Automation_Webhook.json",
+      "name": "🎥 Analyze YouTube Video for Summaries, Transcripts & Content + Google Gemini AI",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 70
+    },
+    {
+      "file": "1463_Splitout_Code_Automate_Webhook.json",
+      "name": "⚡📽️ Ultimate AI-Powered Chatbot for YouTube Summarization & Analysis",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 70
+    },
+    {
+      "file": "1982_Telegram_Splitout_Automation_Scheduled.json",
+      "name": "🎦💌Advanced YouTube RSS Feed Buddy for Your Favorite Channels",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 70
+    },
+    {
+      "file": "0646_Extractfromfile_Form_Export_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "Mindset",
+        "SocialMedia"
+      ],
+      "score": 65
+    },
+    {
+      "file": "0649_Splitout_GoogleCalendar_Create_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 65
+    },
+    {
+      "file": "0699_Splitout_Code_Create_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 65
+    },
+    {
+      "file": "0916_Telegram_Gmail_Create_Triggered.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "Wellness",
+        "SocialMedia"
+      ],
+      "score": 65
+    },
+    {
+      "file": "1103_Googletaskstool_Telegram_Automation_Webhook.json",
+      "name": "agente",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 65
+    },
+    {
+      "file": "1258_Splitout_Code_Automation_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 65
+    },
+    {
+      "file": "1333_Splitout_GoogleCalendar_Automate_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 65
+    },
+    {
+      "file": "1493_Extractfromfile_Form_Automation_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "Mindset",
+        "SocialMedia"
+      ],
+      "score": 65
+    },
+    {
+      "file": "0263_Postgres_Code_Automation_Webhook.json",
+      "name": "Auto WordPress Blog Generator (GPT + Postgres + WP Media)",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 60
+    },
+    {
+      "file": "0330_Wait_Webhook_Send_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia",
+        "Mindset"
+      ],
+      "score": 60
+    },
+    {
+      "file": "0594_HTTP_Telegram_Create_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 60
+    },
+    {
+      "file": "0644_Webhook_Slack_Create_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia",
+        "Mindset"
+      ],
+      "score": 60
+    },
+    {
+      "file": "0664_Splitout_Limit_Create_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 60
+    },
+    {
+      "file": "0696_Code_Webhook_Create_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 60
+    },
+    {
+      "file": "0769_Telegram_Webhook_Send_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 60
+    },
+    {
+      "file": "0829_Webhook_Code_Create_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia",
+        "Mindset"
+      ],
+      "score": 60
+    },
+    {
+      "file": "0902_Splitout_Code_Create_Scheduled.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 60
+    },
+    {
+      "file": "1257_Code_Webhook_Automation_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 60
+    },
+    {
+      "file": "1325_Splitout_Limit_Automate_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 60
+    },
+    {
+      "file": "1440_HTTP_Executeworkflow_Automation_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 60
+    },
+    {
+      "file": "1461_Code_Manual_Automation_Webhook.json",
+      "name": "YouTube Video Analyzer with AI",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 60
+    },
+    {
+      "file": "1688_HTTP_Telegram_Automate_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 60
+    },
+    {
+      "file": "1805_Wait_Code_Automate_Webhook.json",
+      "name": "AI Automated TikTok/Youtube Shorts/Reels Generator",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 60
+    },
+    {
+      "file": "1875_Code_Schedule_Automate_Scheduled.json",
+      "name": "My workflow",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia",
+        "Mindset"
+      ],
+      "score": 60
+    },
+    {
+      "file": "0638_Splitout_Redis_Create_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 55
+    },
+    {
+      "file": "0665_Code_Editimage_Update_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 55
+    },
+    {
+      "file": "0709_Code_HTTP_Create_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 55
+    },
+    {
+      "file": "0740_Splitout_Code_Automation_Webhook.json",
+      "name": "YogiAI",
+      "categories": [
+        "AI-Prompts",
+        "Wellness",
+        "Mindset"
+      ],
+      "score": 55
+    },
+    {
+      "file": "0767_Code_Filter_Send_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "Mindset",
+        "SocialMedia"
+      ],
+      "score": 55
+    },
+    {
+      "file": "0826_Wait_Splitout_Automation_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 55
+    },
+    {
+      "file": "0839_GoogleDrive_GoogleSheets_Create_Triggered.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 55
+    },
+    {
+      "file": "0921_Splitout_Code_Send_Scheduled.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 55
+    },
+    {
+      "file": "1178_Code_HTTP_Automation_Webhook.json",
+      "name": "Publish Videos & Images - Blotato",
+      "categories": [
+        "SocialMedia",
+        "Mindset"
+      ],
+      "score": 55
+    },
+    {
+      "file": "1388_Splitout_Redis_Automation_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 55
+    },
+    {
+      "file": "1507_Stickynote_Executeworkflow_Automation_Webhook.json",
+      "name": "CoinMarketCap_DEXScan_Agent_Tool",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia",
+        "Mindset"
+      ],
+      "score": 55
+    },
+    {
+      "file": "1539_Telegram_Splitout_Automation_Triggered.json",
+      "name": "AI Document Assistant via Telegram + Supabase",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia",
+        "Mindset"
+      ],
+      "score": 55
+    },
+    {
+      "file": "1558_HTTP_Stickynote_Automate_Webhook.json",
+      "name": "✨📊Multi-AI Agent Chatbot for Postgres/Supabase DB and QuickCharts + Tool Router",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 55
+    },
+    {
+      "file": "1605_Code_Editimage_Automation_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 55
+    },
+    {
+      "file": "1631_HTTP_Telegram_Automation_Webhook.json",
+      "name": "NeurochainAI Basic API Integration",
+      "categories": [
+        "AI-Prompts",
+        "Mindset",
+        "SocialMedia"
+      ],
+      "score": 55
+    },
+    {
+      "file": "1664_Code_HTTP_Send_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 55
+    },
+    {
+      "file": "1684_HTTP_Telegram_Automation_Webhook.json",
+      "name": "NeurochainAI Basic API Integration",
+      "categories": [
+        "AI-Prompts",
+        "Mindset",
+        "SocialMedia"
+      ],
+      "score": 55
+    },
+    {
+      "file": "1755_Datetime_Code_Automation_Webhook.json",
+      "name": "Testing Mulitple Local LLM with LM Studio",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 55
+    },
+    {
+      "file": "1779_Stickynote_Executeworkflow_Automation_Webhook.json",
+      "name": "OpenSea NFT Agent Tool",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia",
+        "Mindset"
+      ],
+      "score": 55
+    },
+    {
+      "file": "1791_Filter_Summarize_Create_Triggered.json",
+      "name": "Generate AI-Ready llms.txt Files from Screaming Frog Website Crawls",
+      "categories": [
+        "AI-Prompts"
+      ],
+      "score": 55
+    },
+    {
+      "file": "1916_Telegram_Stickynote_Automation_Triggered.json",
+      "name": "CoinMarketCap_AI_Data_Analyst_Agent",
+      "categories": [
+        "AI-Prompts",
+        "Mindset",
+        "SocialMedia"
+      ],
+      "score": 55
+    },
+    {
+      "file": "1955_Wait_Splitout_Automation_Scheduled.json",
+      "name": "HDW Lead Geländewagen",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 55
+    },
+    {
+      "file": "1975_Telegram_Googledocs_Automation_Webhook.json",
+      "name": "🐋🤖 DeepSeek AI Agent + Telegram + LONG TERM Memory 🧠",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia",
+        "Mindset"
+      ],
+      "score": 55
+    },
+    {
+      "file": "2000_Wait_Code_Automate_Webhook.json",
+      "name": "Youtube_Automation",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 55
+    },
+    {
+      "file": "2002_Manual_Code_Automation_Webhook.json",
+      "name": "Turn YouTube Videos into Summaries, Transcripts, and Visual Insights",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 55
+    },
+    {
+      "file": "2044_Telegram_Googledocs_Automation_Webhook.json",
+      "name": "🐋🤖 DeepSeek AI Agent + Telegram + LONG TERM Memory 🧠",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia",
+        "Mindset"
+      ],
+      "score": 55
+    },
+    {
+      "file": "2050_Datetime_Code_Automation_Webhook.json",
+      "name": "Testing Mulitple Local LLM with LM Studio",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 55
+    },
+    {
+      "file": "0171_Readbinaryfiles_Code_Automation_Webhook.json",
+      "name": "OpenAI-model-examples",
+      "categories": [
+        "AI-Prompts"
+      ],
+      "score": 50
+    },
+    {
+      "file": "0575_Editimage_Manual_Update_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "0576_Respondtowebhook_Form_Automation_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "Mindset",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "0602_Wait_Splitout_Send_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "0613_Splitout_Code_Create_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "0618_Splitout_Code_Create_Scheduled.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "Wellness",
+        "Mindset"
+      ],
+      "score": 50
+    },
+    {
+      "file": "0656_Postgrestool_Stickynote_Send_Triggered.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "0666_Postgres_Webhook_Create_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "0677_Gmailtool_Splitout_Create_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "0735_Telegram_GoogleCalendar_Automation_Webhook.json",
+      "name": "AI Phone Agent with RetellAI",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "0866_Wait_Splitout_Create_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "0923_Splitout_Code_Send_Scheduled.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "1071_Googlecalendartool_Stickynote_Create_Triggered.json",
+      "name": "Build an MCP Server with Google Calendar",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia",
+        "Mindset"
+      ],
+      "score": 50
+    },
+    {
+      "file": "1186_Rssfeedread_Telegram_Create_Triggered.json",
+      "name": "Crypto News & Sentiment",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "1241_Manual_HTTP_Process_Webhook.json",
+      "name": "Convert YouTube Videos into SEO Blog Posts",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "1247_Googlecalendartool_Stickynote_Automation_Triggered.json",
+      "name": "AI Agent : Google calendar assistant using OpenAI",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "1248_Gmailtool_Splitout_Automation_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "1249_Postgres_Webhook_Automation_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "1251_Postgrestool_Stickynote_Automation_Triggered.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "1320_Code_Schedule_Automate_Webhook.json",
+      "name": "Blog Automation TEMPLATE",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "1345_Schedule_Discord_Automation_Scheduled.json",
+      "name": "YouTube to X Post- AlexK1919",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "1369_Editimage_Manual_Automation_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "1400_Wait_Code_Automation_Webhook.json",
+      "name": "AutoQoutesV2_template",
+      "categories": [
+        "AI-Prompts",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "1455_Respondtowebhook_Form_Automation_Webhook.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "Mindset",
+        "SocialMedia"
+      ],
+      "score": 50
+    },
+    {
+      "file": "1556_Splitout_Code_Monitor_Scheduled.json",
+      "name": "Untitled",
+      "categories": [
+        "AI-Prompts",
+        "Wellness",
+        "Mindset"
+      ],
+      "score": 50
+    }
+  ]
+}

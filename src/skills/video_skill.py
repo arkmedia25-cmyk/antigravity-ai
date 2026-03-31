@@ -75,12 +75,10 @@ def _font(size: int, font_type: str = "body") -> ImageFont.FreeTypeFont:
 # ── Drawing helpers ───────────────────────────────────────────────────────────
 
 def _sz(draw, text, font):
-    """Return (width, height) of a text string."""
     bb = draw.textbbox((0, 0), text, font=font)
     return bb[2] - bb[0], bb[3] - bb[1]
 
 def _wrap(draw, text: str, font, max_w: int) -> list:
-    """Break text into lines that fit within max_w pixels."""
     words = text.split()
     lines, cur = [], ""
     for word in words:
@@ -97,7 +95,6 @@ def _wrap(draw, text: str, font, max_w: int) -> list:
     return lines if lines else [text]
 
 def _multiline(draw, lines: list, font, center_y: int, color, spacing: int = 20):
-    """Draw centered multi-line text around center_y."""
     _, lh = _sz(draw, "Ag", font)
     total_h = len(lines) * lh + (len(lines) - 1) * spacing
     y = center_y - total_h // 2
@@ -107,20 +104,14 @@ def _multiline(draw, lines: list, font, center_y: int, color, spacing: int = 20)
         y += lh + spacing
 
 def _clean_text(text: str) -> str:
-    """Removes unsupported characters and maps markers (bullets/emojis)
-    to a standard '*' for better visual list alignment."""
     import re
     if not text: return ""
-    # Map common list/emoji markers to '*' to maintain list structure
     text = re.sub(r'^\s*[•🌿✨\-1234567890\.\*\/]+\s*', '* ', text)
-    # Filter for standard characters supported by the font, plus our '*'
     clean = re.sub(r'[^\x00-\x7F\xC0-\xFF\.,!?\'\":\* ]+', '', text)
     return clean.strip()
 
 def _draw_rounded_rect(draw, coords, radius: int, fill):
-    """Draw a truly solid rounded rectangle to avoid rendering artifacts."""
     x0, y0, x1, y1 = coords
-    # Use 4 solid circles for corners and 2 rectangles for the body
     draw.ellipse([x0, y0, x0 + radius * 2, y0 + radius * 2], fill=fill)
     draw.ellipse([x1 - radius * 2, y0, x1, y0 + radius * 2], fill=fill)
     draw.ellipse([x1 - radius * 2, y1 - radius * 2, x1, y1], fill=fill)
@@ -129,118 +120,57 @@ def _draw_rounded_rect(draw, coords, radius: int, fill):
     draw.rectangle([x0, y0 + radius, x1, y1 - radius], fill=fill)
 
 def _center(draw, text: str, font, cy: int, color):
-    """Draw a single horizontally centered line at cy."""
     text = _clean_text(text)
-    w, _ = _sz(draw, text, font)
-    draw.text((_CX - w // 2, cy - _sz(draw, "Ag", font)[1] // 2), text, font=font, fill=color)
+    w, h = _sz(draw, "Ag", font)
+    tw, _ = _sz(draw, text, font)
+    draw.text((_CX - tw // 2, cy - h // 2), text, font=font, fill=color)
 
 # ── Frame builders ────────────────────────────────────────────────────────────
-
-def _build_hook(theme: dict) -> str:
-    img  = Image.new("RGB", (_W, _H), theme["bg"])
-    draw = ImageDraw.Draw(img)
-
-    # Decorative circle
-    draw.ellipse([_CX - 380, 280, _CX + 380, 1080],
-                 outline=theme["accent2"], width=4)
-    # Small accent triangle
-    draw.polygon([(_CX, 560), (_CX - 55, 680), (_CX + 55, 680)],
-                 fill=theme["accent"])
-
-    # Hook text — always wrapped so nothing overflows
-    f = _font(82, theme["font_title"])
-    lines = _wrap(draw, "DIT WIST JE NOG NIET... Over deze routine!", f, max_w=950)
-    _multiline(draw, lines, f, center_y=1130, color=theme["text"], spacing=22)
-
-    path = os.path.join(_OUTPUT_DIR, f"frame_{theme['brand_name']}_0_hook.png")
-    os.makedirs(_OUTPUT_DIR, exist_ok=True)
-    img.save(path)
-    return path
-
 
 def _build_sentence_frame(text: str, theme: dict, index: int) -> str:
     img  = Image.new("RGB", (_W, _H), theme["bg"])
     draw = ImageDraw.Draw(img)
-
-    # Sanitization
     text = _clean_text(text)
-
-    # Card background — solid, clean
     card_x0, card_x1 = 80, _W - 80
     card_y0, card_y1 = _H // 2 - 380, _H // 2 + 380
     _draw_rounded_rect(draw, [card_x0, card_y0, card_x1, card_y1], 40, fill=theme["accent2"])
-
-    # Left accent bar
     draw.rectangle([card_x0, card_y0 + 60, card_x0 + 10, card_y1 - 60], fill=theme["accent"])
-
     f = _font(72, theme["font_body"])
     lines = _wrap(draw, text, f, max_w=870)
     _multiline(draw, lines, f, center_y=_H // 2, color=theme["text"], spacing=22)
-
     path = os.path.join(_OUTPUT_DIR, f"frame_content_{index}.png")
     os.makedirs(_OUTPUT_DIR, exist_ok=True)
     img.save(path)
     return path
 
-
-def _build_cta(theme: dict) -> str:
-    img  = Image.new("RGB", (_W, _H), theme["bg"])
-    draw = ImageDraw.Draw(img)
-
-    # Main CTA question
-    f_q = _font(82, theme["font_title"])
-    lines_q = _wrap(draw, _clean_text("Wat ga jij vandaag doen?"), f_q, max_w=950)
-    _multiline(draw, lines_q, f_q, center_y=750, color=theme["text"], spacing=20)
-
-    # Rounded action button
-    bx0, by0, bx1, by1 = 120, 1000, _W - 120, 1280
-    _draw_rounded_rect(draw, [bx0, by0, bx1, by1], 40, fill=theme["accent"])
-
-    f_btn = _font(52, theme["font_body"])
-    y_btn = by0 + 75
-    for label in ["Like & Save", f"Volg {theme['brand_name']}"]:
-        _center(draw, label, f_btn, cy=y_btn, color=(255, 255, 255))
-        y_btn += 95
-
-    # Bottom link
-    f_link = _font(44, theme["font_body"])
-    lines_link = _wrap(draw, _clean_text("Klik op de link in bio voor meer hulp"), f_link, max_w=950)
-    _multiline(draw, lines_link, f_link, center_y=_H - 160, color=theme["accent"], spacing=10)
-
-    path = os.path.join(_OUTPUT_DIR, f"frame_{theme['brand_name']}_2_cta.png")
-    os.makedirs(_OUTPUT_DIR, exist_ok=True)
-    img.save(path)
-    return path
-
-
 # ── Main video assembly ───────────────────────────────────────────────────────
 
 def create_reel(
-    audio_path: str = "outputs/audio_final.mp3",
+    fragments: list = None,
+    image_path: str = None,
     output_filename: str = "final_video.mp4",
-    brand: str = "holisti"
+    brand: str = "glow",
+    font_path: str = None
 ) -> str:
-    theme = THEMES.get(brand, THEMES["holisti"])
+    theme = THEMES.get(brand, THEMES["glow"])
     os.makedirs(_OUTPUT_DIR, exist_ok=True)
     output_path = os.path.join(_OUTPUT_DIR, output_filename)
     if os.path.exists(output_path):
-        os.remove(output_path)
+        try: os.remove(output_path)
+        except: pass
 
-    # ── 1. Load Fragments (Required for Zero-Delay Mode) ──
-    frag_path = os.path.join(_OUTPUT_DIR, "fragments.json")
-    fragments = []
-    try:
-        if os.path.exists(frag_path):
-            with open(frag_path, encoding="utf-8") as f:
-                fragments = json.load(f)
-    except Exception:
-        pass
+    if fragments is None:
+        frag_path = os.path.join(_OUTPUT_DIR, "fragments.json")
+        try:
+            if os.path.exists(frag_path):
+                with open(frag_path, encoding="utf-8") as f:
+                    fragments = json.load(f)
+        except Exception: pass
 
     if not fragments:
-        print("[video_skill] ERROR: No fragments.json found. Cannot proceed with Zero-Delay Sync.")
+        print("[video_skill] ERROR: No fragments provided or found.")
         return ""
 
-    # ── 2. Utility for duration ──
     def get_duration(p: str) -> float:
         try:
             res = subprocess.run(
@@ -249,10 +179,8 @@ def create_reel(
                 capture_output=True, text=True
             )
             return float(res.stdout.strip())
-        except Exception:
-            return 3.0
+        except: return 3.0
 
-    # ── 3. Encode Clips Dynamically ──
     def make_clip(img_path: str, dur: float, out_name: str) -> str:
         clip_path = os.path.join(_OUTPUT_DIR, out_name)
         subprocess.run([
@@ -265,51 +193,68 @@ def create_reel(
     all_video_clips = []
     all_audio_files = []
 
-    print(f"[video_skill] Rendering {len(fragments)} fragments for Zero-Delay Flow...")
+    print(f"[video_skill] Rendering {len(fragments)} fragments...")
 
     for i, frag in enumerate(fragments):
-        dur = get_duration(frag["audio"])
-        tag = frag.get("tag", "content")
-        text = frag["sentence"]
+        a_path = frag.get("audio") or frag.get("path")
+        if not a_path: continue
         
-        # Build specific frame based on tag
+        dur = get_duration(a_path)
+        tag = frag.get("tag", "content")
+        text = frag.get("sentence") or frag.get("text", "")
+        
+        img = Image.new("RGB", (_W, _H), theme["bg"])
+        if image_path and os.path.exists(image_path):
+            try:
+                bg_img = Image.open(image_path).convert("RGB")
+                ratio = max(_W/bg_img.width, _H/bg_img.height)
+                bg_img = bg_img.resize((int(bg_img.width*ratio), int(bg_img.height*ratio)), Image.Resampling.LANCZOS)
+                left = (bg_img.width - _W) // 2
+                top = (bg_img.height - _H) // 2
+                bg_img = bg_img.crop((left, top, left + _W, top + _H))
+                img.paste(bg_img, (0, 0))
+                overlay = Image.new('RGBA', (_W, _H), (0, 0, 0, 100))
+                img.paste(overlay, (0, 0), overlay)
+            except: pass
+
+        draw = ImageDraw.Draw(img)
+        text_color = (255, 255, 255) if image_path else theme["text"]
+
         if tag == "hook":
-            # Hook logic (Big title, circle decor)
-            img = Image.new("RGB", (_W, _H), theme["bg"])
-            draw = ImageDraw.Draw(img)
-            draw.ellipse([_CX - 380, 280, _CX + 380, 1080], outline=theme["accent2"], width=4)
-            draw.polygon([(_CX, 560), (_CX - 55, 680), (_CX + 55, 680)], fill=theme["accent"])
+            if not image_path:
+                draw.ellipse([_CX - 380, 280, _CX + 380, 1080], outline=theme["accent2"], width=4)
+                draw.polygon([(_CX, 560), (_CX - 55, 680), (_CX + 55, 680)], fill=theme["accent"])
             f = _font(82, theme["font_title"])
             lines = _wrap(draw, _clean_text(text), f, max_w=950)
-            _multiline(draw, lines, f, center_y=1130, color=theme["text"], spacing=22)
+            _multiline(draw, lines, f, center_y=1130, color=text_color, spacing=22)
             img_p = os.path.join(_OUTPUT_DIR, f"f_hook_{i}.png")
             img.save(img_p)
         elif tag == "cta":
-            # CTA logic (Buttons, specific layout)
-            img = Image.new("RGB", (_W, _H), theme["bg"])
-            draw = ImageDraw.Draw(img)
             f_q = _font(82, theme["font_title"])
             lines_q = _wrap(draw, _clean_text(text), f_q, max_w=950)
-            _multiline(draw, lines_q, f_q, center_y=750, color=theme["text"], spacing=20)
+            _multiline(draw, lines_q, f_q, center_y=750, color=text_color, spacing=20)
             bx0, by0, bx1, by1 = 120, 1000, _W - 120, 1280
             _draw_rounded_rect(draw, [bx0, by0, bx1, by1], 40, fill=theme["accent"])
             f_btn = _font(52, theme["font_body"])
             _center(draw, "Like & Save", f_btn, cy=by0 + 75, color=(255, 255, 255))
-            _center(draw, f"Volg {theme['brand_name']}", f_btn, cy=by0 + 170, color=(255, 255, 255))
+            _center(draw, f"Follow {theme['brand_name']}", f_btn, cy=by0 + 170, color=(255, 255, 255))
             f_link = _font(44, theme["font_body"])
-            _center(draw, "Klik op de link in bio voor meer", f_link, cy=_H - 160, color=theme["accent"])
+            _center(draw, "Check the link in bio", f_link, cy=_H - 160, color=theme["accent"])
             img_p = os.path.join(_OUTPUT_DIR, f"f_cta_{i}.png")
             img.save(img_p)
         else:
-            # Standard sentence card
-            img_p = _build_sentence_frame(text, theme, i)
+            if not image_path:
+                _draw_rounded_rect(draw, [80, _H//2-380, _W-80, _H//2+380], 40, fill=theme["accent2"])
+            f = _font(72, theme["font_body"])
+            lines = _wrap(draw, _clean_text(text), f, max_w=870)
+            _multiline(draw, lines, f, center_y=_H // 2, color=text_color, spacing=22)
+            img_p = os.path.join(_OUTPUT_DIR, f"f_content_{i}.png")
+            img.save(img_p)
 
-        # Create video clip
         c_p = make_clip(img_p, dur, f"v_frag_{i}.mp4")
         all_video_clips.append(c_p)
-        all_audio_files.append(frag["audio"])
+        all_audio_files.append(a_path)
 
-    # ── 4. Final Assembly (No Silences) ──
     v_list = os.path.join(_OUTPUT_DIR, "v_list.txt")
     with open(v_list, "w", encoding="utf-8") as f:
         for i in range(len(all_video_clips)):
@@ -317,26 +262,23 @@ def create_reel(
 
     a_list = os.path.join(_OUTPUT_DIR, "a_list.txt")
     with open(a_list, "w", encoding="utf-8") as f:
-        for i in range(len(all_audio_files)):
-            f.write(f"file '{os.path.basename(all_audio_files[i])}'\n")
+        for i, a_p in enumerate(all_audio_files):
+            local_a = os.path.join(_OUTPUT_DIR, f"tmp_a_{i}.mp3")
+            import shutil
+            shutil.copy2(a_p, local_a)
+            f.write(f"file 'tmp_a_{i}.mp3'\n")
 
-    # Concatenate Audio
     final_audio = os.path.join(_OUTPUT_DIR, "audio_full.mp3")
     subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", a_list, "-c", "copy", final_audio],
                    check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    # Concatenate Video + Merge
-    print("[video_skill] Merging final Reel (Zero-Delay)...")
     subprocess.run([
         "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", v_list,
         "-i", final_audio, "-c:v", "copy", "-c:a", "aac", "-shortest", output_path
-    ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    size_mb = os.path.getsize(output_path) / 1_000_000
-    print(f"[video_skill] Done: {output_path} ({size_mb:.1f} MB)")
     return output_path
 
-
 if __name__ == "__main__":
-    path = create_reel()
-    print("Test video:", path)
+    p = create_reel()
+    print("Video:", p)

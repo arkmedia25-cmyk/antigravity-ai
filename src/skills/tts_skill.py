@@ -1,6 +1,6 @@
 import os
 from openai import OpenAI
-from config.settings import settings
+from src.config.settings import settings
 
 _OUTPUT_DIR = "outputs"
 _DEFAULT_VOICE = "nova"

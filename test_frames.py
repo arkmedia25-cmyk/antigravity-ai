@@ -1,26 +1,25 @@
-import sys, os
+import sys, os, json
 sys.path.append(os.path.join(os.getcwd(), "src"))
 
 from skills.video_skill import THEMES, _build_hook, _build_sentence_frame, _build_cta
 
 theme = THEMES["glow"]
 
-# Realistic test sentences (as AI would generate them)
+# Test cases for character mapping: emojis, bullets, numbers should all become '* '
 test_sentences = [
-    "Wist jij dat een glas water voor het ontbijt je stofwisseling met 30% kan verhogen?",
-    "Drie minuten bewegen na elke maaltijd helpt je bloedsuiker stabiel te houden.",
-    "Slaap voor middernacht is twee keer zo herstellend voor je hormonen dan erna.",
+    "🌿 1. Drink elke ochtend een glas lauw water.", 
+    "• Dit helpt je lichaam om giftstoffen af te voeren.",
+    "- Probeer ook 10 minuten te wandelen.",
+    "✨ 3. Je zult merken dat je energie stijgt!"
 ]
 
-print("Generating Hook...")
-h = _build_hook(theme)
-print(h)
+os.makedirs("outputs", exist_ok=True)
 
-print("Generating sentence frames...")
+print("--- FINAL VISUAL VERIFICATION START ---")
+
+print("Generating frames...")
 for i, s in enumerate(test_sentences):
     p = _build_sentence_frame(s, theme, i)
-    print(p)
+    print(f"Frame {i} saved ({s[:20]}...): {p}")
 
-print("Generating CTA...")
-c = _build_cta(theme)
-print(c)
+print("--- FINAL VISUAL VERIFICATION END ---")
