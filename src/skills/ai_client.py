@@ -21,7 +21,8 @@ def _get_openai():
     return _openai_client
 
 
-def ask_ai(prompt: str, provider: str = "openai") -> str:
+def ask_ai(prompt: str, provider: str = "openai", is_json: bool = False) -> str:
+    import json
     try:
         if provider == "claude":
             response = _get_anthropic().messages.create(
@@ -29,15 +30,22 @@ def ask_ai(prompt: str, provider: str = "openai") -> str:
                 max_tokens=1500,
                 messages=[{"role": "user", "content": prompt}],
             )
-            return response.content[0].text
+            text = response.content[0].text
+            return json.loads(text) if is_json else text
         else:
-            response = _get_openai().chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
-            )
-            return response.choices[0].message.content
+            kwargs = {
+                "model": "gpt-4o",
+                "messages": [{"role": "user", "content": prompt}],
+            }
+            if is_json:
+                kwargs["response_format"] = {"type": "json_object"}
+                
+            response = _get_openai().chat.completions.create(**kwargs)
+            text = response.choices[0].message.content
+            return json.loads(text) if is_json else text
     except Exception as e:
-        return f"HATA: {str(e)}"
+        print(f"[ask_ai] Error: {e}")
+        return {} if is_json else f"HATA: {str(e)}"
 
 def generate_image(prompt: str) -> str:
     """Generates a high-quality DALL-E 3 image and returns the local path."""
