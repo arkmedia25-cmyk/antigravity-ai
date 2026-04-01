@@ -150,7 +150,8 @@ def _draw_rounded_rect(draw, coords, radius: int, fill):
 
 def _fit_lines(draw, text: str, font_type: str, max_w: int, max_h: int) -> tuple:
     """Helper to scale down font size until text fits. Returns (lines, font, total_h)"""
-    sizes = [100, 85, 70, 55, 45] if font_type == "title" else [82, 72, 62, 50, 42]
+    # Scaled down by 2 points for cleaner aesthetics
+    sizes = [98, 83, 68, 53, 43] if font_type == "title" else [80, 70, 60, 48, 40]
     for sz in sizes:
         f = _font(sz, font_type)
         lines = _wrap(draw, text, f, max_w)
@@ -280,12 +281,10 @@ def create_reel(
             img_p = os.path.join(_OUTPUT_DIR, f"f_{session_id}_hook_{i}.png")
             img.save(img_p)
         elif tag == "cta":
-            f_q = _font(82, theme["font_title"])
-            lines_q = _wrap(draw, _clean_text(text), f_q, max_w=820)
-            _, lh_q = _sz(draw, "Ag", f_q)
-            total_h_q = len(lines_q) * lh_q + (len(lines_q) - 1) * 25
-            p_cy = 650
-            bx0, by0, bx1, by1 = 100, p_cy - total_h_q//2 - 50, _W - 100, p_cy + total_h_q//2 + 50
+            # Dynamic fitting for the CTA question to prevent overflow
+            lines_q, f_q, total_h_q = _fit_lines(draw, _clean_text(text), theme["font_title"], max_w=820, max_h=550)
+            p_cy = 600 # Slightly higher for better breathing room
+            bx0, by0, bx1, by1 = 100, p_cy - total_h_q//2 - 60, _W - 100, p_cy + total_h_q//2 + 60
             _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, fill=theme["glass"])
             btn_bx0, btn_by0, btn_bx1, btn_by1 = 120, _H - 550, _W - 120, _H - 270
             _draw_rounded_rect(overlay_draw, [btn_bx0, btn_by0, btn_bx1, btn_by1], 60, fill=theme["accent"])
@@ -300,7 +299,8 @@ def create_reel(
             img_p = os.path.join(_OUTPUT_DIR, f"f_{session_id}_cta_{i}.png")
             img.save(img_p)
         else:
-            lines, f, total_h = _fit_lines(draw, _clean_text(text), theme["font_body"], max_w=850, max_h=1200)
+            # Safer max_h for multi-line content to prevent bottom-edge crowding
+            lines, f, total_h = _fit_lines(draw, _clean_text(text), theme["font_body"], max_w=850, max_h=1050)
             pad = 100
             bx0, by0, bx1, by1 = 80, (_H // 2) - (total_h // 2) - pad, _W - 80, (_H // 2) + (total_h // 2) + pad
             _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, fill=theme["glass"])

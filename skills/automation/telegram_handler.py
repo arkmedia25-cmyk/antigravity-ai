@@ -234,8 +234,10 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         clean_sentences = []
         temp_s = ""
         for s in raw_parts:
-            # Basic cleanup of AI-generated bullet points
-            s_clean = re.sub(r'^\s*[\d]+[\.\)]\s*', '', s).strip()
+            # Aggressive cleanup of AI technical labels and bullets
+            s_clean = re.sub(r'(?i)^\s*(hook|content|cta|tip\s*\d*)\s*[:\-\]]*\s*', '', s).strip()
+            s_clean = re.sub(r'[\[\]]', '', s_clean).strip()
+            s_clean = re.sub(r'^\s*[\d]+[\.\)]\s*', '', s_clean).strip()
             s_clean = re.sub(r'^\s*[-•*]\s*', '', s_clean).strip()
             if not s_clean: continue
             
