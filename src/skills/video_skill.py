@@ -138,6 +138,10 @@ def create_reel(
     # Use selected brand theme
     theme = THEMES.get(brand, THEMES["glow"])
     
+    # Session ID for unique temporary files
+    import time, uuid
+    session_id = f"{int(time.time())}_{uuid.uuid4().hex[:8]}"
+    
     os.makedirs(_OUTPUT_DIR, exist_ok=True)
     output_path = os.path.join(_OUTPUT_DIR, output_filename)
     if os.path.exists(output_path):
@@ -169,16 +173,20 @@ def create_reel(
     def make_clip(img_path: str, dur: float, out_name: str) -> str:
         clip_path = os.path.join(_OUTPUT_DIR, out_name)
         # Stable Fast Rendering (Static Background)
-        subprocess.run([
-            "ffmpeg", "-y", "-loop", "1", "-t", f"{dur:.2f}", "-i", img_path,
-            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-preset", "ultrafast", clip_path
-        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            subprocess.run([
+                "ffmpeg", "-y", "-loop", "1", "-t", f"{dur:.2f}", "-i", img_path,
+                "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-preset", "ultrafast", clip_path
+            ], check=True, capture_output=True, text=True)
+        except subprocess.CalledProcessError as e:
+            print(f"[video_skill] make_clip FFmpeg Error: {e.stderr}")
+            raise
         return clip_path
 
     all_video_clips = []
     all_audio_files = []
 
-    print(f"[video_skill] Rendering {len(fragments)} fragments for @{brand.capitalize()}NL...")
+    print(f"[video_skill] Rendering {len(fragments)} fragments for @{brand.capitalize()}NL (Session: {session_id})...")
 
     for i, frag in enumerate(fragments):
         a_path = frag.get("audio") or frag.get("path")
@@ -219,7 +227,7 @@ def create_reel(
             img.paste(overlay_img, (0, 0), overlay_img)
             draw = ImageDraw.Draw(img)
             _multiline(draw, lines, f, center_y=(by0 + by1) // 2, color=text_color, spacing=25)
-            img_p = os.path.join(_OUTPUT_DIR, f"f_hook_{i}.png")
+            img_p = os.path.join(_OUTPUT_DIR, f"f_{session_id}_hook_{i}.png")
             img.save(img_p)
         elif tag == "cta":
             f_q = _font(82, theme["font_title"])
@@ -239,7 +247,7 @@ def create_reel(
             _center(draw, f"Volg {theme['brand_name']}", f_btn, cy=btn_by0 + 185, color=(255, 255, 255))
             f_link = _font(44, theme["font_body"])
             _center(draw, "Bekijk de link in bio", f_link, cy=_H - 160, color=theme["accent"])
-            img_p = os.path.join(_OUTPUT_DIR, f"f_cta_{i}.png")
+            img_p = os.path.join(_OUTPUT_DIR, f"f_{session_id}_cta_{i}.png")
             img.save(img_p)
         else:
             f = _font(72, theme["font_body"])
@@ -252,48 +260,75 @@ def create_reel(
             img.paste(overlay_img, (0, 0), overlay_img)
             draw = ImageDraw.Draw(img)
             _multiline(draw, lines, f, center_y=_H // 2, color=text_color, spacing=25)
-            img_p = os.path.join(_OUTPUT_DIR, f"f_content_{i}.png")
+            img_p = os.path.join(_OUTPUT_DIR, f"f_{session_id}_content_{i}.png")
             img.save(img_p)
 
-        c_p = make_clip(img_p, dur, f"v_frag_{i}.mp4")
+        c_p = make_clip(img_p, dur, f"v_{session_id}_{i}.mp4")
         all_video_clips.append(c_p)
         all_audio_files.append(a_path)
 
-    v_list = os.path.join(_OUTPUT_DIR, "v_list.txt")
+    v_list = os.path.join(_OUTPUT_DIR, f"v_list_{session_id}.txt")
     with open(v_list, "w", encoding="utf-8") as f:
         for i in range(len(all_video_clips)):
-            abs_v = os.path.abspath(all_video_clips[i])
-            f.write(f"file '{abs_v.replace('\\', '/')}'\n")
+            # Absolute path with forward slashes, no quotes
+            abs_v = os.path.abspath(all_video_clips[i]).replace("\\", "/")
+            f.write(f"file {abs_v}\n")
 
-    a_list = os.path.join(_OUTPUT_DIR, "a_list.txt")
+    a_list = os.path.join(_OUTPUT_DIR, f"a_list_{session_id}.txt")
     with open(a_list, "w", encoding="utf-8") as f:
         for i, a_p in enumerate(all_audio_files):
-            local_a = os.path.join(_OUTPUT_DIR, f"tmp_a_{i}.mp3")
+            local_a = os.path.join(_OUTPUT_DIR, f"tmp_{session_id}_{i}.mp3")
             import shutil
             shutil.copy2(a_p, local_a)
-            abs_a = os.path.abspath(local_a)
-            f.write(f"file '{abs_a.replace('\\', '/')}'\n")
+            # Absolute path with forward slashes, no quotes
+            abs_a = os.path.abspath(local_a).replace("\\", "/")
+            f.write(f"file {abs_a}\n")
 
-    # Use unique name for intermediate audio to avoid file locks (Status 183 fix)
-    import time
-    final_audio = os.path.join(_OUTPUT_DIR, f"audio_full_{int(time.time())}.mp3")
-    subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", a_list, "-c", "copy", final_audio],
-                   check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # Use unique name for intermediate audio
+    abs_v_list = os.path.abspath(v_list)
+    abs_a_list = os.path.abspath(a_list)
+    final_audio = os.path.join(_OUTPUT_DIR, f"audio_full_{session_id}.mp3")
+    abs_final_audio = os.path.abspath(final_audio)
+    
+    try:
+        res = subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", abs_a_list, "-c", "copy", abs_final_audio],
+                       capture_output=True, text=True)
+        if res.returncode != 0:
+            print(f"[video_skill] Audio concat failed! a_list content:\n{open(a_list).read()}")
+            print(f"[video_skill] FFmpeg stderr:\n{res.stderr}")
+            res.check_returncode()
+    except subprocess.CalledProcessError as e:
+        print(f"[video_skill] Audio concat Error (Session {session_id}): {e.stderr}")
+        raise
 
     # Mixed Final Assembly (Voice + Background Music with Ducking)
-    bg_music = os.path.join("audio_assets", "wellness_bg.mp3")
-    if os.path.exists(bg_music):
-         subprocess.run([
-            "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", v_list,
-            "-i", final_audio, "-i", bg_music,
-            "-filter_complex", 
-            "[2:a]volume=0.15[bg];[1:a]volume=1.0[voice];[bg][voice]amix=inputs=2:duration=first[outa]",
-            "-map", "0:v", "-map", "[outa]", "-c:v", "copy", "-c:a", "aac", "-shortest", output_path
-        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    else:
-        subprocess.run([
-            "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", v_list,
-            "-i", final_audio, "-c:v", "copy", "-c:a", "aac", "-shortest", output_path
-        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    bg_music = os.path.abspath(os.path.join("audio_assets", "wellness_bg.mp3")).replace("\\", "/")
+    abs_output_path = os.path.abspath(output_path)
+
+    try:
+        if os.path.exists(bg_music):
+             subprocess.run([
+                "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", abs_v_list,
+                "-i", abs_final_audio, "-i", bg_music,
+                "-filter_complex", 
+                "[2:a]volume=0.15[bg];[1:a]volume=1.0[voice];[bg][voice]amix=inputs=2:duration=first[outa]",
+                "-map", "0:v", "-map", "[outa]", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-c:a", "aac", "-shortest", abs_output_path
+            ], check=True, capture_output=True, text=True)
+        else:
+            # No re-encoding if just concat-then-merge voice
+            subprocess.run([
+                "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", abs_v_list,
+                "-i", abs_final_audio, "-map", "1:a", "-map", "0:v",
+                "-c:v", "copy", "-c:a", "aac", "-shortest", abs_output_path
+            ], check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as e:
+        print(f"[video_skill] Final Assembly Error (Session {session_id}): {e.stderr}")
+        raise
+
+    # Cleanup temporary session files
+    try:
+        os.remove(v_list)
+        os.remove(a_list)
+    except: pass
 
     return output_path
