@@ -320,20 +320,17 @@ def create_reel(
         all_audio_files.append(a_path)
 
     v_list = os.path.join(_OUTPUT_DIR, f"v_list_{session_id}.txt")
-    with open(v_list, "w", encoding="utf-8") as f:
+    with open(v_list, "w", encoding="utf-8", newline='\n') as f:
         for i in range(len(all_video_clips)):
             # Absolute path with forward slashes, wrapped in quotes for stability
             abs_v = os.path.abspath(all_video_clips[i]).replace("\\", "/")
             f.write(f"file '{abs_v}'\n")
 
     a_list = os.path.join(_OUTPUT_DIR, f"a_list_{session_id}.txt")
-    with open(a_list, "w", encoding="utf-8") as f:
+    with open(a_list, "w", encoding="utf-8", newline='\n') as f:
         for i, a_p in enumerate(all_audio_files):
-            local_a = os.path.join(_OUTPUT_DIR, f"tmp_{session_id}_{i}.mp3")
-            import shutil
-            shutil.copy2(a_p, local_a)
-            # Absolute path with forward slashes, wrapped in quotes for stability
-            abs_a = os.path.abspath(local_a).replace("\\", "/")
+            # Standardize: Use absolute path of the already generated fragment
+            abs_a = os.path.abspath(a_p).replace("\\", "/")
             f.write(f"file '{abs_a}'\n")
 
     # Use unique name for intermediate audio
@@ -361,9 +358,11 @@ def create_reel(
             try: os.remove(abs_final_audio)
             except: pass
 
-        # Re-encoding audio instead of -c copy to prevent metadata/header mismatches
-        res = subprocess.run(["ffmpeg", "-y", "-hide_banner", "-f", "concat", "-safe", "0", "-i", abs_a_list, "-c:a", "libmp3lame", "-q:a", "2", abs_final_audio],
-                       capture_output=True, text=True)
+        # Re-encoding audio to 44.1kHz Stereo to prevent sample rate drift
+        res = subprocess.run([
+            "ffmpeg", "-y", "-hide_banner", "-f", "concat", "-safe", "0", "-i", abs_a_list, 
+            "-c:a", "libmp3lame", "-ar", "44100", "-ac", "2", "-q:a", "2", abs_final_audio
+        ], capture_output=True, text=True)
         if res.returncode != 0:
             print(f"[video_skill] Audio concat failed! a_list content:\n{open(a_list).read()}")
             print(f"[video_skill] FFmpeg stderr:\n{res.stderr}")

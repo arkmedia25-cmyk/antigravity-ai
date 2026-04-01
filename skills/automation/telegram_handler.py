@@ -189,18 +189,25 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         # Step 1: AI generates script, caption and tags
         send_message(chat_id, f"🎬 {brand_label} SQUAD iş başında!\nKonu: {topic}\nStrateji: {brand.upper()} Manifestosu uygulanıyor...")
         
+        brand_rules = (
+            "BRAND VOICE [GLOWUP]: High-energy, pushy, result-oriented, zero-fluff. USE words like: Snel, Direct, Pak je winst, Energie. NEVER use: Misschien, Rustig, Balans."
+            if brand == "glow" else
+            "BRAND VOICE [HOLISTIGLOW]: Calm, wise, motherly, educational, slow-paced. USE words like: Balans, Wijsheid, Rust, Holistisch. NEVER use: Snel, Direct, Nu meteen, Hype."
+        )
+
         prompt = (
             f"=== SQUAD MANIFESTO - ACT AS THIS TEAM ===\n{manifesto}\n\n"
+            f"=== {brand_rules} ===\n\n"
             f"Role: Expert Wellness Content Creator. Brand: {brand_label}.\n"
-            f"Topic (may be in Turkish, translate to Dutch first): {topic}\n"
+            f"Topic: {topic}\n"
             "CRITICAL: YOUR OUTPUT MUST BE 100% IN DUTCH. NO TURKISH WORDS ALLOWED.\n"
-            "GOAL: Create a high-conversion, trust-building Instagram package for Dutch women.\n"
+            "GOAL: Create a distinct Instagram package. If GlowUp, be provocative and energetic. If HolistiGlow, be calm and trustworthy.\n"
             "STRUCTURE:\n"
             "1. HOOK (5-8 sec): Curiosity or problem-solving entrance.\n"
             "2. CONTENT (15-20 sec): 2-3 genuinely helpful tips.\n"
             "3. CTA (5 sec): Polite follow invitation.\n\n"
             "PROVIDE THESE 3 PARTS IN DUTCH ONLY:\n"
-            "---SCRIPT---\n[STRICTLY DUTCH - Voiceover text only - NO TURKISH]\n"
+            "---SCRIPT---\n[STRICTLY DUTCH - Voiceover text only]\n"
             "---CAPTION---\n[STRICTLY DUTCH - Engaging Instagram caption]\n"
             "---TAGS---\n[Strategic Hashtags]\n"
         )
@@ -628,7 +635,6 @@ def process_command(chat_id, text):
 
         elif text.startswith("/video"):
             topic = text.replace("/video", "").strip() or "Wellness"
-            threading.Thread(target=_generate_and_send_video, args=(chat_id, topic, "holisti")).start()
             if not topic:
                 send_message(chat_id,
                     "🎬 Video olusturma:\n\n"
