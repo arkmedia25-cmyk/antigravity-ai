@@ -3,6 +3,7 @@ import requests
 import sys
 import os
 import threading
+import re
 from dotenv import load_dotenv
 
 try:
