@@ -15,7 +15,7 @@ THEMES = {
         "accent":     (255, 112, 86),
         "accent2":    (255, 185, 165),
         "text":       (62, 44, 40),
-        "glass":      (255, 255, 255, 180), # Soft white glass
+        "glass":      (255, 255, 255, 215), # Premium Semi-Opaque Glass
         "font_title": "title",
         "font_body":  "body",
         "brand_name": "@GlowUpNL",
@@ -25,11 +25,12 @@ THEMES = {
         "accent":     (130, 150, 120),
         "accent2":    (210, 220, 200),
         "text":       (40, 44, 45),
-        "glass":      (255, 255, 255, 180), # Soft white glass
+        "glass":      (255, 255, 255, 215),
         "font_title": "title",
         "font_body":  "body",
         "brand_name": "@HolistiGlow",
     },
+    # ... rest remains unchanged
     "luxury_bw": {
         "bg":         (20, 20, 20),
         "accent":     (220, 220, 220),
@@ -129,7 +130,11 @@ def _multiline(draw, lines: list, font, center_y: int, color, spacing: int = 20)
 def _clean_text(text: str) -> str:
     import re
     if not text: return ""
-    text = re.sub(r'^\s*[•🌿✨\-1234567890\.\*\/]+\s*', '* ', text)
+    # Strip [HOOK], [CONTENT], [CTA], etc.
+    text = re.sub(r'\[HOOK\]|\[CONTENT\]|\[CTA\]|\[TITLE\]', '', text, flags=re.IGNORECASE)
+    # Strip bullet icons or numbers at start
+    text = re.sub(r'^\s*[•🌿✨\-1234567890\.\*\/]+\s*', '', text)
+    # Strip non-standard chars but keep Dutch accents
     clean = re.sub(r'[^\x00-\x7F\xC0-\xFF\.,!?\'\":\* ]+', '', text)
     return clean.strip()
 
@@ -243,15 +248,23 @@ def create_reel(
         text_color = theme["text"]
         
         if tag == "hook":
-            f = _font(85, theme["font_title"])
+            f = _font(100, theme["font_title"])
             lines = _wrap(draw, _clean_text(text), f, max_w=850)
             _, lh = _sz(draw, "Ag", f)
-            total_h = len(lines) * lh + (len(lines) - 1) * 25
-            bx0, by0, bx1, by1 = 80, 200, _W - 80, 200 + total_h + 100
+            spacing = 30
+            total_h = len(lines) * lh + (len(lines) - 1) * spacing
+            pad = 110
+            bx0, by0, bx1, by1 = 80, 220, _W - 80, 220 + total_h + (pad * 2)
             _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, fill=theme["glass"])
+            # Vertical Accent Bar (Left side)
+            overlay_draw.rectangle([bx0, by0 + 40, bx0 + 20, by1 - 40], fill=theme["accent"])
             img.paste(overlay_img, (0, 0), overlay_img)
             draw = ImageDraw.Draw(img)
-            _multiline(draw, lines, f, center_y=(by0 + by1) // 2, color=text_color, spacing=25)
+            y = by0 + pad
+            for line in lines:
+                lw, _ = _sz(draw, line, f)
+                draw.text(((_W - lw) // 2, y), line, font=f, fill=text_color)
+                y += lh + spacing
             img_p = os.path.join(_OUTPUT_DIR, f"f_{session_id}_hook_{i}.png")
             img.save(img_p)
         elif tag == "cta":
@@ -275,16 +288,22 @@ def create_reel(
             img_p = os.path.join(_OUTPUT_DIR, f"f_{session_id}_cta_{i}.png")
             img.save(img_p)
         else:
-            f = _font(72, theme["font_body"])
+            f = _font(82, theme["font_body"])
             lines = _wrap(draw, _clean_text(text), f, max_w=850)
             _, lh = _sz(draw, "Ag", f)
-            total_h = len(lines) * lh + (len(lines) - 1) * 25
-            bx0, by0, bx1, by1 = 80, _H//2 - total_h//2 - 60, _W - 80, _H//2 + total_h//2 + 60
+            spacing = 30
+            total_h = len(lines) * lh + (len(lines) - 1) * spacing
+            pad = 100
+            bx0, by0, bx1, by1 = 80, (_H // 2) - (total_h // 2) - pad, _W - 80, (_H // 2) + (total_h // 2) + pad
             _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, fill=theme["glass"])
-            overlay_draw.rectangle([bx0, by0 + 40, bx0 + 15, by1 - 40], fill=theme["accent"])
+            overlay_draw.rectangle([bx0, by0 + 40, bx0 + 20, by1 - 40], fill=theme["accent"])
             img.paste(overlay_img, (0, 0), overlay_img)
             draw = ImageDraw.Draw(img)
-            _multiline(draw, lines, f, center_y=_H // 2, color=text_color, spacing=25)
+            y = by0 + pad
+            for line in lines:
+                lw, _ = _sz(draw, line, f)
+                draw.text(((_W - lw) // 2, y), line, font=f, fill=text_color)
+                y += lh + spacing
             img_p = os.path.join(_OUTPUT_DIR, f"f_{session_id}_content_{i}.png")
             img.save(img_p)
 
