@@ -214,18 +214,33 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         # Stap 2: Fragmented TTS (Zero Delay Mode)
         send_message(chat_id, f"Stap 2/3: {brand_label} seslendirme motoru çalışıyor (Kusursuz Akış & Enerji)...")
         
-        # Split script into clean sentences
+        # Split script into clean sentences with smart merging for short fragments (e.g. "Tip 1.")
         import json, re
-        raw_sentences = re.split(r'(?<=[.!?])\s+', script.strip())
+        raw_parts = re.split(r'(?<=[.!?])\s+', script.strip())
         clean_sentences = []
-        for s in raw_sentences:
+        temp_s = ""
+        for s in raw_parts:
+            # Basic cleanup of AI-generated bullet points
             s_clean = re.sub(r'^\s*[\d]+[\.\)]\s*', '', s).strip()
             s_clean = re.sub(r'^\s*[-•*]\s*', '', s_clean).strip()
-            if len(s_clean) >= 8: # More inclusive
-                clean_sentences.append(s_clean)
+            if not s_clean: continue
+            
+            # If current sentence is too short (e.g. "Tip 1."), buffer it
+            if len(s_clean) < 20: 
+                temp_s = (temp_s + " " + s_clean).strip()
+            else:
+                # Merge buffered short text if exists
+                full_s = (temp_s + " " + s_clean).strip()
+                clean_sentences.append(full_s)
+                temp_s = ""
         
+        # Add any remaining buffer
+        if temp_s:
+            if clean_sentences: clean_sentences[-1] = (clean_sentences[-1] + " " + temp_s).strip()
+            else: clean_sentences.append(temp_s)
+
         if not clean_sentences:
-            clean_sentences = ["Welkom bij Holisti Glow. Ontdek je beste zelf vandaag!"]
+            clean_sentences = ["Ontdek vandaag nog je beste zelf bij GlowUp!"]
 
         # Generate each audio fragment and store metadata
         fragment_data = []

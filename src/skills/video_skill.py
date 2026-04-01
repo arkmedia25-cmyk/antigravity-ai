@@ -146,6 +146,22 @@ def _draw_rounded_rect(draw, coords, radius: int, fill):
     draw.ellipse([x0, y1 - radius * 2, x0 + radius * 2, y1], fill=fill)
     draw.rectangle([x0 + radius, y0, x1 - radius, y1], fill=fill)
     draw.rectangle([x0, y0 + radius, x1, y1 - radius], fill=fill)
+    return coords
+
+def _fit_lines(draw, text: str, font_type: str, max_w: int, max_h: int) -> tuple:
+    """Helper to scale down font size until text fits. Returns (lines, font, total_h)"""
+    sizes = [100, 85, 70, 55, 45] if font_type == "title" else [82, 72, 62, 50, 42]
+    for sz in sizes:
+        f = _font(sz, font_type)
+        lines = _wrap(draw, text, f, max_w)
+        _, lh = _sz(draw, "Ag", f)
+        spacing = 25
+        total_h = len(lines) * lh + (len(lines) - 1) * spacing
+        if total_h <= max_h:
+            return lines, f, total_h
+    # Final fallback
+    f = _font(sizes[-1], font_type)
+    return _wrap(draw, text, f, max_w), f, total_h
 
 def _center(draw, text: str, font, cy: int, color):
     text = _clean_text(text)
@@ -198,11 +214,12 @@ def create_reel(
 
     def make_clip(img_path: str, dur: float, out_name: str) -> str:
         clip_path = os.path.join(_OUTPUT_DIR, out_name)
-        # Stable Fast Rendering (Static Background)
+        # Stable 30FPS Rendering (Prevents Sync Drift)
         try:
             subprocess.run([
                 "ffmpeg", "-y", "-loop", "1", "-t", f"{dur:.2f}", "-i", img_path,
-                "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-preset", "ultrafast", clip_path
+                "-r", "30", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", 
+                "-preset", "ultrafast", clip_path
             ], check=True, capture_output=True, text=True)
         except subprocess.CalledProcessError as e:
             print(f"[video_skill] make_clip FFmpeg Error: {e.stderr}")
@@ -248,15 +265,10 @@ def create_reel(
         text_color = theme["text"]
         
         if tag == "hook":
-            f = _font(100, theme["font_title"])
-            lines = _wrap(draw, _clean_text(text), f, max_w=850)
-            _, lh = _sz(draw, "Ag", f)
-            spacing = 30
-            total_h = len(lines) * lh + (len(lines) - 1) * spacing
+            lines, f, total_h = _fit_lines(draw, _clean_text(text), theme["font_title"], max_w=850, max_h=1000)
             pad = 110
             bx0, by0, bx1, by1 = 80, 220, _W - 80, 220 + total_h + (pad * 2)
             _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, fill=theme["glass"])
-            # Vertical Accent Bar (Left side)
             overlay_draw.rectangle([bx0, by0 + 40, bx0 + 20, by1 - 40], fill=theme["accent"])
             img.paste(overlay_img, (0, 0), overlay_img)
             draw = ImageDraw.Draw(img)
@@ -264,7 +276,7 @@ def create_reel(
             for line in lines:
                 lw, _ = _sz(draw, line, f)
                 draw.text(((_W - lw) // 2, y), line, font=f, fill=text_color)
-                y += lh + spacing
+                y += (_sz(draw, "Ag", f)[1] + 25) # Consistent spacing
             img_p = os.path.join(_OUTPUT_DIR, f"f_{session_id}_hook_{i}.png")
             img.save(img_p)
         elif tag == "cta":
@@ -288,11 +300,7 @@ def create_reel(
             img_p = os.path.join(_OUTPUT_DIR, f"f_{session_id}_cta_{i}.png")
             img.save(img_p)
         else:
-            f = _font(82, theme["font_body"])
-            lines = _wrap(draw, _clean_text(text), f, max_w=850)
-            _, lh = _sz(draw, "Ag", f)
-            spacing = 30
-            total_h = len(lines) * lh + (len(lines) - 1) * spacing
+            lines, f, total_h = _fit_lines(draw, _clean_text(text), theme["font_body"], max_w=850, max_h=1200)
             pad = 100
             bx0, by0, bx1, by1 = 80, (_H // 2) - (total_h // 2) - pad, _W - 80, (_H // 2) + (total_h // 2) + pad
             _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, fill=theme["glass"])
@@ -303,7 +311,7 @@ def create_reel(
             for line in lines:
                 lw, _ = _sz(draw, line, f)
                 draw.text(((_W - lw) // 2, y), line, font=f, fill=text_color)
-                y += lh + spacing
+                y += (_sz(draw, "Ag", f)[1] + 25)
             img_p = os.path.join(_OUTPUT_DIR, f"f_{session_id}_content_{i}.png")
             img.save(img_p)
 
