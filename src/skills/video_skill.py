@@ -29,6 +29,27 @@ THEMES = {
         "font_title": "title",
         "font_body":  "body",
         "brand_name": "@HolistiGlow",
+    },
+    "luxury_bw": {
+        "bg":         (20, 20, 20),
+        "accent":     (220, 220, 220),
+        "accent2":    (100, 100, 100),
+        "text":       (255, 255, 255),
+        "glass":      (0, 0, 0, 160),
+        "font_title": "title",
+        "font_body":  "body",
+        "brand_name": "LUXURY NOIR",
+        "bw":         True
+    },
+    "iphone_vivid": {
+        "bg":         (255, 255, 255),
+        "accent":     (0, 122, 255), # iOS Blue
+        "accent2":    (255, 45, 85),  # iOS Pink
+        "text":       (0, 0, 0),
+        "glass":      (255, 255, 255, 200),
+        "font_title": "title",
+        "font_body":  "body",
+        "brand_name": "NATURAL LOOK",
     }
 }
 
@@ -210,6 +231,10 @@ def create_reel(
             except Exception as e:
                 print(f"[video_skill] Warning background wrap: {e}")
 
+        # Luxury B&W Conversion Step
+        if theme.get("bw"):
+            img = img.convert("L").convert("RGB")
+
         # Create Overlay Layer for Glassmorphism
         overlay_img = Image.new("RGBA", (_W, _H), (0,0,0,0))
         overlay_draw = ImageDraw.Draw(overlay_img)
@@ -270,9 +295,9 @@ def create_reel(
     v_list = os.path.join(_OUTPUT_DIR, f"v_list_{session_id}.txt")
     with open(v_list, "w", encoding="utf-8") as f:
         for i in range(len(all_video_clips)):
-            # Absolute path with forward slashes, no quotes
+            # Absolute path with forward slashes, wrapped in quotes for stability
             abs_v = os.path.abspath(all_video_clips[i]).replace("\\", "/")
-            f.write(f"file {abs_v}\n")
+            f.write(f"file '{abs_v}'\n")
 
     a_list = os.path.join(_OUTPUT_DIR, f"a_list_{session_id}.txt")
     with open(a_list, "w", encoding="utf-8") as f:
@@ -280,23 +305,42 @@ def create_reel(
             local_a = os.path.join(_OUTPUT_DIR, f"tmp_{session_id}_{i}.mp3")
             import shutil
             shutil.copy2(a_p, local_a)
-            # Absolute path with forward slashes, no quotes
+            # Absolute path with forward slashes, wrapped in quotes for stability
             abs_a = os.path.abspath(local_a).replace("\\", "/")
-            f.write(f"file {abs_a}\n")
+            f.write(f"file '{abs_a}'\n")
 
     # Use unique name for intermediate audio
     abs_v_list = os.path.abspath(v_list)
     abs_a_list = os.path.abspath(a_list)
+    
+    # Ensure all file operations are fully closed and synced before FFmpeg starts
+    try:
+        # Re-check and close just in case of any lingering handles
+        with open(a_list, 'a') as f:
+            f.flush()
+            os.fsync(f.fileno())
+        with open(v_list, 'a') as f:
+            f.flush()
+            os.fsync(f.fileno())
+    except: pass
+
     final_audio = os.path.join(_OUTPUT_DIR, f"audio_full_{session_id}.mp3")
     abs_final_audio = os.path.abspath(final_audio)
     
     try:
-        res = subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", abs_a_list, "-c", "copy", abs_final_audio],
+        # Status 183 often means the file is locked or exists but can't be overwritten.
+        # We ensure it's deleted first even though -y is present.
+        if os.path.exists(abs_final_audio):
+            try: os.remove(abs_final_audio)
+            except: pass
+
+        # Re-encoding audio instead of -c copy to prevent metadata/header mismatches
+        res = subprocess.run(["ffmpeg", "-y", "-hide_banner", "-f", "concat", "-safe", "0", "-i", abs_a_list, "-c:a", "libmp3lame", "-q:a", "2", abs_final_audio],
                        capture_output=True, text=True)
         if res.returncode != 0:
             print(f"[video_skill] Audio concat failed! a_list content:\n{open(a_list).read()}")
             print(f"[video_skill] FFmpeg stderr:\n{res.stderr}")
-            res.check_returncode()
+            raise RuntimeError(f"FFmpeg Audio Concat Error (Status {res.returncode}): {res.stderr}")
     except subprocess.CalledProcessError as e:
         print(f"[video_skill] Audio concat Error (Session {session_id}): {e.stderr}")
         raise

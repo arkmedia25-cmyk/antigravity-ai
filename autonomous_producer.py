@@ -8,20 +8,27 @@ load_dotenv()
 
 # SYSTEM_PROMPT - Dutch Language and Professional Tone
 SYSTEM_PROMPT = """
-You are the Creative Director for @GlowUpNL, a premium Dutch wellness brand.
+You are the Creative Director for @GlowUpNL (Energetic) and @HolistiGlow (Calm), premium Dutch wellness brands.
 Your task is to generate highly engaging, viral-ready video content for Instagram Reels and TikTok.
 Language: Dutch (Nederlands). Tone: Professional, Inspiring, Warm, Gezellig.
+
+PROMPT ENGINEERING SECRETS (APPLY TO ALL IMAGE_PROMPTS):
+- For HUMANS: Use "Candid photograph shot on iPhone 16 Pro, realistic skin texture, natural pores visible, no retouching, handheld feel, authentic moment".
+- AVOID: "Hasselblad", "Editorial", "Fashion Film", "4K", "Masterpiece" - these keywords increase AI look.
+- LIGHTING: Prefer "Natural window light", "Soft outdoor backlight", "Golden hour sunset".
+- MOVEMENTS: Always specify a camera motion like "Slow dolly-in", "Macro orbit around product", "Tracking shot", "Panning across landscape".
+- COLORS: GlowUp = Warm peach/coral/white. HolistiGlow = Sage green/beige/natural wood.
 
 OUTPUT FORMAT MUST BE JSON:
 {
   "dutch_script": "The 2-3 sentence tip in Dutch",
-  "image_prompt": "Descriptive English prompt for DALL-E 3 visual background",
+  "image_prompt": "Descriptive English prompt applying the SECRETS above",
   "instagram_caption": "Engaging Dutch caption with hashtags",
   "hashtags": "#wellness #glowup #gezellig #nederland",
   "plates": [
-    {"text": "Hook line in Dutch", "duration": 3},
-    {"text": "Value line in Dutch", "duration": 4},
-    {"text": "Call to action in Dutch", "duration": 3}
+    {"text": "Hook line in Dutch", "duration": 3, "tag": "hook"},
+    {"text": "Value line in Dutch", "duration": 4, "tag": "content"},
+    {"text": "Call to action in Dutch", "duration": 3, "tag": "cta"}
   ]
 }
 """
@@ -71,7 +78,8 @@ def run_production_line(topic=None, brand="glow"):
     for plate in data.get("plates", []):
         fragments.append({
             "text": plate["text"],
-            "duration": plate["duration"]
+            "duration": plate["duration"],
+            "tag": plate.get("tag", "content")
         })
     
     return {

@@ -236,14 +236,13 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
             tag = "hook" if i == 0 else ("cta" if i == len(clean_sentences) - 1 else "content")
             fragment_data.append({"sentence": text, "audio": f_path, "tag": tag})
 
-        # Save fragments for video_skill
-        os.makedirs("outputs", exist_ok=True)
-        with open("outputs/fragments.json", "w", encoding="utf-8") as f:
-            json.dump(fragment_data, f, ensure_ascii=False, indent=2)
-
-        # Stap 3: Video renderen (create_reel picks up fragments.json)
+        # Stap 3: Video renderen (Pass fragments directly to prevent race conditions)
         send_message(chat_id, "Stap 3/3: Video renderen (Sıfır Gecikme, Tam Senkronizasyon)...")
-        video_path = create_reel(brand=brand, output_filename=f"reel_{brand}_{ts}.mp4")
+        video_path = create_reel(
+            fragments=fragment_data,
+            brand=brand, 
+            output_filename=f"reel_{brand}_{ts}.mp4"
+        )
 
         # Verstuur video
         final_caption = f"✨ {brand_label} Video Ready!\n\nCheck below for your caption & tags 👇"
@@ -474,7 +473,6 @@ def process_command(chat_id, text):
     """Verwerk Telegram commando"""
     # NL Router for non-slash messages
     if not text.startswith("/"):
-        import threading
         threading.Thread(target=route_nl_request, args=(chat_id, text), daemon=True).start()
         return
 
@@ -534,7 +532,6 @@ def process_command(chat_id, text):
                 try:
                     from autonomous_producer import run_production_line
                     from src.skills.video_skill import create_reel
-                    import time
                     
                     send_message(chat_id, f"🎬 Otonom 'Gezellig' Senarist (GPT) iş başında... {f'Konu: {topic}' if topic else ''}")
                     pack = run_production_line(topic=topic)
@@ -587,7 +584,6 @@ def process_command(chat_id, text):
                 try:
                     from autonomous_producer import run_production_line
                     from src.skills.video_skill import create_reel
-                    import time
                     
                     send_message(chat_id, f"🔋 {count}'lü otonom 'Gezellig' set üretimi başlatıldı. GPT senaryoları sıraya koyuyor...")
                     
