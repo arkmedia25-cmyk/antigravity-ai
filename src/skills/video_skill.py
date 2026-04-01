@@ -176,7 +176,8 @@ def create_reel(
     fragments: list = None,
     image_path: str = None,
     output_filename: str = "final_video.mp4",
-    brand: str = "glow"
+    brand: str = "glow",
+    watermark_icon: str = "✨"
 ) -> str:
     # Use selected brand theme
     theme = THEMES.get(brand, THEMES["glow"])
@@ -278,6 +279,12 @@ def create_reel(
                 lw, _ = _sz(draw, line, f)
                 draw.text(((_W - lw) // 2, y), line, font=f, fill=text_color)
                 y += (_sz(draw, "Ag", f)[1] + 25) # Consistent spacing
+            # Draw Subtle Watermark Icon
+            if watermark_icon:
+                f_w = _font(80, theme["font_body"])
+                w_color = (255, 255, 255, 40)
+                draw.text((bx1 - 100, by1 - 100), watermark_icon, font=f_w, fill=w_color)
+
             img_p = os.path.join(_OUTPUT_DIR, f"f_{session_id}_hook_{i}.png")
             img.save(img_p)
         elif tag == "cta":
@@ -312,6 +319,13 @@ def create_reel(
                 lw, _ = _sz(draw, line, f)
                 draw.text(((_W - lw) // 2, y), line, font=f, fill=text_color)
                 y += (_sz(draw, "Ag", f)[1] + 25)
+            # Draw Subtle Watermark Icon
+            if watermark_icon:
+                f_w = _font(80, theme["font_body"])
+                # Extract glass color, set alpha to very low (30-40 out of 255)
+                w_color = (255, 255, 255, 40) 
+                draw.text((bx1 - 100, by1 - 100), watermark_icon, font=f_w, fill=w_color)
+
             img_p = os.path.join(_OUTPUT_DIR, f"f_{session_id}_content_{i}.png")
             img.save(img_p)
 

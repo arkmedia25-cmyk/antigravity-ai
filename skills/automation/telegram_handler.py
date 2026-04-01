@@ -229,16 +229,22 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         send_message(chat_id, f"Stap 2/3: {brand_label} seslendirme motoru çalışıyor (Kusursuz Akış & Enerji)...")
         
         # Split script into clean sentences with smart merging for short fragments (e.g. "Tip 1.")
-        import json, re
+        # Aggressive cleanup of AI technical labels and bullets
+        def clean_line(s):
+            # Strip HOOK/CONTENT/CTA tags anywhere at start
+            s = re.sub(r'(?i)^\s*(hook|content|cta|tip|stap|script|caption|tags)\s*[:\-\]]*\s*', '', s).strip()
+            # Strip anything in brackets at start like [HOOK]
+            s = re.sub(r'^\s*\[[^\]]+\]\s*', '', s).strip()
+            # Strip bullet points and numbers
+            s = re.sub(r'^\s*[\d]+[\.\)]\s*', '', s).strip()
+            s = re.sub(r'^\s*[-•*]\s*', '', s).strip()
+            return s.strip()
+
         raw_parts = re.split(r'(?<=[.!?])\s+', script.strip())
         clean_sentences = []
         temp_s = ""
         for s in raw_parts:
-            # Aggressive cleanup of AI technical labels and bullets
-            s_clean = re.sub(r'(?i)^\s*(hook|content|cta|tip\s*\d*)\s*[:\-\]]*\s*', '', s).strip()
-            s_clean = re.sub(r'[\[\]]', '', s_clean).strip()
-            s_clean = re.sub(r'^\s*[\d]+[\.\)]\s*', '', s_clean).strip()
-            s_clean = re.sub(r'^\s*[-•*]\s*', '', s_clean).strip()
+            s_clean = clean_line(s)
             if not s_clean: continue
             
             # If current sentence is too short (e.g. "Tip 1."), buffer it
@@ -253,7 +259,22 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         # Add any remaining buffer
         if temp_s:
             if clean_sentences: clean_sentences[-1] = (clean_sentences[-1] + " " + temp_s).strip()
-            else: clean_sentences.append(temp_s)
+            else: clean_sentences.append(clean_line(temp_s))
+
+        if not clean_sentences:
+            clean_sentences = ["Ontdek bugün daha iyi bir versiyonun için GlowUp!"]
+
+        # Watermark Detector (Subtle Dutch Style)
+        watermark_map = {
+            "stres": "🌿", "rust": "🍃", "slaap": "🌙", "energie": "⚡", 
+            "afvallen": "🍎", "gezond": "🥕", "papatya": "🌼", "thee": "🍵",
+            "sport": "👟", "succes": "📈", "balans": "⚖️", "mindset": "🧠"
+        }
+        detected_icon = "✨" # Default
+        for key, icon in watermark_map.items():
+            if key in topic.lower() or key in script.lower():
+                detected_icon = icon
+                break
 
         if not clean_sentences:
             clean_sentences = ["Ontdek vandaag nog je beste zelf bij GlowUp!"]
@@ -272,7 +293,8 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         video_path = create_reel(
             fragments=fragment_data,
             brand=brand, 
-            output_filename=f"reel_{brand}_{ts}.mp4"
+            output_filename=f"reel_{brand}_{ts}.mp4",
+            watermark_icon=detected_icon
         )
 
         # Verstuur video
