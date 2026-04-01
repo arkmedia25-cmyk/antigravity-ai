@@ -209,7 +209,8 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
             "1. HOOK (5-8 sec): Curiosity or problem-solving entrance.\n"
             "2. CONTENT (15-20 sec): 2-3 genuinely helpful tips.\n"
             "3. CTA (5 sec): Polite follow invitation.\n\n"
-            "PROVIDE THESE 3 PARTS IN DUTCH ONLY:\n"
+            "PROVIDE THESE 4 PARTS IN DUTCH ONLY:\n"
+            "---TITLE---\n[STRICTLY DUTCH - Short, catchy title for the package]\n"
             "---SCRIPT---\n[STRICTLY DUTCH - Voiceover text only]\n"
             "---CAPTION---\n[STRICTLY DUTCH - Engaging Instagram caption]\n"
             "---TAGS---\n[Strategic Hashtags]\n"
@@ -217,9 +218,12 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         full_response = ask_ai(prompt)
         
         # Parse response
+        title_body = full_response.split("---TITLE---")[-1].split("---SCRIPT---")[0].strip()
         script = full_response.split("---SCRIPT---")[-1].split("---CAPTION---")[0].strip()
         caption_body = full_response.split("---CAPTION---")[-1].split("---TAGS---")[0].strip()
         tags = full_response.split("---TAGS---")[-1].strip()
+        
+        if not title_body: title_body = topic # Fallback
 
         # Stap 2: Fragmented TTS (Zero Delay Mode)
         send_message(chat_id, f"Stap 2/3: {brand_label} seslendirme motoru çalışıyor (Kusursuz Akış & Enerji)...")
@@ -273,9 +277,9 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         final_caption = f"✨ {brand_label} Video Ready!\n\nCheck below for your caption & tags 👇"
         send_video(chat_id, video_path, caption=final_caption)
         
-        # Send Copy-Paste Package (Clean labels, actual topic as title)
+        # Send Copy-Paste Package (Title, Caption & Tags all in Dutch)
         package = (
-            f"📝 **{topic.upper()}**\n\n"
+            f"📝 **{title_body.upper()}**\n\n"
             f"{caption_body}\n\n"
             f"`{tags}`"
         )
