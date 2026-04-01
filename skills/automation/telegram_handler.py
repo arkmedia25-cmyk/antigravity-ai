@@ -5,6 +5,8 @@ import os
 import threading
 import re
 from dotenv import load_dotenv
+from datetime import datetime
+from src.skills.stats_skill import get_instagram_stats, format_stats_dashboard
 
 try:
     from flask import Flask, request as flask_request
@@ -578,6 +580,20 @@ def process_command(chat_id, text):
         elif text.startswith("/video_holisti"):
             topic = text.replace("/video_holisti", "").strip() or "Wellness"
             threading.Thread(target=_generate_and_send_video, args=(chat_id, topic, "holisti")).start()
+
+        elif text.startswith("/stats"):
+            send_message(chat_id, "📊 Veriler çekiliyor, lütfen bekleyin...")
+            
+            # Get IDs and Tokens from Env
+            token = os.getenv("INSTAGRAM_ACCESS_TOKEN", "")
+            id_glow = os.getenv("INSTAGRAM_BUSINESS_ID_GLOW", "")
+            id_holisti = os.getenv("INSTAGRAM_BUSINESS_ID_HOLISTI", "")
+            
+            glow_data = get_instagram_stats(id_glow, token)
+            holisti_data = get_instagram_stats(id_holisti, token)
+            
+            dash = format_stats_dashboard(glow_data, holisti_data)
+            send_message(chat_id, dash)
 
         elif text.startswith("/gezellig"):
             # Otonom NL Wellness (Gezellig Vibe)
