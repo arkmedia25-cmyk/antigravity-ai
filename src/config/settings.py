@@ -14,6 +14,12 @@ class Settings:
     CANVA_CLIENT_SECRET: str = os.getenv("CANVA_CLIENT_SECRET", "")
     CANVA_REDIRECT_URI: str = os.getenv("CANVA_REDIRECT_URI", "")
     CANVA_TEMPLATE_INSTAGRAM: str = os.getenv("CANVA_TEMPLATE_INSTAGRAM", "EAF9zZ6X6kM")
+    
+    # Social Media Publisher Credentials
+    INSTAGRAM_BUSINESS_ID: str = os.getenv("INSTAGRAM_BUSINESS_ID", "")
+    INSTAGRAM_ACCESS_TOKEN: str = os.getenv("INSTAGRAM_ACCESS_TOKEN", "")
+    TIKTOK_ACCESS_TOKEN: str = os.getenv("TIKTOK_ACCESS_TOKEN", "")
+    TIKTOK_OPEN_ID: str = os.getenv("TIKTOK_OPEN_ID", "")
 
     @classmethod
     def validate(cls) -> None:
