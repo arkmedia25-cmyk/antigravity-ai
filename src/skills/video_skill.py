@@ -64,6 +64,19 @@ def _sz(draw, text, font):
     bb = draw.textbbox((0, 0), text, font=font)
     return bb[2] - bb[0], bb[3] - bb[1]
 
+def _create_gradient_bg(width, height, color1, color2):
+    """Estetik dikey renk geçişi (gradient) arka plan oluşturur."""
+    base = Image.new('RGB', (width, height), color1)
+    top = Image.new('RGB', (width, height), color2)
+    mask = Image.new('L', (width, height))
+    mask_data = []
+    for y in range(height):
+        # Yumuşak geçiş katsayısı (0-255)
+        mask_data.extend([int(255 * (y / height))] * width)
+    mask.putdata(mask_data)
+    base.paste(top, (0, 0), mask)
+    return base
+
 def _wrap(draw, text: str, font, max_w: int) -> list:
     words = text.split()
     lines, cur = [], ""
@@ -160,7 +173,10 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
         tag = frag.get("tag", "content")
         text = frag.get("sentence") or frag.get("text", "")
         
-        img = Image.new("RGB", (_W, _H), theme["bg"])
+        # Premium Gradient background using theme colors
+        color1 = tuple(theme["bg"]) if isinstance(theme["bg"], (list, tuple)) else (254, 245, 238)
+        color2 = tuple(theme["accent"]) if isinstance(theme["accent"], (list, tuple)) else (255, 112, 86)
+        img = _create_gradient_bg(_W, _H, color1, color2)
         # (Image pasting logic here - simplified for space)
         
         overlay_img = Image.new("RGBA", (_W, _H), (0,0,0,0))
@@ -178,6 +194,9 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
             y = by0 + 110
             for line in lines:
                 lw, _ = _sz(draw, line, f)
+                # Drop shadow for premium pop effect
+                draw.text(((_W - lw) // 2 + 5, y + 5), line, font=f, fill=(0,0,0, 100))
+                # Main text
                 draw.text(((_W - lw) // 2, y), line, font=f, fill=text_color)
                 y += (_sz(draw, "Ag", f)[1] + 25)
         elif tag == "cta":
