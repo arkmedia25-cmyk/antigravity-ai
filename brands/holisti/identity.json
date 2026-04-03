@@ -1,0 +1,27 @@
+{
+  "brand_id": "holistiglow",
+  "brand_name": "HolistiGlow",
+  "language": "nl",
+  "voice_tone": "calm, wise, healing, serene",
+  "target_audience": "wellness seekers, meditation fans, holistic health",
+  "visuals": {
+    "colors": {
+      "primary": "#829678",
+      "secondary": "#D2DCC8",
+      "background": "#F7F3F0",
+      "text": "#282C2D",
+      "glass": "rgba(255, 255, 255, 0.85)"
+    },
+    "fonts": {
+      "title": "PlayfairDisplay-Bold.ttf",
+      "body": "Montserrat-Medium.ttf"
+    },
+    "watermark": "🌿"
+  },
+  "marketing_angles": [
+    "mindfulness meditation",
+    "holistic self-care",
+    "inner peace",
+    "spiritual growth"
+  ]
+}

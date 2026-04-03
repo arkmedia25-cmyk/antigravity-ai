@@ -6,7 +6,16 @@ import threading
 import re
 from dotenv import load_dotenv
 from datetime import datetime
-from src.skills.stats_skill import get_instagram_stats, format_stats_dashboard
+import sys as _sys, os as _os
+_project_root = _os.path.abspath(_os.path.join(_os.path.dirname(__file__), "../.."))
+if _project_root not in _sys.path:
+    _sys.path.insert(0, _project_root)
+
+try:
+    from src.skills.stats_skill import get_instagram_stats, format_stats_dashboard
+except ImportError:
+    def get_instagram_stats(business_id, access_token): return {"error": "stats_skill not loaded"}
+    def format_stats_dashboard(a, b): return "📊 Stats geçici olarak kullanılamıyor."
 
 try:
     from flask import Flask, request as flask_request
@@ -234,10 +243,12 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         # Split script into clean sentences with smart merging for short fragments (e.g. "Tip 1.")
         # Aggressive cleanup of AI technical labels and bullets
         def clean_line(s):
-            # Strip HOOK/CONTENT/CTA tags anywhere at start
-            s = re.sub(r'(?i)^\s*(hook|content|cta|tip|stap|script|caption|tags)\s*[:\-\]]*\s*', '', s).strip()
-            # Strip anything in brackets at start like [HOOK]
-            s = re.sub(r'^\s*\[[^\]]+\]\s*', '', s).strip()
+            # Aggressive cleanup of AI technical labels and markers
+            # Handle [HOOK], **Hook:**, (Voiceover), etc.
+            s = re.sub(r'(?i)\*\*.*?\*\*', '', s) # Strip bold markers
+            s = re.sub(r'(?i)[\(\[].*?[\)\]]', '', s) # Strip anything in brackets/parens like [HOOK] or (Voiceover)
+            # Strip common labels at start
+            s = re.sub(r'(?i)^\s*(hook|content|cta|tip|stap|script|caption|tags|video description|voiceover|audio|scene|visual)\s*[:\-\]]*\s*', '', s).strip()
             # Strip bullet points and numbers
             s = re.sub(r'^\s*[\d]+[\.\)]\s*', '', s).strip()
             s = re.sub(r'^\s*[-•*]\s*', '', s).strip()
@@ -1058,11 +1069,55 @@ def main():
                         safe_request(f"{URL}/answerCallbackQuery", method="post", data={"callback_query_id": cb["id"]})
                         continue
 
-                if "message" in update and "text" in update["message"]:
-                    chat_id = update["message"]["chat"]["id"]
-                    text = update["message"]["text"]
-                    print("Ontvangen bericht:", text)
-                    process_command(chat_id, text)
+
+                if "message" in update:
+                    msg = update["message"]
+                    chat_id = msg["chat"]["id"]
+                    
+                    # Handle Text Messages
+                    if "text" in msg:
+                        text = msg["text"]
+                        print("Ontvangen bericht:", text)
+                        process_command(chat_id, text)
+                    
+                    # Handle Voice Messages (Whisper STT)
+                    elif "voice" in msg:
+                        voice = msg["voice"]
+                        file_id = voice["file_id"]
+                        send_message(chat_id, "🎙️ Sesinizi dinliyorum, lütfen bekleyin...")
+                        
+                        try:
+                            # 1. Get file path from Telegram
+                            file_info = safe_request(f"{URL}/getFile", params={"file_id": file_id}).json()
+                            file_path = file_info["result"]["file_path"]
+                            file_url = f"https://api.telegram.org/file/bot{TOKEN}/{file_path}"
+                            
+                            # 2. Download the voice file
+                            import requests
+                            voice_data = requests.get(file_url).content
+                            local_voice_path = os.path.join("tmp", f"voice_{int(time.time())}.ogg")
+                            os.makedirs("tmp", exist_ok=True)
+                            with open(local_voice_path, "wb") as f:
+                                f.write(voice_data)
+                            
+                            # 3. Transcribe via OpenAI Whisper
+                            from src.skills.ai_client import transcribe_audio
+                            transcript = transcribe_audio(local_voice_path)
+                            
+                            if transcript:
+                                send_message(chat_id, f"📝 Sizi şöyle anladım: \"{transcript}\"")
+                                process_command(chat_id, transcript)
+                            else:
+                                send_message(chat_id, "❌ Sesinizi tam anlayamadım, lütfen tekrar dener misiniz?")
+                            
+                            # Clean up
+                            if os.path.exists(local_voice_path):
+                                os.remove(local_voice_path)
+                                
+                        except Exception as ve:
+                            print(f"[Voice] Hata: {ve}")
+                            send_message(chat_id, f"❌ Ses işlenirken bir hata oluştu: {ve}")
+
  
             time.sleep(1)
  

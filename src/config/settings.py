@@ -24,7 +24,7 @@ class Settings:
     @classmethod
     def validate(cls) -> None:
         """Raise ValueError if any required env var is missing."""
-        required = ["ANTHROPIC_API_KEY", "TELEGRAM_TOKEN"]
+        required = ["OPENAI_API_KEY", "TELEGRAM_TOKEN"]
         missing = [key for key in required if not getattr(cls, key)]
         if missing:
             raise ValueError(
