@@ -128,16 +128,22 @@ def _draw_rounded_rect(draw, coords, radius: int, fill):
     draw.rectangle([x0, y0 + radius, x1, y1 - radius], fill=fill)
 
 def _fit_lines(draw, text: str, font_type: str, max_w: int, max_h: int) -> tuple:
-    # Modern Reels stili için font boyutunu oldukça büyük alıyoruz
-    sizes = [150, 130, 110, 90, 70] if font_type == "title" else [120, 100, 85, 70, 55]
+    # Kullanıcının talebi: "Baştan sona aynı punto olsun". 
+    # Devasa (150) puntolardan kaçınıp, kutu içine (780px) güvenle sığacak 
+    # ve her fragmanda tutarlı görünecek bir skala (95-55) kullanıyoruz.
+    sizes = [95, 85, 75, 65, 55]
     total_h = 0
     for sz in sizes:
         f = _font(sz, font_type)
         lines = _wrap(draw, text, f, max_w)
         _, lh = _sz(draw, "Ag", f)
+        # Satır arası boşluk: 25px
         total_h = len(lines) * lh + (len(lines) - 1) * 25
         if total_h <= max_h: return lines, f, total_h
-    return _wrap(draw, text, _font(sizes[-1], font_type), max_w), _font(sizes[-1], font_type), total_h
+    
+    # En küçük boyut bile sığmazsa fallback
+    final_f = _font(sizes[-1], font_type)
+    return _wrap(draw, text, final_f, max_w), final_f, total_h
 
 def _center(draw, text: str, font, cy: int, color):
     text = _clean_text(text)
