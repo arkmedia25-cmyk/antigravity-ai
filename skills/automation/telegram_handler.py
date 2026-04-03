@@ -11,6 +11,9 @@ _project_root = _os.path.abspath(_os.path.join(_os.path.dirname(__file__), "../.
 if _project_root not in _sys.path:
     _sys.path.insert(0, _project_root)
 
+# Önemli: .env dosyasındaki PEXELS_API_KEY gibi yeni anahtarları yükle
+load_dotenv(os.path.join(_project_root, ".env"))
+
 try:
     from src.skills.stats_skill import get_instagram_stats, format_stats_dashboard
 except ImportError:
@@ -311,9 +314,13 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         # Fetch Pexels Image (Görsel Zeka)
         image_path = None
         pexels_key = os.environ.get("PEXELS_API_KEY")
+        
         if pexels_key and broll_query:
             try:
                 import urllib.request, urllib.parse, json
+                # DEBUG: Arama başladığını bildir
+                send_message(chat_id, f"🔍 Luna Pexels'te '{broll_query}' için görsel arıyor...")
+                
                 query_url = f"https://api.pexels.com/v1/search?query={urllib.parse.quote(broll_query)}&orientation=portrait&per_page=1"
                 req = urllib.request.Request(query_url, headers={"Authorization": pexels_key})
                 with urllib.request.urlopen(req) as response:
@@ -323,9 +330,17 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
                         download_path = os.path.join(os.getcwd(), "outputs", f"broll_{ts}.jpg")
                         urllib.request.urlretrieve(img_url, download_path)
                         image_path = download_path
-                        send_message(chat_id, f"✅ (Visual AI) {broll_query} görseli bulundu!")
+                        send_message(chat_id, f"✅ (Visual AI) '{broll_query}' görseli başarıyla indirildi!")
+                    else:
+                        send_message(chat_id, f"⚠️ (Visual AI) Pexels '{broll_query}' için sonuç bulamadı.")
             except Exception as e:
+                # DEBUG: Hatayı Telegram'a bas
+                send_message(chat_id, f"❌ (Visual AI) Pexels Hatası: {str(e)[:100]}")
                 print(f"[Pexels Fetch Error] {e}")
+        elif not pexels_key:
+            send_message(chat_id, "❌ (Visual AI) Kritik Hata: PEXELS_API_KEY sunucu tarafından görülmüyor!")
+        elif not broll_query:
+             send_message(chat_id, "⚠️ (Visual AI) Arama kelimesi (Query) üretilemedi.")
 
         # Stap 3: Video renderen
         send_message(chat_id, "Stap 3/3: Video renderen (Sıfır Gecikme, Tam Senkronizasyon)...")
