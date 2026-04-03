@@ -202,7 +202,8 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
                 manifesto = f.read()
 
         # Step 1: AI generates script, caption and tags
-        send_message(chat_id, f"🎬 {brand_label} SQUAD iş başında!\nKonu: {topic}\nStrateji: {brand.upper()} Manifestosu uygulanıyor...")
+        agent_name = "Luna (GLW-01)" if brand == "glow" else "Zen (HLG-01)"
+        send_message(chat_id, f"🎬 Ajan {agent_name} göreve başladı!\nKonu: {topic}\nStrateji: {brand.upper()} Manifestosu uygulanıyor...")
         
         brand_rules = (
             "BRAND VOICE [GLOWUP]: High-energy, pushy, result-oriented, zero-fluff. USE words like: Snel, Direct, Pak je winst, Energie. NEVER use: Misschien, Rustig, Balans."
@@ -693,23 +694,33 @@ def process_command(chat_id, text):
             threading.Thread(target=run_bulk_otonom, daemon=True).start()
 
         elif text.startswith("/video"):
-            topic = text.replace("/video", "").strip() or "Wellness"
+            clean_text = text.replace("/video", "").strip()
+            topic = clean_text or "Wellness"
+            
+            # Marka algılama
+            brand_choice = "holisti" # default
+            if "@glowup" in clean_text.lower():
+                brand_choice = "glow"
+                topic = clean_text.lower().replace("@glowup", "").strip() or "Sabah Rutini"
+            elif "@holistiglow" in clean_text.lower():
+                brand_choice = "holisti"
+                topic = clean_text.lower().replace("@holistiglow", "").strip() or "Wellness"
+                
             if not topic:
                 send_message(chat_id,
                     "🎬 Video olusturma:\n\n"
                     "Kullanimi:\n"
-                    "/video <konu>\n\n"
-                    "Ornek:\n"
-                    "/video stres ve beyin sagliği\n"
-                    "/video sabah rutini ipuclari\n"
-                    "/video Happy Juice faydalari"
+                    "/video @glowup <konu>\n"
+                    "/video @holistiglow <konu>\n"
                 )
             else:
+                agent_name = "Luna (GLW-01)" if brand_choice == "glow" else "Zen (HLG-01)"
                 send_message(chat_id,
-                    f"🎬 Video hazirlaniyor: '{topic}'\n"
+                    f"🎬 {agent_name} görevi devraldı.\n"
+                    f"Video hazirlaniyor: '{topic}'\n"
                     "Script + ses + video olusturuluyor... (2-3 dk)"
                 )
-                t = threading.Thread(target=_generate_and_send_video, args=(chat_id, topic), daemon=True)
+                t = threading.Thread(target=_generate_and_send_video, args=(chat_id, topic, brand_choice), daemon=True)
                 t.start()
 
         elif text.startswith("/canva"):
