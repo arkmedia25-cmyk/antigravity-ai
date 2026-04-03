@@ -180,6 +180,27 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
                 lw, _ = _sz(draw, line, f)
                 draw.text(((_W - lw) // 2, y), line, font=f, fill=text_color)
                 y += (_sz(draw, "Ag", f)[1] + 25)
+        elif tag == "cta":
+            # CTA Ekranı - "Bizi takip et" 
+            cta_text = "Daha fazlası için takip edin!"
+            lines, f, total_h = _fit_lines(draw, cta_text, theme["font_title"], 850, 400)
+            
+            bx0, by0, bx1, by1 = 100, (_H // 2) - 200, _W - 100, (_H // 2) + 200
+            _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, theme["glass"])
+            img.paste(overlay_img, (0, 0), overlay_img)
+            draw = ImageDraw.Draw(img)
+            
+            y = by0 + 80
+            for line in lines:
+                lw, _ = _sz(draw, line, f)
+                draw.text(((_W - lw) // 2, y), line, font=f, fill=text_color)
+                y += (_sz(draw, "Ag", f)[1] + 25)
+            
+            # Alt tarafa buton izlenimi
+            _draw_rounded_rect(draw, [bx0 + 100, y + 50, bx1 - 100, y + 170], 40, theme["accent"])
+            btn_text = f"@{brand}"
+            btw, _ = _sz(draw, btn_text, _font(60, "body"))
+            draw.text(((_W - btw) // 2, y + 85), btn_text, font=_font(60, "body"), fill=(255,255,255))
         else:
             lines, f, total_h = _fit_lines(draw, text, theme["font_body"], 850, 1050)
             bx0, by0, bx1, by1 = 80, (_H // 2) - (total_h // 2) - 100, _W - 80, (_H // 2) + (total_h // 2) + 100
