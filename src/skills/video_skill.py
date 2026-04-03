@@ -219,55 +219,70 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
         text_color = theme["text"]
         
         # Render visual according to tag (hook/content/cta)
+        padding = 70 # Safe Zone Padding inside the glass box
+        
         if tag == "hook":
-            lines, f, total_h = _fit_lines(draw, text, theme["font_title"], 850, 1000)
-            bx0, by0, bx1, by1 = 80, 220, _W - 80, 220 + total_h + 220
+            # 1. Text fitting inside a stricter max_w (box_w - 2*padding)
+            lines, f, total_h = _fit_lines(draw, text, theme["font_title"], 780, 1000)
+            
+            # 2. Dynamic Box Sizing
+            bx0, bx1 = 80, _W - 80
+            by0 = 220
+            by1 = by0 + total_h + (padding * 2)
+            
             _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, theme["glass"])
             img.paste(overlay_img, (0, 0), overlay_img)
             draw = ImageDraw.Draw(img)
-            y = by0 + 110
+            
+            y = by0 + padding
             for line in lines:
                 lw, _ = _sz(draw, line, f)
-                # Drop shadow for premium pop effect
                 draw.text(((_W - lw) // 2 + 5, y + 5), line, font=f, fill=(0,0,0, 100))
-                # Main text
                 draw.text(((_W - lw) // 2, y), line, font=f, fill=text_color)
                 y += (_sz(draw, "Ag", f)[1] + 25)
+                
         elif tag == "cta":
-            # CTA Ekranı - "Volg voor meer!" (Hollandaca)
+            # CTA Ekranı - "Volg voor meer!"
             cta_text = "Volg voor meer!"
-            lines, f, total_h = _fit_lines(draw, cta_text, theme["font_title"], 850, 400)
+            lines, f, total_h = _fit_lines(draw, cta_text, theme["font_title"], 780, 400)
             
-            bx0, by0, bx1, by1 = 100, (_H // 2) - 200, _W - 100, (_H // 2) + 200
+            bx0, bx1 = 80, _W - 80
+            by0, by1 = (_H // 2) - 250, (_H // 2) + 250
+            
             _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, theme["glass"])
             img.paste(overlay_img, (0, 0), overlay_img)
             draw = ImageDraw.Draw(img)
             
-            y = by0 + 80
+            y = by0 + padding
             for line in lines:
                 lw, _ = _sz(draw, line, f)
-                # Text shadow
                 draw.text(((_W - lw) // 2 + 5, y + 5), line, font=f, fill=(0,0,0, 100))
-                # Main Text
                 draw.text(((_W - lw) // 2, y), line, font=f, fill=text_color)
                 y += (_sz(draw, "Ag", f)[1] + 25)
             
-            # Alt tarafa buton izlenimi
-            _draw_rounded_rect(draw, [bx0 + 100, y + 50, bx1 - 100, y + 170], 40, theme["accent"])
-            
+            # Button inside CTA
+            _draw_rounded_rect(draw, [bx0 + 100, y + 30, bx1 - 100, y + 150], 40, theme["accent"])
             display_brand = "GlowUpNL" if brand == "glow" else "HolistiGlow"
             btn_text = f"@{display_brand}"
             btw, _ = _sz(draw, btn_text, _font(60, "body"))
             draw.text(((_W - btw) // 2, y + 85), btn_text, font=_font(60, "body"), fill=(255,255,255))
+            
         else:
-            lines, f, total_h = _fit_lines(draw, text, theme["font_body"], 850, 1050)
-            bx0, by0, bx1, by1 = 80, (_H // 2) - (total_h // 2) - 100, _W - 80, (_H // 2) + (total_h // 2) + 100
+            # CONTENT
+            lines, f, total_h = _fit_lines(draw, text, theme["font_body"], 780, 1050)
+            
+            bx0, bx1 = 80, _W - 80
+            by0 = 180
+            by1 = by0 + total_h + (padding * 2)
+            
             _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, theme["glass"])
             img.paste(overlay_img, (0, 0), overlay_img)
             draw = ImageDraw.Draw(img)
-            y = by0 + 100
+            
+            y = by0 + padding
             for line in lines:
                 lw, _ = _sz(draw, line, f)
+                draw.text(((_W - lw) // 2 + 5, y + 5), line, font=f, fill=(0,0,0, 100))
                 draw.text(((_W - lw) // 2, y), line, font=f, fill=text_color)
                 y += (_sz(draw, "Ag", f)[1] + 25)
 
