@@ -44,8 +44,14 @@ def generate_autonomous_content(topic=None, brand="glow"):
              
         if os.path.exists(trends_path):
             with open(trends_path, "r", encoding="utf-8") as f:
-                trends_data = json.load(f)
-                trends_context = f"\nCURRENT BRAND-SPECIFIC TRENDS: {', '.join(trends_data['trends'])}\n"
+                try:
+                    trends_data = json.load(f)
+                    if isinstance(trends_data, dict) and "trends" in trends_data:
+                        trends_context = f"\nCURRENT BRAND-SPECIFIC TRENDS: {', '.join(trends_data['trends'])}\n"
+                    else:
+                        print(f"⚠️ Warning: trends file at {trends_path} has no 'trends' key.")
+                except Exception as je:
+                    print(f"⚠️ Warning: Failed to parse trends file: {je}")
 
         brand_persona = "Energetic, coral/peach colors, fitness results" if brand == "glow" else "Calm, sage/beige colors, holistic health"
 
@@ -62,7 +68,24 @@ def generate_autonomous_content(topic=None, brand="glow"):
             ],
             response_format={"type": "json_object"}
         )
-        return json.loads(response.choices[0].message.content)
+        raw_content = response.choices[0].message.content
+        
+        # Robust JSON Parsing
+        clean_text = raw_content.strip()
+        if clean_text.startswith("```json"):
+            clean_text = clean_text.split("```json", 1)[1]
+        if clean_text.endswith("```"):
+            clean_text = clean_text.rsplit("```", 1)[0]
+        clean_text = clean_text.strip()
+        
+        try:
+            return json.loads(clean_text)
+        except json.JSONDecodeError:
+            import re
+            match = re.search(r"(\{.*\})", clean_text, re.DOTALL)
+            if match:
+                return json.loads(match.group(1))
+            raise
     except Exception as e:
         print(f"❌ Content generation error: {e}")
         return None

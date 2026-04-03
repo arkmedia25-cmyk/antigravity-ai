@@ -1,1 +1,1 @@
-web: python skills/automation/telegram_handler.py
+web: python -m src.interfaces.telegram.handler

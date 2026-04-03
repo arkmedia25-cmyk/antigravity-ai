@@ -18,7 +18,7 @@ import sqlite3
 import threading
 from datetime import datetime, timezone
 
-from core.logging import get_logger
+from src.core.logging import get_logger
 
 logger = get_logger("memory.manager")
 

@@ -29,7 +29,26 @@ def ask_ai(prompt: str, provider: str = "openai", is_json: bool = False) -> str:
         client = _get_openai()
         response = client.chat.completions.create(**kwargs)
         text = response.choices[0].message.content
-        return json.loads(text) if is_json else text
+        
+        if is_json:
+            # Clean up markdown markers if present
+            clean_text = text.strip()
+            if clean_text.startswith("```json"):
+                clean_text = clean_text.split("```json", 1)[1]
+            if clean_text.endswith("```"):
+                clean_text = clean_text.rsplit("```", 1)[0]
+            clean_text = clean_text.strip()
+            
+            try:
+                return json.loads(clean_text)
+            except json.JSONDecodeError:
+                # If still failing, try to extract the first valid { ... } block
+                import re
+                match = re.search(r"(\{.*\})", clean_text, re.DOTALL)
+                if match:
+                    return json.loads(match.group(1))
+                raise
+        return text
     except Exception as e:
         print(f"[ask_ai] Critical Error: {e}")
         return {} if is_json else f"HATA: {str(e)}"

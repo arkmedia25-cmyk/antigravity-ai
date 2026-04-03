@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from core.logging import get_logger
+from src.core.logging import get_logger
 
 
 class BaseAgent(ABC):

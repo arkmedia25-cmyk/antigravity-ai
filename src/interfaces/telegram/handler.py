@@ -3,7 +3,7 @@ import os
 
 # --- Path Fix for Server/Local Consistency ---
 # Add the project root to sys.path so 'src' can be imported from anywhere
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 if _ROOT not in sys.path:
     sys.path.append(_ROOT)
 # ---------------------------------------------
@@ -49,6 +49,7 @@ _START_MESSAGE = (
 class TelegramHandler:
     def __init__(self):
         self.orchestrator = Orchestrator()
+        self.memory = MemoryManager(namespace="telegram") # Fixing AttributeError: missing memory attribute
         self._user_state = {} 
 
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -57,6 +58,9 @@ class TelegramHandler:
             
         chat_id = update.effective_chat.id
         text = update.message.text
+        
+        # Load conversation context (prevents context-related errors)
+        prev_context = self.memory.load(f"chat_{chat_id}_context") or ""
 
         if _is_rate_limited(chat_id):
             await update.message.reply_text("Sakin ol şampiyon! Çok hızlı gidiyorsun. 🛑")
@@ -80,7 +84,15 @@ class TelegramHandler:
 
     async def _execute_task(self, update: Update, context: ContextTypes.DEFAULT_TYPE, agent: str, task: str):
         chat_id = update.effective_chat.id
-        msg = await update.message.reply_text(f"⏳ {agent.upper()} çalışmaya başladı...")
+        
+        # Determine persona message based on brand mention
+        persona_msg = "⏳ Luna mesajı aldı, çalışmaya başladı... ✍️"
+        if "@holisti" in task.lower():
+            persona_msg = "⏳ Zen mesajı aldı, çalışmaya başladı... 🌿"
+        elif "@glow" in task.lower():
+            persona_msg = "⏳ Luna mesajı aldı, çalışmaya başladı... ✍️"
+            
+        msg = await update.message.reply_text(persona_msg)
         
         response = self.orchestrator.handle_request(task, agent=agent, chat_id=chat_id)
         

@@ -1,8 +1,8 @@
 import os
-from agents.base_agent import BaseAgent
-from memory.memory_manager import MemoryManager
-from core.logging import get_logger
-from skills.ai_client import ask_ai
+from src.agents.base_agent import BaseAgent
+from src.memory.memory_manager import MemoryManager
+from src.core.logging import get_logger
+from src.skills.ai_client import ask_ai
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
