@@ -4,7 +4,7 @@ import subprocess
 import urllib.request
 import time
 import uuid
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from src.core.brand_manager import BrandManager
 
 _OUTPUT_DIR = "outputs"
@@ -65,16 +65,27 @@ def _sz(draw, text, font):
     return bb[2] - bb[0], bb[3] - bb[1]
 
 def _create_gradient_bg(width, height, color1, color2):
-    """Estetik dikey renk geçişi (gradient) arka plan oluşturur."""
+    """Estetik dikey renk geçişi (gradient) ve Aura arka plan oluşturur."""
+    # Zemini açık renkle başlat
     base = Image.new('RGB', (width, height), color1)
-    top = Image.new('RGB', (width, height), color2)
-    mask = Image.new('L', (width, height))
-    mask_data = []
-    for y in range(height):
-        # Yumuşak geçiş katsayısı (0-255)
-        mask_data.extend([int(255 * (y / height))] * width)
-    mask.putdata(mask_data)
-    base.paste(top, (0, 0), mask)
+    
+    # Modern Aura / Gradient Mesh efekti için arka plan katmanı
+    aura_layer = Image.new('RGBA', (width, height), (0,0,0,0))
+    draw = ImageDraw.Draw(aura_layer)
+    
+    # GlowUp stili enerjik, organik, asimetrik renk lekeleri (Auralar)
+    # 1. Sol üstte büyük leke
+    c2_rgba = color2 + (180,) if len(color2) == 3 else color2
+    draw.ellipse([-500, -500, 800, 800], fill=c2_rgba)
+    # 2. Sağ altta detay lekesi
+    draw.ellipse([width - 600, height - 600, width + 400, height + 400], fill=c2_rgba)
+    # 3. Ortada çok hafif bir sıcaklık geçişi
+    draw.ellipse([-200, height//2 - 400, width + 200, height//2 + 400], fill=color2 + (60,) if len(color2) == 3 else color2)
+
+    # Kuvvetli bir bulanıklaştırma (Gaussian Blur) organik bir görünüm verir
+    aura_blur = aura_layer.filter(ImageFilter.GaussianBlur(150))
+    base.paste(aura_blur, (0,0), aura_blur)
+    
     return base
 
 def _wrap(draw, text: str, font, max_w: int) -> list:
