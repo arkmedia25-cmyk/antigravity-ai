@@ -308,7 +308,8 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
         img.save(img_p)
         
         clip_p = os.path.abspath(os.path.join(_OUTPUT_DIR, f"v_{session_id}_{i}.mp4"))
-        subprocess.run(["ffmpeg", "-y", "-loop", "1", "-t", f"{dur:.2f}", "-i", img_p, "-r", "30", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "ultrafast", clip_p], capture_output=True)
+        # FPS 30 ve Sync stabilizasyonu için -r ve -vsync CFR eklendi
+        subprocess.run(["ffmpeg", "-y", "-loop", "1", "-t", f"{dur:.2f}", "-i", img_p, "-r", "30", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "superfast", "-vsync", "cfr", clip_p], capture_output=True)
         
         all_video_clips.append(clip_p)
         all_audio_files.append(a_path)
@@ -329,12 +330,12 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
 
     final_audio = os.path.abspath(os.path.join(_OUTPUT_DIR, f"audio_{session_id}.mp3"))
     
-    # Concat Audio (Check if list matches)
+    # Concat Audio (44100Hz ve Async=1 stabilizasyonu ile)
     print(f"[video_skill] Concatenating audio using list: {a_list}")
-    subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", a_list.replace(os.sep, '/'), "-c:a", "libmp3lame", final_audio], check=True)
+    subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", a_list.replace(os.sep, '/'), "-af", "aresample=async=1", "-ar", "44100", "-c:a", "libmp3lame", "-b:a", "192k", final_audio], check=True)
 
-    # Final Composite
+    # Final Composite (Ses-Görüntü Senkronizasyonu En Üst Seviyede)
     print(f"[video_skill] Assembling final reel: {output_path}")
-    subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", v_list.replace(os.sep, '/'), "-i", final_audio, "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-shortest", os.path.abspath(output_path)], check=True)
+    subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", v_list.replace(os.sep, '/'), "-i", final_audio, "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-af", "aresample=async=1", "-shortest", os.path.abspath(output_path)], check=True)
 
     return output_path
