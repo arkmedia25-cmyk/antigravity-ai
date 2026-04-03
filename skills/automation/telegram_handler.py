@@ -297,7 +297,7 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         fragment_data = []
         for i, text in enumerate(clean_sentences):
             f_name = f"audio_frag_{ts}_{i}.mp3"
-            f_path = generate_dutch_audio(text, filename=f_name, voice="nova", speed=1.15)
+            f_path = generate_dutch_audio(text, filename=f_name, voice="nova", speed=1.0)
             # Tag metadata for video_skill (0=hook, middle=content, last=cta)
             tag = "hook" if i == 0 else ("cta" if i == len(clean_sentences) - 1 else "content")
             fragment_data.append({"sentence": text, "audio": f_path, "tag": tag})
