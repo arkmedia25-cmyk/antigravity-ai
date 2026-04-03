@@ -211,8 +211,8 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
                 draw.text(((_W - lw) // 2, y), line, font=f, fill=text_color)
                 y += (_sz(draw, "Ag", f)[1] + 25)
         elif tag == "cta":
-            # CTA Ekranı - "Bizi takip et" 
-            cta_text = "Daha fazlası için takip edin!"
+            # CTA Ekranı - "Volg voor meer!" (Hollandaca)
+            cta_text = "Volg voor meer!"
             lines, f, total_h = _fit_lines(draw, cta_text, theme["font_title"], 850, 400)
             
             bx0, by0, bx1, by1 = 100, (_H // 2) - 200, _W - 100, (_H // 2) + 200
@@ -223,12 +223,17 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
             y = by0 + 80
             for line in lines:
                 lw, _ = _sz(draw, line, f)
+                # Text shadow
+                draw.text(((_W - lw) // 2 + 5, y + 5), line, font=f, fill=(0,0,0, 100))
+                # Main Text
                 draw.text(((_W - lw) // 2, y), line, font=f, fill=text_color)
                 y += (_sz(draw, "Ag", f)[1] + 25)
             
             # Alt tarafa buton izlenimi
             _draw_rounded_rect(draw, [bx0 + 100, y + 50, bx1 - 100, y + 170], 40, theme["accent"])
-            btn_text = f"@{brand}"
+            
+            display_brand = "GlowUpNL" if brand == "glow" else "HolistiGlow"
+            btn_text = f"@{display_brand}"
             btw, _ = _sz(draw, btn_text, _font(60, "body"))
             draw.text(((_W - btw) // 2, y + 85), btn_text, font=_font(60, "body"), fill=(255,255,255))
         else:
