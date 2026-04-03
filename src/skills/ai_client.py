@@ -41,12 +41,37 @@ def ask_ai(prompt: str, provider: str = "openai", is_json: bool = False) -> str:
             
             try:
                 return json.loads(clean_text)
-            except json.JSONDecodeError:
-                # If still failing, try to extract the first valid { ... } block
+            except json.JSONDecodeError as e:
+                # If "Extra data", try to parse only the part before the extra data
+                if "Extra data" in str(e):
+                    try:
+                        # Extract the part that was successfully parsed (or looks like JSON)
+                        import re
+                        # Find the first { and the matching last }
+                        match = re.search(r"(\{.*\})", clean_text, re.DOTALL)
+                        if match:
+                             # We use a more careful approach to find the FIRST complete JSON object
+                             # if there are multiples.
+                             content = match.group(1)
+                             # Try to find the last '}' that actually completes the first object
+                             # Simple heuristic: try to parse prefixes of the content
+                             for i in range(len(content), 0, -1):
+                                 if content[i-1] == '}':
+                                     try:
+                                         return json.loads(content[:i])
+                                     except:
+                                         continue
+                    except:
+                        pass
+                
+                # Fallback: original regex-based extraction (legacy)
                 import re
                 match = re.search(r"(\{.*\})", clean_text, re.DOTALL)
                 if match:
-                    return json.loads(match.group(1))
+                    try:
+                        return json.loads(match.group(1))
+                    except:
+                        pass
                 raise
         return text
     except Exception as e:
