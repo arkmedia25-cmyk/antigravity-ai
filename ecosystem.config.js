@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: "antigravity-bot",
-      script: "skills/automation/telegram_handler.py",
+      script: "src/interfaces/telegram/handler.py",
       interpreter: "python3",
       cwd: "/root/antigravity-ai",
       env: {
