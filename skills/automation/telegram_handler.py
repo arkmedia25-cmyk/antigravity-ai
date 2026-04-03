@@ -226,7 +226,7 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
             "2. CONTENT (15-20 sec): 2-3 genuinely helpful tips.\n"
             "3. CTA (5 sec): Polite follow invitation.\n\n"
             "PROVIDE THESE 5 PARTS:\n"
-            "---BROLL_QUERY---\n[STRICTLY ENGLISH - 1-2 words for an aesthetic Pexels video search, e.g., 'morning coffee', 'gym aesthetics', 'calm yoga']\n"
+            "---BROLL_QUERY---\n[STRICTLY ENGLISH - 1-2 words for an AESTHETIC, BRAND-FREE Pexels search. IMPORTANT: Only use healthy lifestyle terms. NEVER search for brands like Red Bull or Cola. Examples: 'aesthetic smoothie', 'natural energy', 'healthy fruits', 'minimalist gym', 'scandinavian interior']\n"
             "---TITLE---\n[STRICTLY DUTCH - Short, catchy title for the package]\n"
             "---SCRIPT---\n[STRICTLY DUTCH - Voiceover text only]\n"
             "---CAPTION---\n[STRICTLY DUTCH - Engaging Instagram caption]\n"
