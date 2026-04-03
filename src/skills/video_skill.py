@@ -13,7 +13,9 @@ _CX = _W // 2
 
 brand_manager = BrandManager()
 
-# ── Font management ───────────────────────────────────────────────────────────
+import os, urllib.request
+from PIL import ImageFont
+
 _FONTS = {
     "title": "PlayfairDisplay-Bold.ttf",
     "body":  "Montserrat-Medium.ttf",
@@ -23,26 +25,37 @@ _FONT_URLS = {
     "body":  "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Medium.ttf",
 }
 
+def _get_font_dir():
+    # Garantili olarak src/skills/ dizinini bul
+    return os.path.dirname(os.path.abspath(__file__))
+
 def _ensure_fonts():
-    base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    f_dir = _get_font_dir()
     for name, filename in _FONTS.items():
-        full_path = os.path.join(base, filename)
+        full_path = os.path.join(f_dir, filename)
         if not os.path.exists(full_path):
+            print(f"Downloading font {filename} to {full_path}")
             try:
                 urllib.request.urlretrieve(_FONT_URLS[name], full_path)
-            except Exception: pass
+            except Exception as e:
+                print(f"Font download failed: {e}")
 
 _ensure_fonts()
 
 def _font(size: int, font_type: str = "body") -> ImageFont.FreeTypeFont:
-    base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    f_dir = _get_font_dir()
     filename = _FONTS.get(font_type, "Montserrat-Medium.ttf")
-    path = os.path.join(base, filename)
+    path = os.path.join(f_dir, filename)
     try:
         if os.path.exists(path):
             return ImageFont.truetype(path, size)
-    except Exception: pass
-    return ImageFont.load_default()
+    except Exception as e: 
+        print(f"Font load error: {e}")
+    # Sistemde yüklü standart bir fonta fallback dene
+    try:
+        return ImageFont.truetype("arial.ttf", size)
+    except:
+        return ImageFont.load_default()
 
 # ── Drawing & Text Helpers ───────────────────────────────────────────────────
 
@@ -90,7 +103,8 @@ def _draw_rounded_rect(draw, coords, radius: int, fill):
     draw.rectangle([x0, y0 + radius, x1, y1 - radius], fill=fill)
 
 def _fit_lines(draw, text: str, font_type: str, max_w: int, max_h: int) -> tuple:
-    sizes = [98, 83, 68, 53, 43] if font_type == "title" else [80, 70, 60, 48, 40]
+    # Modern Reels stili için font boyutunu oldukça büyük alıyoruz
+    sizes = [150, 130, 110, 90, 70] if font_type == "title" else [120, 100, 85, 70, 55]
     total_h = 0
     for sz in sizes:
         f = _font(sz, font_type)
