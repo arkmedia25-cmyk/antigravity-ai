@@ -25,14 +25,15 @@ _FONT_URLS = {
     "body":  "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Medium.ttf",
 }
 
-def _get_font_dir():
-    # Garantili olarak src/skills/ dizinini bul
-    return os.path.dirname(os.path.abspath(__file__))
+def _get_project_root():
+    # Garantili olarak ana proje kök dizinini (Antigravity/) bulur
+    current = os.path.dirname(os.path.abspath(__file__))
+    return os.path.dirname(os.path.dirname(current))
 
 def _ensure_fonts():
-    f_dir = _get_font_dir()
+    root = _get_project_root()
     for name, filename in _FONTS.items():
-        full_path = os.path.join(f_dir, filename)
+        full_path = os.path.join(root, filename)
         if not os.path.exists(full_path):
             print(f"Downloading font {filename} to {full_path}")
             try:
@@ -43,9 +44,9 @@ def _ensure_fonts():
 _ensure_fonts()
 
 def _font(size: int, font_type: str = "body") -> ImageFont.FreeTypeFont:
-    f_dir = _get_font_dir()
+    root = _get_project_root()
     filename = _FONTS.get(font_type, "Montserrat-Medium.ttf")
-    path = os.path.join(f_dir, filename)
+    path = os.path.join(root, filename)
     try:
         if os.path.exists(path):
             return ImageFont.truetype(path, size)
@@ -53,7 +54,7 @@ def _font(size: int, font_type: str = "body") -> ImageFont.FreeTypeFont:
         print(f"Font load error: {e}")
     # Sistemde yüklü standart bir fonta fallback dene
     try:
-        return ImageFont.truetype("arial.ttf", size)
+        return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size)
     except:
         return ImageFont.load_default()
 
