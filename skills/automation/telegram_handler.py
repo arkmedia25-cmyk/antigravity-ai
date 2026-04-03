@@ -222,7 +222,8 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
             "1. HOOK (5-8 sec): Curiosity or problem-solving entrance.\n"
             "2. CONTENT (15-20 sec): 2-3 genuinely helpful tips.\n"
             "3. CTA (5 sec): Polite follow invitation.\n\n"
-            "PROVIDE THESE 4 PARTS IN DUTCH ONLY:\n"
+            "PROVIDE THESE 5 PARTS:\n"
+            "---BROLL_QUERY---\n[STRICTLY ENGLISH - 1-2 words for an aesthetic Pexels video search, e.g., 'morning coffee', 'gym aesthetics', 'calm yoga']\n"
             "---TITLE---\n[STRICTLY DUTCH - Short, catchy title for the package]\n"
             "---SCRIPT---\n[STRICTLY DUTCH - Voiceover text only]\n"
             "---CAPTION---\n[STRICTLY DUTCH - Engaging Instagram caption]\n"
@@ -231,6 +232,10 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         full_response = ask_ai(prompt)
         
         # Parse response
+        broll_query = "aesthetic wellness"
+        if "---BROLL_QUERY---" in full_response:
+            broll_query = full_response.split("---BROLL_QUERY---")[-1].split("---TITLE---")[0].strip().strip('"').strip("'")
+            
         title_body = full_response.split("---TITLE---")[-1].split("---SCRIPT---")[0].strip()
         script = full_response.split("---SCRIPT---")[-1].split("---CAPTION---")[0].strip()
         caption_body = full_response.split("---CAPTION---")[-1].split("---TAGS---")[0].strip()
@@ -303,10 +308,30 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
             tag = "hook" if i == 0 else ("cta" if i == len(clean_sentences) - 1 else "content")
             fragment_data.append({"sentence": text, "audio": f_path, "tag": tag})
 
-        # Stap 3: Video renderen (Pass fragments directly to prevent race conditions)
+        # Fetch Pexels Image (Görsel Zeka)
+        image_path = None
+        pexels_key = os.environ.get("PEXELS_API_KEY")
+        if pexels_key and broll_query:
+            try:
+                import urllib.request, urllib.parse, json
+                query_url = f"https://api.pexels.com/v1/search?query={urllib.parse.quote(broll_query)}&orientation=portrait&per_page=1"
+                req = urllib.request.Request(query_url, headers={"Authorization": pexels_key})
+                with urllib.request.urlopen(req) as response:
+                    data = json.loads(response.read().decode())
+                    if data.get("photos"):
+                        img_url = data["photos"][0]["src"]["large2x"]
+                        download_path = os.path.join(os.getcwd(), "outputs", f"broll_{ts}.jpg")
+                        urllib.request.urlretrieve(img_url, download_path)
+                        image_path = download_path
+                        send_message(chat_id, f"✅ (Visual AI) {broll_query} görseli bulundu!")
+            except Exception as e:
+                print(f"[Pexels Fetch Error] {e}")
+
+        # Stap 3: Video renderen
         send_message(chat_id, "Stap 3/3: Video renderen (Sıfır Gecikme, Tam Senkronizasyon)...")
         video_path = create_reel(
             fragments=fragment_data,
+            image_path=image_path,
             brand=brand, 
             output_filename=f"reel_{brand}_{ts}.mp4",
             watermark_icon=detected_icon

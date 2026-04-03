@@ -188,7 +188,30 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
         color1 = tuple(theme["bg"]) if isinstance(theme["bg"], (list, tuple)) else (254, 245, 238)
         color2 = tuple(theme["accent"]) if isinstance(theme["accent"], (list, tuple)) else (255, 112, 86)
         img = _create_gradient_bg(_W, _H, color1, color2)
-        # (Image pasting logic here - simplified for space)
+        
+        # Pexels (veya harici) bir stock görsel geldiyse arka plana harmanla
+        if image_path and os.path.exists(image_path):
+            try:
+                bg_pic = Image.open(image_path).convert("RGBA")
+                # Resize and crop to fill screen using aspect ratio
+                bg_w, bg_h = bg_pic.size
+                ratio = max(_W / bg_w, _H / bg_h)
+                new_w, new_h = int(bg_w * ratio), int(bg_h * ratio)
+                bg_pic = bg_pic.resize((new_w, new_h), Image.Resampling.LANCZOS)
+                
+                # Crop center
+                left = (new_w - _W) // 2
+                top = (new_h - _H) // 2
+                bg_pic = bg_pic.crop((left, top, left + _W, top + _H))
+                
+                # Siyah opak bir filtre ile karartma (yazılar okunsun diye)
+                dark_layer = Image.new("RGBA", (_W, _H), (0, 0, 0, 110))
+                bg_pic = Image.alpha_composite(bg_pic, dark_layer)
+                
+                # Gradyanla alttan blend etme
+                img.paste(bg_pic, (0, 0), bg_pic)
+            except Exception as e:
+                print(f"[video_skill] Gorsel eklenemedi: {e}")
         
         overlay_img = Image.new("RGBA", (_W, _H), (0,0,0,0))
         overlay_draw = ImageDraw.Draw(overlay_img)
