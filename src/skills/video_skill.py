@@ -122,9 +122,13 @@ def _multiline(draw, lines: list, font, center_y: int, color, spacing: int = 20)
 def _clean_text(text: str) -> str:
     import re
     if not text: return ""
+    # 1. Tag'leri temizle
     text = re.sub(r'\[HOOK\]|\[CONTENT\]|\[CTA\]|\[TITLE\]', '', text, flags=re.IGNORECASE)
+    # 2. Madde işaretlerini ve numaraları temizle
     text = re.sub(r'^\s*[•🌿✨\-1234567890\.\*\/]+\s*', '', text)
-    clean = re.sub(r'[^\x00-\x7F\xC0-\xFF\.,!?\'\":\* ]+', '', text)
+    # 3. KESİN ÇÖZÜM: Emojileri ve garip kutu karakterlerini (non-latin/non-printable) tamamen sil
+    # Sadece standart Latin harfleri, sayılar ve noktalama işaretlerine izin ver
+    clean = re.sub(r'[^\x20-\x7E\xC1-\xFF\.,!?\'\":\* ]+', '', text)
     return clean.strip()
 
 def _draw_rounded_rect(draw, coords, radius: int, fill):
@@ -294,7 +298,9 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
             y = by0 + padding
             for line in lines:
                 lw, _ = _sz(draw, line, f)
-                draw.text(((_W - lw) // 2 + 5, y + 5), line, font=f, fill=(0,0,0, 100))
+                # Profesyonel Soft Shadow (Opaklık 100 -> 45, Mesafe 5 -> 3)
+                draw.text(((_W - lw) // 2 + 3, y + 3), line, font=f, fill=(0, 0, 0, 45))
+                # Main text
                 draw.text(((_W - lw) // 2, y), line, font=f, fill=text_color)
                 y += (_sz(draw, "Ag", f)[1] + 25)
 

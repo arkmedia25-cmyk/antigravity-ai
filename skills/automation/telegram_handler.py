@@ -325,8 +325,12 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
                     "Authorization": pexels_key,
                     "User-Agent": "AntigravityBot/1.0 (Professional Content Creator)"
                 }
+                # Pexels API Request with enhanced queries
+                pexels_key = os.getenv("PEXELS_API_KEY")
+                # Auto-prefix for human-centric wellness aesthetic
+                safe_query = f"aesthetic wellness {broll_query}"
                 params = {
-                    "query": broll_query,
+                    "query": safe_query,
                     "orientation": "portrait",
                     "per_page": 1
                 }
