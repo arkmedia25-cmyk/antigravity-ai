@@ -13,7 +13,7 @@ class PublisherSkill:
     def publish_to_instagram(video_url: str, caption: str) -> dict:
         """
         Publishes a Video to Instagram Reels.
-        Note: video_url must be a public URL (Railways/Dropbox/S3).
+        Note: video_url must be a public URL (Dropbox/S3).
         """
         biz_id = settings.INSTAGRAM_BUSINESS_ID
         token = settings.INSTAGRAM_ACCESS_TOKEN

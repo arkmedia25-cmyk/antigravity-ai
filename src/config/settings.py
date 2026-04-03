@@ -29,7 +29,7 @@ class Settings:
         if missing:
             raise ValueError(
                 f"Missing required environment variables: {', '.join(missing)}. "
-                "Set them in .env or Railway environment settings."
+                "Set them in .env settings."
             )
 
 

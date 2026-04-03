@@ -193,8 +193,7 @@ Antigravity/
 ├── PROJE_DOKUMAN.md                  ← Bu dosya (Master Log)
 ├── requirements.txt
 ├── runtime.txt                       ← python-3.11
-├── Procfile                          ← web: python skills/automation/telegram_handler.py
-├── railway.toml
+├── requirements.txt
 ├── bot_test_log.txt                  ← Canlı bot test logları
 ├── create_final_video.py             ← Video üretim scripti
 ├── tts_with_timestamps.py            ← TTS + timestamp üretici
@@ -408,11 +407,8 @@ Bağımlılıklar: `anthropic`, `openai`, `requests`, `python-dotenv`, `pytest`,
 ### `runtime.txt`
 DigitalOcean/Dokku için Python versiyonu: `python-3.11`
 
-### `Procfile`
-Başlatma komutu: `web: python skills/automation/telegram_handler.py`
-
-### `railway.toml`
-Eski Railway deploy konfigürasyonu (artık kullanılmıyor).
+### `Procfile` / `railway.toml` (Kaldırıldı)
+Artık sadece DigitalOcean Droplet üzerinde manuel kontrol sağlanıyor.
 
 ---
 
