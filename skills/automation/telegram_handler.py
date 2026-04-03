@@ -313,16 +313,22 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
 
         # Fetch Pexels Image (Görsel Zeka)
         image_path = None
-        pexels_key = os.environ.get("PEXELS_API_KEY")
+        pexels_key = os.environ.get("PEXELS_API_KEY", "").strip().strip('"')
         
         if pexels_key and broll_query:
             try:
                 import urllib.request, urllib.parse, json
-                # DEBUG: Arama başladığını bildir
-                send_message(chat_id, f"🔍 Luna Pexels'te '{broll_query}' için görsel arıyor...")
+                send_message(chat_id, f"🔍 Luna Pexels'te '{broll_query}' araması başlattı...")
                 
                 query_url = f"https://api.pexels.com/v1/search?query={urllib.parse.quote(broll_query)}&orientation=portrait&per_page=1"
-                req = urllib.request.Request(query_url, headers={"Authorization": pexels_key})
+                
+                # 403 Hatasını aşmak için User-Agent ve Temiz Auth Header
+                headers = {
+                    "Authorization": pexels_key,
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                }
+                
+                req = urllib.request.Request(query_url, headers=headers)
                 with urllib.request.urlopen(req) as response:
                     data = json.loads(response.read().decode())
                     if data.get("photos"):
@@ -330,12 +336,15 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
                         download_path = os.path.join(os.getcwd(), "outputs", f"broll_{ts}.jpg")
                         urllib.request.urlretrieve(img_url, download_path)
                         image_path = download_path
-                        send_message(chat_id, f"✅ (Visual AI) '{broll_query}' görseli başarıyla indirildi!")
+                        send_message(chat_id, f"✅ (Visual AI) '{broll_query}' görseli indirildi!")
                     else:
-                        send_message(chat_id, f"⚠️ (Visual AI) Pexels '{broll_query}' için sonuç bulamadı.")
+                        send_message(chat_id, f"⚠️ (Visual AI) Pexels sonuç bulamadı.")
             except Exception as e:
-                # DEBUG: Hatayı Telegram'a bas
-                send_message(chat_id, f"❌ (Visual AI) Pexels Hatası: {str(e)[:100]}")
+                # Daha detaylı hata mesajı
+                error_msg = str(e)
+                if "403" in error_msg:
+                    error_msg = "403 Forbidden (Lütfen Pexels E-posta onayını kontrol et!)"
+                send_message(chat_id, f"❌ (Visual AI) Hata: {error_msg}")
                 print(f"[Pexels Fetch Error] {e}")
         elif not pexels_key:
             send_message(chat_id, "❌ (Visual AI) Kritik Hata: PEXELS_API_KEY sunucu tarafından görülmüyor!")
