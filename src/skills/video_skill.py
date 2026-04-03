@@ -17,43 +17,52 @@ import os, urllib.request
 from PIL import ImageFont
 
 _FONTS = {
-    "title": "PlayfairDisplay-Bold.ttf",
-    "body":  "Montserrat-Medium.ttf",
-}
-_FONT_URLS = {
-    "title": "https://github.com/google/fonts/raw/main/ofl/playfairdisplay/PlayfairDisplay-Bold.ttf",
-    "body":  "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Medium.ttf",
+    "title": "Montserrat-Bold.ttf",
+    "body":  "Montserrat-Regular.ttf",
 }
 
 def _get_project_root():
-    # Garantili olarak ana proje kök dizinini (Antigravity/) bulur
-    current = os.path.dirname(os.path.abspath(__file__))
-    return os.path.dirname(os.path.dirname(current))
+    # Proje ana dizinini bulur
+    return os.getcwd()
 
 def _ensure_fonts():
     root = _get_project_root()
+    font_dir = os.path.join(root, "assets", "fonts")
+    if not os.path.exists(font_dir):
+        os.makedirs(font_dir)
+    
+    # Montserrat Font URL'leri (GitHub üzerinden ham dosyalar)
+    urls = {
+        "title": "https://github.com/google/fonts/raw/main/ofl/montserrat/static/Montserrat-Bold.ttf",
+        "body":  "https://github.com/google/fonts/raw/main/ofl/montserrat/static/Montserrat-Regular.ttf"
+    }
+    
     for name, filename in _FONTS.items():
-        full_path = os.path.join(root, filename)
+        full_path = os.path.join(font_dir, filename)
         if not os.path.exists(full_path):
-            print(f"Downloading font {filename} to {full_path}")
+            print(f"[video_skill] İndiriliyor: {filename}...")
             try:
-                urllib.request.urlretrieve(_FONT_URLS[name], full_path)
+                import urllib.request
+                urllib.request.urlretrieve(urls[name], full_path)
             except Exception as e:
-                print(f"Font download failed: {e}")
+                print(f"[video_skill] Font indirilemedi: {e}")
 
 _ensure_fonts()
 
 def _font(size: int, font_type: str = "body") -> ImageFont.FreeTypeFont:
     root = _get_project_root()
-    filename = _FONTS.get(font_type, "Montserrat-Medium.ttf")
-    path = os.path.join(root, filename)
+    filename = _FONTS.get(font_type, "Montserrat-Regular.ttf")
+    path = os.path.join(root, "assets", "fonts", filename)
     try:
         if os.path.exists(path):
             return ImageFont.truetype(path, size)
-    except Exception as e: 
-        print(f"Font load error: {e}")
-    # Sistemde yüklü standart bir fonta fallback dene
+    except: pass
+    
+    # Standart Sistem Fallback (Windows & Linux)
     try:
+        import platform
+        if platform.system() == "Windows":
+            return ImageFont.truetype("C:\\Windows\\Fonts\\arial.ttf", size)
         return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size)
     except:
         return ImageFont.load_default()
@@ -128,20 +137,17 @@ def _draw_rounded_rect(draw, coords, radius: int, fill):
     draw.rectangle([x0, y0 + radius, x1, y1 - radius], fill=fill)
 
 def _fit_lines(draw, text: str, font_type: str, max_w: int, max_h: int) -> tuple:
-    # Kullanıcının talebi: "Baştan sona aynı punto olsun". 
-    # Devasa (150) puntolardan kaçınıp, kutu içine (780px) güvenle sığacak 
-    # ve her fragmanda tutarlı görünecek bir skala (95-55) kullanıyoruz.
-    sizes = [95, 85, 75, 65, 55]
+    # "Baştan sona aynı punto olsun" ve "taşmasın" kuralı.
+    sizes = [90, 80, 70, 60, 50, 40]
     total_h = 0
     for sz in sizes:
         f = _font(sz, font_type)
         lines = _wrap(draw, text, f, max_w)
         _, lh = _sz(draw, "Ag", f)
-        # Satır arası boşluk: 25px
-        total_h = len(lines) * lh + (len(lines) - 1) * 25
+        total_h = len(lines) * lh + (len(lines) - 1) * 20
+        # Hem genişlik (wrap sayesinde garanti) hem yükseklik kontrolü
         if total_h <= max_h: return lines, f, total_h
     
-    # En küçük boyut bile sığmazsa fallback
     final_f = _font(sizes[-1], font_type)
     return _wrap(draw, text, final_f, max_w), final_f, total_h
 
