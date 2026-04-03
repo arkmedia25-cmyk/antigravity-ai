@@ -317,34 +317,46 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         
         if pexels_key and broll_query:
             try:
-                import urllib.request, urllib.parse, json
+                import requests
                 send_message(chat_id, f"🔍 Luna Pexels'te '{broll_query}' araması başlattı...")
                 
-                query_url = f"https://api.pexels.com/v1/search?query={urllib.parse.quote(broll_query)}&orientation=portrait&per_page=1"
-                
-                # 403 Hatasını aşmak için User-Agent ve Temiz Auth Header
+                query_url = f"https://api.pexels.com/v1/search"
                 headers = {
                     "Authorization": pexels_key,
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                    "User-Agent": "AntigravityBot/1.0 (Professional Content Creator)"
+                }
+                params = {
+                    "query": broll_query,
+                    "orientation": "portrait",
+                    "per_page": 1
                 }
                 
-                req = urllib.request.Request(query_url, headers=headers)
-                with urllib.request.urlopen(req) as response:
-                    data = json.loads(response.read().decode())
+                response = requests.get(query_url, headers=headers, params=params, timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
                     if data.get("photos"):
                         img_url = data["photos"][0]["src"]["large2x"]
                         download_path = os.path.join(os.getcwd(), "outputs", f"broll_{ts}.jpg")
-                        urllib.request.urlretrieve(img_url, download_path)
-                        image_path = download_path
-                        send_message(chat_id, f"✅ (Visual AI) '{broll_query}' görseli indirildi!")
+                        
+                        # Resim indirme
+                        img_res = requests.get(img_url, timeout=15)
+                        if img_res.status_code == 200:
+                            with open(download_path, "wb") as f:
+                                f.write(img_res.content)
+                            image_path = download_path
+                            send_message(chat_id, f"✅ (Visual AI) '{broll_query}' görseli indirildi!")
+                        else:
+                            send_message(chat_id, "⚠️ (Visual AI) Görsel indirme hatası.")
                     else:
                         send_message(chat_id, f"⚠️ (Visual AI) Pexels sonuç bulamadı.")
+                elif response.status_code == 403:
+                    send_message(chat_id, "❌ (Visual AI) 403 Forbidden: Hâlâ erişim reddediliyor. Lütfen anahtarın doğruluğunu ve e-posta onayını kontrol et!")
+                else:
+                    send_message(chat_id, f"❌ (Visual AI) HTTP {response.status_code} Hatası.")
+                    
             except Exception as e:
-                # Daha detaylı hata mesajı
-                error_msg = str(e)
-                if "403" in error_msg:
-                    error_msg = "403 Forbidden (Lütfen Pexels E-posta onayını kontrol et!)"
-                send_message(chat_id, f"❌ (Visual AI) Hata: {error_msg}")
+                send_message(chat_id, f"❌ (Visual AI) Sistem Hatası: {str(e)[:50]}")
                 print(f"[Pexels Fetch Error] {e}")
         elif not pexels_key:
             send_message(chat_id, "❌ (Visual AI) Kritik Hata: PEXELS_API_KEY sunucu tarafından görülmüyor!")
