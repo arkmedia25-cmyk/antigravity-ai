@@ -1,4 +1,9 @@
 {
+  "agent": {
+    "id": "GLW-01",
+    "name": "Luna",
+    "role": "GlowUpNL İçerik ve Trend Yöneticisi"
+  },
   "brand_id": "glowup_nl",
   "brand_name": "GlowUpNL",
   "language": "nl",

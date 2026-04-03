@@ -1,4 +1,9 @@
 {
+  "agent": {
+    "id": "HLG-01",
+    "name": "Zen",
+    "role": "HolistiGlow Sağlıklı Yaşam Rehberi"
+  },
   "brand_id": "holistiglow",
   "brand_name": "HolistiGlow",
   "language": "nl",
