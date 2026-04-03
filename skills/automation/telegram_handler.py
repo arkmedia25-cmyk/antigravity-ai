@@ -321,18 +321,18 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
                 send_message(chat_id, f"🔍 Luna Pexels'te '{broll_query}' araması başlattı...")
                 
                 query_url = f"https://api.pexels.com/v1/search"
-                headers = {
-                    "Authorization": pexels_key,
-                    "User-Agent": "AntigravityBot/1.0 (Professional Content Creator)"
-                }
-                # Pexels API Request with enhanced queries
+                # Pexels API Request with strictly human-centric context
                 pexels_key = os.getenv("PEXELS_API_KEY")
-                # Auto-prefix for human-centric wellness aesthetic
-                safe_query = f"aesthetic wellness {broll_query}"
+                # Ensure we search for humans, wellness and aesthetic (no windmills)
+                safe_query = f"aesthetic human wellness {broll_query}"
                 params = {
                     "query": safe_query,
                     "orientation": "portrait",
                     "per_page": 1
+                }
+                headers = {
+                    "Authorization": pexels_key,
+                    "User-Agent": "AntigravityBot/1.0 (Professional Content Creator)"
                 }
                 
                 response = requests.get(query_url, headers=headers, params=params, timeout=10)
