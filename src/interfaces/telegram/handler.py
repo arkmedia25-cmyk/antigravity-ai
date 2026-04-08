@@ -332,7 +332,7 @@ def start_telegram_bot():
     application.add_handler(CallbackQueryHandler(handler.handle_callback))
     
     print("✅ Antigravity Agency OS Botu Hazır!")
-    application.run_polling()
+    application.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
     start_telegram_bot()
