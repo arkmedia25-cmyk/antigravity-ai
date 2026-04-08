@@ -7,16 +7,6 @@ if _ROOT not in sys.path:
     sys.path.append(_ROOT)
 # ---------------------------------------------
 
-# --- Single Instance Lock ---
-import fcntl
-_LOCK_FILE = "/tmp/antigravity_bot.lock"
-_lock_fh = open(_LOCK_FILE, "w")
-try:
-    fcntl.flock(_lock_fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
-except IOError:
-    print("[LOCK] Another instance is already running. Exiting.")
-    sys.exit(0)
-# ----------------------------
 
 import time
 import threading
