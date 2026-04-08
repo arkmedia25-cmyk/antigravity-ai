@@ -328,6 +328,10 @@ def start_telegram_bot():
     application = Application.builder().token(token).build()
     
     application.add_handler(CommandHandler("start", handler.handle_message))
+    application.add_handler(CommandHandler("luna", handler.handle_message))
+    application.add_handler(CommandHandler("zen", handler.handle_message))
+    application.add_handler(CommandHandler("content", handler.handle_message))
+    application.add_handler(CommandHandler("cmo", handler.handle_message))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler.handle_message))
     application.add_handler(CallbackQueryHandler(handler.handle_callback))
     
