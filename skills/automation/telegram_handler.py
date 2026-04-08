@@ -101,6 +101,11 @@ try:
 except Exception as _ve:
     _video_pipeline_ok = False
     print(f"[Video] Pipeline niet beschikbaar: {_ve}")
+    def generate_dutch_audio(*a, **kw): return None
+    def create_reel(*a, **kw): return None
+    def publisher_skill(*a, **kw): return None
+    def start_content_factory(*a, **kw): pass
+    def ask_ai(prompt, *a, **kw): return "AI niet beschikbaar."
  
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 URL = f"https://api.telegram.org/bot{TOKEN}"
