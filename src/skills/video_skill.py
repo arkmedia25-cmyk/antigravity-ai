@@ -1,5 +1,4 @@
 import os
-import json
 import subprocess
 import urllib.request
 import time
@@ -17,35 +16,35 @@ import os, urllib.request
 from PIL import ImageFont
 
 _FONTS = {
-    "title": "Montserrat-Bold.ttf",
-    "body":  "Montserrat-Regular.ttf",
+    "title":   "Montserrat-Bold.ttf",
+    "body":    "Montserrat-Regular.ttf",
+    "medium":  "Montserrat-Medium.ttf",
+    "display": "PlayfairDisplay-Bold.ttf",
 }
 
 def _get_project_root():
-    # Proje ana dizinini bulur
     return os.getcwd()
 
 def _ensure_fonts():
     root = _get_project_root()
     font_dir = os.path.join(root, "assets", "fonts")
-    if not os.path.exists(font_dir):
-        os.makedirs(font_dir)
-    
-    # Montserrat Font URL'leri (GitHub üzerinden ham dosyalar)
+    os.makedirs(font_dir, exist_ok=True)
+
     urls = {
-        "title": "https://github.com/google/fonts/raw/main/ofl/montserrat/static/Montserrat-Bold.ttf",
-        "body":  "https://github.com/google/fonts/raw/main/ofl/montserrat/static/Montserrat-Regular.ttf"
+        "title":   "https://github.com/google/fonts/raw/main/ofl/montserrat/static/Montserrat-Bold.ttf",
+        "body":    "https://github.com/google/fonts/raw/main/ofl/montserrat/static/Montserrat-Regular.ttf",
+        "medium":  "https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCtZ6Ew-.ttf",
+        "display": "https://fonts.gstatic.com/s/playfairdisplay/v40/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKeiukDQ.ttf",
     }
-    
+
     for name, filename in _FONTS.items():
         full_path = os.path.join(font_dir, filename)
         if not os.path.exists(full_path):
-            print(f"[video_skill] İndiriliyor: {filename}...")
+            print(f"[video_skill] Downloading font: {filename}...")
             try:
-                import urllib.request
                 urllib.request.urlretrieve(urls[name], full_path)
             except Exception as e:
-                print(f"[video_skill] Font indirilemedi: {e}")
+                print(f"[video_skill] Font download failed: {e}")
 
 _ensure_fonts()
 
@@ -57,15 +56,33 @@ def _font(size: int, font_type: str = "body") -> ImageFont.FreeTypeFont:
         if os.path.exists(path):
             return ImageFont.truetype(path, size)
     except: pass
-    
-    # Standart Sistem Fallback (Windows & Linux)
+    # Fallback to bold if display not found
+    if font_type == "display":
+        return _font(size, "title")
     try:
         import platform
         if platform.system() == "Windows":
-            return ImageFont.truetype("C:\\Windows\\Fonts\\arial.ttf", size)
-        return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size)
+            return ImageFont.truetype("C:\\Windows\\Fonts\\arialbd.ttf", size)
+        return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size)
     except:
         return ImageFont.load_default()
+
+def _add_vignette(img: Image.Image) -> Image.Image:
+    """Radyal vignette efekti — kenarları karartır, merkezi aydınlatır."""
+    w, h = img.size
+    vignette = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(vignette)
+    # Kenarlardan merkeze doğru gradyan halkalar çiz
+    steps = 40
+    for s in range(steps):
+        alpha = int(180 * (s / steps) ** 2)
+        margin = int(s * min(w, h) / (2 * steps))
+        draw.rectangle([margin, margin, w - margin, h - margin],
+                       outline=(0, 0, 0, alpha), width=int(min(w, h) / steps) + 1)
+    vignette = vignette.filter(ImageFilter.GaussianBlur(30))
+    result = img.convert("RGBA")
+    result = Image.alpha_composite(result, vignette)
+    return result.convert("RGB")
 
 # ── Drawing & Text Helpers ───────────────────────────────────────────────────
 
@@ -190,152 +207,199 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
 
     print(f"[video_skill] Rendering {len(fragments)} fragments for @{brand}...")
 
+    display_brand = "GlowUpNL" if brand in ("glow", "glowup") else "HolistiGlow"
+    accent_rgb = tuple(theme["accent"]) if isinstance(theme["accent"], (list, tuple)) else (255, 112, 86)
+    total_frags = len([f for f in fragments if f.get("audio") or f.get("path")])
+
     for i, frag in enumerate(fragments):
         a_path = frag.get("audio") or frag.get("path")
         if not a_path: continue
-        
-        # FIX: Ensure absolute paths for audio
+
         a_path = os.path.abspath(a_path)
         dur = get_duration(a_path)
         tag = frag.get("tag", "content")
         text = frag.get("sentence") or frag.get("text", "")
-        
-        # Premium Gradient background using theme colors
+
+        # ── Background ──────────────────────────────────────────────────────
         color1 = tuple(theme["bg"]) if isinstance(theme["bg"], (list, tuple)) else (254, 245, 238)
         color2 = tuple(theme["accent"]) if isinstance(theme["accent"], (list, tuple)) else (255, 112, 86)
         img = _create_gradient_bg(_W, _H, color1, color2)
-        
-        # Pexels (veya harici) bir stock görsel geldiyse arka plana harmanla
+
         if image_path and os.path.exists(image_path):
             try:
                 bg_pic = Image.open(image_path).convert("RGBA")
-                # Resize and crop to fill screen using aspect ratio
                 bg_w, bg_h = bg_pic.size
                 ratio = max(_W / bg_w, _H / bg_h)
                 new_w, new_h = int(bg_w * ratio), int(bg_h * ratio)
                 bg_pic = bg_pic.resize((new_w, new_h), Image.Resampling.LANCZOS)
-                
-                # Crop center
                 left = (new_w - _W) // 2
                 top = (new_h - _H) // 2
                 bg_pic = bg_pic.crop((left, top, left + _W, top + _H))
-                
-                # Siyah opak bir filtre ile karartma (yazılar okunsun diye)
-                dark_layer = Image.new("RGBA", (_W, _H), (0, 0, 0, 110))
+                dark_layer = Image.new("RGBA", (_W, _H), (0, 0, 0, 130))
                 bg_pic = Image.alpha_composite(bg_pic, dark_layer)
-                
-                # Gradyanla alttan blend etme
                 img.paste(bg_pic, (0, 0), bg_pic)
             except Exception as e:
                 print(f"[video_skill] Gorsel eklenemedi: {e}")
-        
-        overlay_img = Image.new("RGBA", (_W, _H), (0,0,0,0))
+
+        # Vignette efekti
+        img = _add_vignette(img)
+
+        # ── Overlays layer ──────────────────────────────────────────────────
+        overlay_img = Image.new("RGBA", (_W, _H), (0, 0, 0, 0))
         overlay_draw = ImageDraw.Draw(overlay_img)
+        padding = 65
+
+        # ── TOP BRAND BAR ────────────────────────────────────────────────────
+        bar_h = 110
+        bar_color = accent_rgb + (200,)
+        overlay_draw.rectangle([0, 0, _W, bar_h], fill=bar_color)
+        img.paste(overlay_img, (0, 0), overlay_img)
+
         draw = ImageDraw.Draw(img)
-        text_color = theme["text"]
-        
-        # Render visual according to tag (hook/content/cta)
-        padding = 70 # Safe Zone Padding inside the glass box
-        
+        f_brand = _font(44, "title")
+        brand_label = f"@{display_brand}"
+        bw, _ = _sz(draw, brand_label, f_brand)
+        draw.text(((_W - bw) // 2 + 2, 32 + 2), brand_label, font=f_brand, fill=(0, 0, 0, 80))
+        draw.text(((_W - bw) // 2, 32), brand_label, font=f_brand, fill=(255, 255, 255))
+
+        # ── BOTTOM PROGRESS BAR ──────────────────────────────────────────────
+        prog_h = 10
+        prog_y = _H - prog_h
+        draw.rectangle([0, prog_y, _W, _H], fill=(0, 0, 0, 90))
+        filled_w = int(_W * (i + 1) / max(total_frags, 1))
+        draw.rectangle([0, prog_y, filled_w, _H], fill=accent_rgb + (220,))
+
+        # Reset overlay for glass boxes
+        overlay_img2 = Image.new("RGBA", (_W, _H), (0, 0, 0, 0))
+        overlay_draw2 = ImageDraw.Draw(overlay_img2)
+
+        # ── CONTENT RENDERING ────────────────────────────────────────────────
         if tag == "hook":
-            # 1. Text fitting inside a stricter max_w (box_w - 2*padding)
-            lines, f, total_h = _fit_lines(draw, text, theme["font_title"], 780, 1000)
-            
-            # 2. Dynamic Box Sizing
-            bx0, bx1 = 80, _W - 80
-            by0 = 220
-            by1 = by0 + total_h + (padding * 2)
-            
-            _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, theme["glass"])
-            img.paste(overlay_img, (0, 0), overlay_img)
+            lines, f, total_h = _fit_lines(draw, text, "display", 820, 900)
+            bx0, bx1 = 60, _W - 60
+            by0 = bar_h + 80
+            by1 = by0 + total_h + padding * 2
+            glass = (255, 255, 255, 210) if not image_path else (0, 0, 0, 150)
+            _draw_rounded_rect(overlay_draw2, [bx0, by0, bx1, by1], 50, glass)
+            img.paste(overlay_img2, (0, 0), overlay_img2)
             draw = ImageDraw.Draw(img)
-            
+            tc = tuple(theme["text"]) if not image_path else (255, 255, 255)
             y = by0 + padding
             for line in lines:
-                lw, _ = _sz(draw, line, f)
-                draw.text(((_W - lw) // 2 + 5, y + 5), line, font=f, fill=(0,0,0, 100))
-                draw.text(((_W - lw) // 2, y), line, font=f, fill=text_color)
-                y += (_sz(draw, "Ag", f)[1] + 25)
-                
+                lw, lh = _sz(draw, line, f)
+                draw.text(((_W - lw) // 2 + 3, y + 3), line, font=f, fill=(0, 0, 0, 120))
+                draw.text(((_W - lw) // 2, y), line, font=f, fill=tc)
+                y += lh + 22
+
         elif tag == "cta":
-            # CTA Ekranı - "Volg voor meer!"
-            cta_text = "Volg voor meer!"
-            lines, f, total_h = _fit_lines(draw, cta_text, theme["font_title"], 780, 400)
-            
-            bx0, bx1 = 80, _W - 80
-            by0, by1 = (_H // 2) - 250, (_H // 2) + 250
-            
-            _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, theme["glass"])
-            img.paste(overlay_img, (0, 0), overlay_img)
+            # Full-width CTA block (Instagram stili)
+            cta_main = "Volg voor meer tips!"
+            cta_sub = f"@{display_brand}"
+            cy_center = _H // 2
+
+            # Background block
+            block_y0, block_y1 = cy_center - 320, cy_center + 320
+            _draw_rounded_rect(overlay_draw2, [60, block_y0, _W - 60, block_y1], 50, (255, 255, 255, 220))
+            img.paste(overlay_img2, (0, 0), overlay_img2)
             draw = ImageDraw.Draw(img)
-            
-            y = by0 + padding
-            for line in lines:
-                lw, _ = _sz(draw, line, f)
-                draw.text(((_W - lw) // 2 + 5, y + 5), line, font=f, fill=(0,0,0, 100))
-                draw.text(((_W - lw) // 2, y), line, font=f, fill=text_color)
-                y += (_sz(draw, "Ag", f)[1] + 25)
-            
-            # Button inside CTA
-            _draw_rounded_rect(draw, [bx0 + 100, y + 30, bx1 - 100, y + 150], 40, theme["accent"])
-            display_brand = "GlowUpNL" if brand == "glow" else "HolistiGlow"
-            btn_text = f"@{display_brand}"
-            btw, _ = _sz(draw, btn_text, _font(60, "body"))
-            draw.text(((_W - btw) // 2, y + 85), btn_text, font=_font(60, "body"), fill=(255,255,255))
-            
+
+            # Main CTA text
+            f_cta = _font(80, "display")
+            lines_cta = _wrap(draw, cta_main, f_cta, 820)
+            y = block_y0 + 80
+            for line in lines_cta:
+                lw, lh = _sz(draw, line, f_cta)
+                draw.text(((_W - lw) // 2 + 3, y + 3), line, font=f_cta, fill=(0, 0, 0, 80))
+                draw.text(((_W - lw) // 2, y), line, font=f_cta, fill=tuple(theme["text"]))
+                y += lh + 18
+
+            # Follow button
+            btn_y0, btn_y1 = y + 40, y + 160
+            _draw_rounded_rect(draw, [120, btn_y0, _W - 120, btn_y1], 40, accent_rgb)
+            f_btn = _font(62, "title")
+            btw, _ = _sz(draw, cta_sub, f_btn)
+            draw.text(((_W - btw) // 2, btn_y0 + 46), cta_sub, font=f_btn, fill=(255, 255, 255))
+
         else:
-            # CONTENT
-            lines, f, total_h = _fit_lines(draw, text, theme["font_body"], 780, 1050)
-            
-            bx0, bx1 = 80, _W - 80
-            by0 = 180
-            by1 = by0 + total_h + (padding * 2)
-            
-            _draw_rounded_rect(overlay_draw, [bx0, by0, bx1, by1], 60, theme["glass"])
-            img.paste(overlay_img, (0, 0), overlay_img)
+            # CONTENT frame
+            lines, f, total_h = _fit_lines(draw, text, "body", 820, 1000)
+            bx0, bx1 = 60, _W - 60
+            by0 = bar_h + 120
+            by1 = by0 + total_h + padding * 2
+            glass = (255, 255, 255, 205) if not image_path else (0, 0, 0, 145)
+            _draw_rounded_rect(overlay_draw2, [bx0, by0, bx1, by1], 50, glass)
+            img.paste(overlay_img2, (0, 0), overlay_img2)
             draw = ImageDraw.Draw(img)
-            
+            tc = tuple(theme["text"]) if not image_path else (255, 255, 255)
             y = by0 + padding
             for line in lines:
-                lw, _ = _sz(draw, line, f)
-                # Profesyonel Soft Shadow (Opaklık 100 -> 45, Mesafe 5 -> 3)
-                draw.text(((_W - lw) // 2 + 3, y + 3), line, font=f, fill=(0, 0, 0, 45))
-                # Main text
-                draw.text(((_W - lw) // 2, y), line, font=f, fill=text_color)
-                y += (_sz(draw, "Ag", f)[1] + 25)
+                lw, lh = _sz(draw, line, f)
+                draw.text(((_W - lw) // 2 + 3, y + 3), line, font=f, fill=(0, 0, 0, 90))
+                draw.text(((_W - lw) // 2, y), line, font=f, fill=tc)
+                y += lh + 22
 
         img_p = os.path.abspath(os.path.join(_OUTPUT_DIR, f"f_{session_id}_{i}.png"))
         img.save(img_p)
-        
+
         clip_p = os.path.abspath(os.path.join(_OUTPUT_DIR, f"v_{session_id}_{i}.mp4"))
-        # FPS 30 ve Sync stabilizasyonu için -r ve -vsync CFR eklendi
-        subprocess.run(["ffmpeg", "-y", "-loop", "1", "-t", f"{dur:.2f}", "-i", img_p, "-r", "30", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "superfast", "-vsync", "cfr", clip_p], capture_output=True)
-        
+        subprocess.run([
+            "ffmpeg", "-y", "-loop", "1", "-t", f"{dur:.2f}", "-i", img_p,
+            "-r", "30", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+            "-preset", "superfast", "-vsync", "cfr", clip_p
+        ], capture_output=True)
+
         all_video_clips.append(clip_p)
         all_audio_files.append(a_path)
 
-    # ── THE ULTIMATE PATH FIX ────────────────────────────────────────────────
-    
+    # ── Concatenate & Mix ────────────────────────────────────────────────────
+
     def write_list(p, files):
-        # Important: use forward slashes for FFmpeg on Windows list files
         with open(p, "w", encoding="utf-8") as f:
             for file in files:
                 f.write(f"file '{file.replace(os.sep, '/')}'\n")
 
     v_list = os.path.abspath(os.path.join(_OUTPUT_DIR, f"v_list_{session_id}.txt"))
     a_list = os.path.abspath(os.path.join(_OUTPUT_DIR, f"a_list_{session_id}.txt"))
-    
     write_list(v_list, all_video_clips)
     write_list(a_list, all_audio_files)
 
-    final_audio = os.path.abspath(os.path.join(_OUTPUT_DIR, f"audio_{session_id}.mp3"))
-    
-    # Concat Audio (44100Hz ve Async=1 stabilizasyonu ile)
-    print(f"[video_skill] Concatenating audio using list: {a_list}")
-    subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", a_list.replace(os.sep, '/'), "-af", "aresample=async=1", "-ar", "44100", "-c:a", "libmp3lame", "-b:a", "192k", final_audio], check=True)
+    final_vo = os.path.abspath(os.path.join(_OUTPUT_DIR, f"vo_{session_id}.mp3"))
+    print(f"[video_skill] Concatenating voiceover: {a_list}")
+    subprocess.run([
+        "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+        "-i", a_list.replace(os.sep, '/'),
+        "-af", "aresample=async=1", "-ar", "44100",
+        "-c:a", "libmp3lame", "-b:a", "192k", final_vo
+    ], check=True)
 
-    # Final Composite (Ses-Görüntü Senkronizasyonu En Üst Seviyede)
+    # Check for optional background music file
+    music_path = os.path.join(_get_project_root(), "assets", "music", "background.mp3")
+    brand_music = os.path.join(_get_project_root(), "assets", "music", f"background_{brand}.mp3")
+    if os.path.exists(brand_music):
+        music_path = brand_music
+
     print(f"[video_skill] Assembling final reel: {output_path}")
-    subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", v_list.replace(os.sep, '/'), "-i", final_audio, "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-af", "aresample=async=1", "-shortest", os.path.abspath(output_path)], check=True)
+    if os.path.exists(music_path):
+        # Mix voiceover (full volume) + background music (15%)
+        print(f"[video_skill] Mixing with background music: {music_path}")
+        final_audio = os.path.abspath(os.path.join(_OUTPUT_DIR, f"audio_{session_id}.mp3"))
+        subprocess.run([
+            "ffmpeg", "-y",
+            "-i", final_vo, "-i", music_path,
+            "-filter_complex", "[0:a]volume=1.4[vo];[1:a]volume=0.15,aloop=loop=-1:size=2e+09[bg];[vo][bg]amix=inputs=2:duration=first[aout]",
+            "-map", "[aout]", "-ar", "44100", "-c:a", "libmp3lame", "-b:a", "192k", final_audio
+        ], check=True)
+    else:
+        final_audio = final_vo
+
+    subprocess.run([
+        "ffmpeg", "-y",
+        "-f", "concat", "-safe", "0", "-i", v_list.replace(os.sep, '/'),
+        "-i", final_audio,
+        "-map", "0:v", "-map", "1:a",
+        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+        "-af", "aresample=async=1", "-shortest",
+        os.path.abspath(output_path)
+    ], check=True)
 
     return output_path

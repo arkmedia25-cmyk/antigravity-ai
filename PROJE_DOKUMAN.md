@@ -4,7 +4,7 @@
 **Hedef Pazar:** Hollanda (Nederland) — Amare Global affiliate sistemi
 **Platform:** DigitalOcean (deployment) + Telegram (kullanıcı arayüzü)
 **Dil:** Python 3.11
-**Son güncelleme:** 2026-03-29 (Claude ile senkronize edildi)
+**Son güncelleme:** 2026-04-04 (Claude ile senkronize edildi)
 
 > **ÖNEMLİ:** Bu "Master Log" dosyasıdır. Projeye her yeni dosya veya değişiklik
 > eklendiğinde Claude'dan bu dosyayı güncellemesini iste. Yeni bir oturumda sadece
@@ -12,12 +12,23 @@
 
 ---
 
-## HIZLI DURUM PANELİ (en son durum)
+## HIZLI DURUM PANELİ (en son durum — 2026-04-04)
+
+> **NOT:** Hetzner VPS (116.203.74.27 / arkmediaflow.com) artık kullanılmıyor. Tüm sistem DigitalOcean üzerinde.
 
 | Sistem | Durum | Detay |
 |---|---|---|
 | Telegram Bot | ✅ Çalışıyor | polling modu, DigitalOcean'da canlı |
 | Canva OAuth | ✅ **Gekoppeld!** | 2026-03-29 00:22 CET bağlandı |
+| Make.com Webhook | ✅ Bağlı | .env'de MAKE_WEBHOOK_URL mevcut |
+| Instagram Publish (Meta API) | ⚠️ Yarım | publisher_skill.py hazır, .env credentials eksik |
+| TikTok Publish | ❌ Placeholder | "under development" döndürüyor |
+| Video Kalitesi (PIL+FFmpeg) | ⚠️ Çalışıyor | Düşük kalite, Remotion ile değiştirilecek |
+| Remotion video-engine | ⚠️ Kurulu | HelloWorld template, brand composition yok |
+| Luna (GLW-01) agent | ✅ Aktif | @GlowUpNL, energetik, mercan/şeftali |
+| Zen (HLG-01) agent | ✅ Aktif | @HolistiGlow, sakin, bej/yeşil |
+| Pexels B-Roll | ✅ Aktif | telegram_handler.py'de entegre |
+| Hetzner VPS | 🚫 Kullanılmıyor | Unut/sil |
 | SSL (arkmediaflow.com) | ✅ Aktif | https callback çalışıyor |
 | Memory (SQLite) | ✅ Kalıcı | 11 kayıt, restart sonrası korunuyor |
 | OpenAI (gpt-4.1-mini) | ✅ Bağlı | Ana AI motoru |
@@ -62,6 +73,7 @@ src/memory/memory_manager.py            ← SQLite kalıcı bellek (Phase 6+)
 ```
 
 **Flask OAuth callback:**
+
 ```
 https://arkmediaflow.com/canva/callback  ← SSL üzerinden Canva OAuth tamamlanıyor
         ↓
@@ -206,8 +218,10 @@ Antigravity/
 ## 3. Eski Sistem — agents/ ve skills/
 
 ### `skills/automation/telegram_handler.py`
+
 **Görev:** Telegram bot ana döngüsü + Flask OAuth callback sunucusu.
 **Ne yapar:**
+
 - Telegram API'ye bağlanır, mesajları polling ile alır
 - Komutları ayrıştırır ve ilgili agent'a yönlendirir
 - Yeni sistem (`src/`) yüklüyse onu kullanır, yoksa eski fonksiyonlara düşer
@@ -216,6 +230,7 @@ Antigravity/
 - Canva video export çıktısını Telegram'a `video` olarak, PNG'yi `photo` olarak gönderir
 
 **Kritik fonksiyonlar:**
+
 ```
 safe_request()                → HTTP istek gönderici, 5 deneme, hata body'sini loglar
 send_message()                → Telegram'a mesaj gönderir, otomatik chunk split
@@ -246,8 +261,10 @@ main()                        → Ana polling döngüsü
 ## 4. Yeni Sistem — src/
 
 ### `src/config/settings.py`
+
 **Görev:** Tüm konfigürasyonu tek yerden yönetir.
 **Ne yapar:**
+
 - `.env` dosyasını yükler
 - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `TELEGRAM_TOKEN` okur
 - `CANVA_CLIENT_ID`, `CANVA_CLIENT_SECRET`, `CANVA_REDIRECT_URI` okur
@@ -257,8 +274,10 @@ main()                        → Ana polling döngüsü
 ---
 
 ### `src/agents/canva_agent.py`
+
 **Görev:** Canva tasarım oluşturma ve export agent'ı. (Phase 9 — YENİ)
 **Ne yapar:**
+
 - `process()` alt-komutları ayrıştırır: `auth`, `export`, veya tasarım tipi
 - `_auth(chat_id)` → PKCE code_verifier üretir, SQLite'a kaydeder, OAuth URL döner
 - `_create_design(type, title, chat_id)` → Canva API ile yeni tasarım oluşturur, edit_url döner
@@ -271,8 +290,10 @@ main()                        → Ana polling döngüsü
 ---
 
 ### `src/skills/canva_client.py`
+
 **Görev:** Canva REST API istemcisi. (Phase 9 — YENİ)
 **Ne yapar:**
+
 - `get_auth_url(state)` → OAuth URL + PKCE code_verifier üretir
 - `exchange_code(code, verifier)` → auth code'u access+refresh token'a çevirir
 - `refresh_access_token(refresh_token)` → token yenileme
@@ -281,6 +302,7 @@ main()                        → Ana polling döngüsü
 - `wait_for_export(token, export_id)` → polling ile download URL bekler (90s timeout)
 
 **Sabitler:**
+
 ```python
 DESIGN_TYPES = {instagram: (1080,1080), story/reels/tiktok: (1080,1920),
                 youtube: (1920,1080), facebook: (1200,630), linkedin: (1200,627),
@@ -291,14 +313,17 @@ EXPORT_FORMAT = {video/tiktok/reels/youtube: "MP4", default: "PNG"}
 ---
 
 ### `src/orchestrator.py`
+
 **Görev:** Tüm 7 agent'ı yöneten merkezi router.
 **Kayıtlı agent'lar:** `cmo`, `content`, `sales`, `research`, `email`, `linkedin`, `canva`
 
 ---
 
 ### `src/interfaces/telegram/handler.py`
+
 **Görev:** Telegram mesajlarını orchestrator'a köprüleyen katman.
 **Ne yapar:**
+
 - Rate limiting: 30 saniyede max 5 istek (chat_id başına)
 - `_COMMAND_AGENT_MAP`: `/canva→canva` dahil 7 komut
 - Her komut için `_USAGE_HINTS` (argüman girilmezse gösterilir)
@@ -307,8 +332,10 @@ EXPORT_FORMAT = {video/tiktok/reels/youtube: "MP4", default: "PNG"}
 ---
 
 ### `src/memory/memory_manager.py`
+
 **Görev:** Agent'ların kalıcı SQLite belleği.
 **Ne yapar:**
+
 - `save(key, value, chat_id=None)` / `load(key, chat_id=None)` / `delete(key)`
 - Namespace: `MemoryManager(namespace="canva_tokens")` → key format: `namespace:key`
 - User-scoped: `save(key, value, chat_id=123)` → `u123:namespace:key`
@@ -318,6 +345,7 @@ EXPORT_FORMAT = {video/tiktok/reels/youtube: "MP4", default: "PNG"}
 - SQLite tablosu: `memory(key TEXT PRIMARY KEY, value TEXT)`
 
 **Şu anki veritabanı içeriği (2026-03-29 itibarıyla):**
+
 ```
 u812914122:funnel:funnel:first_seen       → "2026-03-28T20:24:16"
 u812914122:funnel:funnel:last_active      → "2026-03-28T23:22:53" (= 00:22 CET)
@@ -334,8 +362,10 @@ canva_tokens:pkce_812914122_*             → PKCE verifier (kullanıldı, temiz
 ---
 
 ### `src/skills/ai_client.py`
+
 **Görev:** Yeni sistemin AI bağlantısı.
 **Ne yapar:**
+
 - `ask_ai(prompt, provider="openai")` → varsayılan OpenAI `gpt-4.1-mini`
 - `provider="claude"` → Anthropic `claude-sonnet-4-20250514`
 - GPT-4o-mini conversation memory: son 10 mesaj context olarak ekleniyor
@@ -343,8 +373,10 @@ canva_tokens:pkce_812914122_*             → PKCE verifier (kullanıldı, temiz
 ---
 
 ### `src/main.py`
+
 **Görev:** DigitalOcean web endpoint (Flask).
 **Ne yapar:**
+
 - `GET /` → "OK"
 - `GET /canva/callback` → Canva OAuth code alır (basit echo — gerçek işlem telegram_handler'da)
 - `GET /cmo?q=...` → OpenAI gpt-4o-mini ile direkt CMO yanıtı
@@ -371,20 +403,25 @@ canva_tokens:pkce_812914122_*             → PKCE verifier (kullanıldı, temiz
 ## 6. Hafıza Dosyaları — memory/
 
 ### `memory/brand.json`
+
 Marka bilgisi — isim, değerler, slogan, tonlama kuralları.
 
 ### `memory/products.json`
+
 Tüm Amare ürünleri — isim, faydalar, hedef kitle, key message.
 Ürünler: Happy Juice Pack, MentaBiotics, EDGE+, Sunrise, HL5 Collageen, vb.
 Affiliate link: `https://www.amare.com/2075008/nl-NL`
 
 ### `memory/audience.json`
+
 Hedef kitle segmentleri — yaş, profil, sorunlar, motivasyon.
 
 ### `memory/learned.json`
+
 Zaman içinde öğrenilen tercihler: `approved_hooks`, `rejected_styles`, `approved_ctas`
 
 ### `memory/brain.md`
+
 Elle yazılmış marka beyin dosyası — yüksek seviye strateji notları.
 
 ---
@@ -392,6 +429,7 @@ Elle yazılmış marka beyin dosyası — yüksek seviye strateji notları.
 ## 7. Yapılandırma Dosyaları
 
 ### `.env` (git'te yok — hem proje kökünde hem skills/automation/ içinde)
+
 ```
 OPENAI_API_KEY=...
 ANTHROPIC_API_KEY=...        (opsiyonel)
@@ -402,12 +440,15 @@ CANVA_REDIRECT_URI=https://arkmediaflow.com/canva/callback
 ```
 
 ### `requirements.txt`
+
 Bağımlılıklar: `anthropic`, `openai`, `requests`, `python-dotenv`, `pytest`, `flask`
 
 ### `runtime.txt`
+
 DigitalOcean/Dokku için Python versiyonu: `python-3.11`
 
 ### `Procfile` / `railway.toml` (Kaldırıldı)
+
 Artık sadece DigitalOcean Droplet üzerinde manuel kontrol sağlanıyor.
 
 ---
@@ -436,7 +477,9 @@ Artık sadece DigitalOcean Droplet üzerinde manuel kontrol sağlanıyor.
 ## 9. Phase Geçmişi
 
 ### Phase 9 — Canva Entegrasyonu + Sistem Sabitleme (DONE — 2026-03-28/29)
+
 **Bu proje için en büyük entegrasyon.**
+
 - `src/agents/canva_agent.py` — CanvaAgent: auth, create_design, export
 - `src/skills/canva_client.py` — Canva REST API (OAuth 2.0 PKCE, design, export)
 - `src/orchestrator.py` → canva agent kayıtlı (7. agent)
@@ -458,6 +501,7 @@ Artık sadece DigitalOcean Droplet üzerinde manuel kontrol sağlanıyor.
   - refresh_token: SQLite'a kaydedildi ✅
 
 ### Phase 8 — Intelligent Funnel Logic (DONE — 2026-03-24)
+
 - `prompts/funnel/awareness.txt` — educeer, bouw vertrouwen, geen verkoop
 - `prompts/funnel/interest.txt` — geef waarde, deel inzichten
 - `prompts/funnel/consideration.txt` — help beslissing, zachte social proof
@@ -467,12 +511,14 @@ Artık sadece DigitalOcean Droplet üzerinde manuel kontrol sağlanıyor.
 - **102/102 test passing**
 
 ### Phase 7C — chat_id wiring (DONE — 2026-03-24)
+
 - `process(input_data, chat_id=None)` imzası tüm agent'lara yayıldı
 - Orchestrator → agent'a chat_id iletiliyor
 - TelegramHandler → funnel.track_interaction() her komut sonrası
 - **87/87 test passing**
 
 ### Phase 7B — Memory iyileştirme (DONE — 2026-03-24)
+
 - Namespace desteği (`MemoryManager(namespace="agent_name")`)
 - `save_user(chat_id, key, value)` + `load_user` + `delete_user`
 - `track_interaction(chat_id, agent, task)` → funnel aşaması + zaman damgası
@@ -480,6 +526,7 @@ Artık sadece DigitalOcean Droplet üzerinde manuel kontrol sağlanıyor.
 - **77/77 test passing**
 
 ### Phase 7A — Prompt dosyalarına taşıma (DONE — 2026-03-24)
+
 - Tüm agent system prompt'ları hardcoded'dan `.txt` dosyalarına taşındı
 - `agents/email-agent/email_prompt.txt`, `linkedin_prompt.txt`, `content_prompt.txt`,
   `sales_prompt.txt`, `research_prompt.txt`
@@ -487,6 +534,7 @@ Artık sadece DigitalOcean Droplet üzerinde manuel kontrol sağlanıyor.
 - **63/63 test passing**
 
 ### Phase 6 — Email + LinkedIn + SQLite Memory (DONE — 2026-03-24)
+
 - `src/memory/memory_manager.py` → SQLite tabanlı, thread-safe, restart sonrası kalıcı
 - `src/agents/email_agent.py` — EmailAgent
 - `src/agents/linkedin_agent.py` — LinkedInAgent
@@ -494,11 +542,13 @@ Artık sadece DigitalOcean Droplet üzerinde manuel kontrol sağlanıyor.
 - **63 test passing**
 
 ### Phase 5 — Multi-agent sistemi (DONE)
+
 - ContentAgent, SalesAgent, ResearchAgent eklendi
 - Orchestrator 4 → 6 agent
 - **21 yeni test**
 
 ### Phase 0-4 — Temel altyapı (DONE)
+
 - Phase 0: `src/` paket yapısı, settings, logging
 - Phase 1: BaseAgent, MemoryManager, CmoAgent, Orchestrator
 - Phase 2: TelegramHandler bridge
@@ -509,23 +559,65 @@ Artık sadece DigitalOcean Droplet üzerinde manuel kontrol sağlanıyor.
 
 ## 10. Bilinen Sorunlar ve Açık Görevler
 
-### Açık görevler (Phase 10+)
-- [ ] **Tasarım üretimi:** `/canva instagram <başlık>` → Canva API ile gerçek tasarım oluşturma (bir sonraki adım)
-- [ ] Canva token yenileme (refresh_token akışı) implement edilecek
-- [ ] PKCE verifier temizliği: `canva_tokens:pkce_812914122_*` key'leri silinmeli
-- [ ] Hardcoded Windows path temizlenecek — `agents/email-agent/email_agent.py` ve `agents/content-agent/content_agent.py`
-- [ ] Canlı Telegram testi tüm komutlar için dokümante edilecek
+### 🔴 Phase 10A — Make.com Publish Fix (ÖNCELİKLİ)
+
+**Sorun:** `publish_ig_` ve `publish_tt_` butonları Make.com yerine Meta Graph API'yi çağırıyor.
+**Çözüm:** `skills/automation/telegram_handler.py` → `_do_publish()` fonksiyonu güncellenecek.
+
+Adımlar:
+
+- [ ] Video → catbox.moe'a yükle (UploaderSkill — zaten var)
+- [ ] Public URL + brand + platform → Make.com webhook'a gönder
+- [ ] Make.com senaryosu: webhook → Instagram Reels post
+- [ ] TikTok için ayrı Make.com senaryosu
+
+**Mevcut durum:**
+
+```python
+# telegram_handler.py _do_publish() — BOZUK
+res = publisher_skill.publish_to_instagram(public_url, ...)   # Meta API direkt → çalışmıyor
+res = publisher_skill.publish_to_tiktok(public_url, ...)      # Placeholder → hata döndürüyor
+```
+
+**Hedef:**
+
+```python
+# Make.com webhook üzerinden
+requests.post(MAKE_WEBHOOK_URL, json={"video_url": public_url, "brand": brand, "platform": "instagram"})
+```
+
+### 🟡 Phase 10B — Remotion Video Kalitesi (SIRADAKI)
+
+**Sorun:** PIL + FFmpeg video animasyonsuz, amatör görünüm.
+**Çözüm:** `video-engine/` Remotion ile brand-aware composition.
+
+Adımlar:
+
+- [ ] `video-engine/src/GlowUp.tsx` — Luna / @GlowUpNL composition (mercan/şeftali)
+- [ ] `video-engine/src/Holisti.tsx` — Zen / @HolistiGlow composition (bej/yeşil)
+- [ ] Props: hook, probleem, oplossing, bewijs, cta, voiceover, bgVideoUrl (Pexels)
+- [ ] Python bridge: `subprocess` → `npx remotion render` → MP4
+- [ ] `skills/automation/telegram_handler.py` → `create_reel()` yerine Remotion render
+
+### Eski Açık Görevler (düşük öncelik)
+
+- [ ] Canva token yenileme (refresh_token akışı)
+- [ ] PKCE verifier temizliği
+- [ ] Hardcoded Windows path temizliği (agents/ klasörü)
+- [ ] src/skills/ai_client.py — uncommitted değişiklikler
 
 ### Bilinen kısıtlamalar
-- `src/main.py` içindeki `/canva/callback` basit echo — gerçek OAuth işlemi `telegram_handler.py`'deki Flask server'da
-- `agents/content-agent/`, `agents/email-agent/`, `agents/linkedin-agent/` içindeki eski dosyalar hâlâ aktif (fallback)
-- Hardcoded Windows path: `C:\Users\mus-1\...` — eski fallback dosyalarında mevcut
+
+- Make.com webhook URL mevcut ama sadece `src/interfaces/telegram/handler.py`'de kullanılıyor
+- `skills/automation/telegram_handler.py` hâlâ ana bot dosyası (polling modu)
+- Remotion render Windows'ta lokal çalışıyor, DigitalOcean'a taşımak gerekebilir
 
 ---
 
 ## 11. Canva Entegrasyonu — Detaylı Teknik Notlar
 
 ### OAuth 2.0 PKCE Akışı
+
 ```
 1. /canva auth → CanvaAgent._auth(chat_id)
 2. code_verifier = secrets.token_urlsafe(64)
@@ -541,13 +633,16 @@ Artık sadece DigitalOcean Droplet üzerinde manuel kontrol sağlanıyor.
 ```
 
 ### .env Canva değişkenleri
+
 ```
 CANVA_CLIENT_ID=OC-AZ0ma8LaN_5C
 CANVA_REDIRECT_URI=https://arkmediaflow.com/canva/callback
 ```
+
 (CLIENT_SECRET git'e girmez)
 
 ### Canva API Endpoint'leri
+
 ```
 Auth URL:  https://www.canva.com/api/oauth/authorize
 Token URL: https://api.canva.com/rest/v1/oauth/token
@@ -556,6 +651,7 @@ Scopes:    design:content:read design:content:write design:meta:read
 ```
 
 ### SSL Durumu
+
 - Domain: `arkmediaflow.com`
 - SSL sertifikası DigitalOcean/Cloudflare üzerinden aktif
 - Kanıt: CANVA_REDIRECT_URI `https://` protokolü ile çalışıyor

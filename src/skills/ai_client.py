@@ -4,6 +4,7 @@ import json
 import os
 import time
 import requests
+import re
 
 _openai_client = None
 
@@ -46,7 +47,6 @@ def ask_ai(prompt: str, provider: str = "openai", is_json: bool = False) -> str:
                 if "Extra data" in str(e):
                     try:
                         # Extract the part that was successfully parsed (or looks like JSON)
-                        import re
                         # Find the first { and the matching last }
                         match = re.search(r"(\{.*\})", clean_text, re.DOTALL)
                         if match:
