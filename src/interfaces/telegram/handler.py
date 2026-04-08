@@ -9,6 +9,7 @@ if _ROOT not in sys.path:
 # ---------------------------------------------
 
 import time
+import threading
 import requests
 import json
 from collections import defaultdict
@@ -18,6 +19,16 @@ from src.orchestrator import Orchestrator
 from src.memory.memory_manager import MemoryManager
 from src.skills.uploader_skill import uploader
 from src.core.logging import get_logger
+
+# Video pipeline
+try:
+    from src.skills.tts_skill import generate_dutch_audio
+    from src.skills.video_skill import create_reel
+    from src.skills.ai_client import ask_ai
+    _video_ok = True
+except Exception as _ve:
+    _video_ok = False
+    print(f"[Video] Pipeline niet beschikbaar: {_ve}")
 
 _RATE_LIMIT_MAX = 10
 _RATE_LIMIT_WINDOW = 30
@@ -35,15 +46,17 @@ logger = get_logger("interfaces.telegram.handler")
 
 _START_MESSAGE = (
     "🚀 *Antigravity AI Agency OS* aktif!\n\n"
-    "🎥 *KOMUTLAR:*\n"
-    "/content @marka <konu> - Markaya özel video üretir.\n"
-    "/build @marka <konu> - Markaya özel web sitesi üretir.\n"
-    "/cmo <soru> - Stratejik danışmanlık verir.\n\n"
+    "🎥 *VİDEO KOMUTLARI:*\n"
+    "/luna <konu> - @GlowUpNL için video üretir (enerjik)\n"
+    "/zen <konu> - @HolistiGlow için video üretir (sakin)\n\n"
+    "💬 *DİĞER KOMUTLAR:*\n"
+    "/content @marka <konu> - İçerik stratejisi yazar\n"
+    "/cmo <soru> - Stratejik danışmanlık verir\n\n"
     "💡 *VİDEO YÖNETİMİ:*\n"
     "Video üretildiğinde altındaki butonlarla:\n"
-    "📥 *Download:* Videoyu indir.\n"
-    "✍️ *Revise:* Değişiklik iste.\n"
-    "🚀 *Publish:* Instagram'a (Make) gönder."
+    "📥 *Download:* Videoyu indir\n"
+    "✍️ *Revise:* Değişiklik iste\n"
+    "🚀 *Publish:* Instagram'a gönder"
 )
 
 class TelegramHandler:
@@ -74,6 +87,18 @@ class TelegramHandler:
             await update.message.reply_text(_START_MESSAGE, parse_mode="Markdown")
             return
 
+        if text.startswith("/luna"):
+            topic = text[5:].strip() or "Energie en gezondheid"
+            await update.message.reply_text(f"🔥 Luna @GlowUpNL için çalışıyor...\nKonu: {topic}")
+            threading.Thread(target=self._generate_video_sync, args=(chat_id, topic, "glow", context), daemon=True).start()
+            return
+
+        if text.startswith("/zen"):
+            topic = text[4:].strip() or "Holistische wellness"
+            await update.message.reply_text(f"🌿 Zen @HolistiGlow için çalışıyor...\nKonu: {topic}")
+            threading.Thread(target=self._generate_video_sync, args=(chat_id, topic, "holisti", context), daemon=True).start()
+            return
+
         for cmd, agent in {"/cmo": "cmo", "/content": "content", "/sales": "sales", "/canva": "canva"}.items():
             if text.startswith(cmd):
                 task = text[len(cmd):].strip()
@@ -81,6 +106,87 @@ class TelegramHandler:
                 return
 
         await self._execute_task(update, context, "cmo", text)
+
+    def _generate_video_sync(self, chat_id, topic, brand, context):
+        """Video üretim pipeline — thread içinde çalışır."""
+        import datetime, re, os
+        if not _video_ok:
+            context.bot.send_message(chat_id=chat_id, text="❌ Video pipeline yüklenemedi.")
+            return
+        try:
+            ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            brand_label = "@GlowUpNL" if brand == "glow" else "@HolistiGlow"
+            tone = "energetic, direct, result-oriented" if brand == "glow" else "calm, wise, holistic"
+
+            prompt = (
+                f"Role: Expert Dutch Wellness Content Creator. Brand: {brand_label}. Tone: {tone}.\n"
+                f"Topic: {topic}\n"
+                "CRITICAL: ALL output must be 100% in DUTCH. No English or Turkish.\n"
+                "CRITICAL: TITLE max 40 characters, fully Dutch, no English time notations.\n"
+                "STRUCTURE:\n"
+                "---TITLE---\n[Short Dutch title, max 40 chars]\n"
+                "---SCRIPT---\n[Dutch voiceover, 3-4 sentences]\n"
+                "---CAPTION---\n[Dutch Instagram caption]\n"
+                "---TAGS---\n[Hashtags]\n"
+            )
+            response = ask_ai(prompt)
+
+            title = response.split("---TITLE---")[-1].split("---SCRIPT---")[0].strip() or topic
+            script = response.split("---SCRIPT---")[-1].split("---CAPTION---")[0].strip()
+            caption = response.split("---CAPTION---")[-1].split("---TAGS---")[0].strip()
+            tags = response.split("---TAGS---")[-1].strip()
+
+            # TTS per zin
+            sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script.strip()) if s.strip()]
+            if not sentences:
+                sentences = [script]
+
+            fragment_data = []
+            for i, sentence in enumerate(sentences):
+                fname = f"audio_frag_{ts}_{i}.mp3"
+                fpath = generate_dutch_audio(sentence, filename=fname)
+                tag = "hook" if i == 0 else ("cta" if i == len(sentences) - 1 else "content")
+                fragment_data.append({"sentence": sentence, "audio": fpath, "tag": tag})
+
+            output_filename = f"reel_{brand}_{ts}.mp4"
+            video_path = create_reel(
+                fragments=fragment_data,
+                image_path=None,
+                brand=brand,
+                output_filename=output_filename,
+            )
+
+            keyboard = [
+                [InlineKeyboardButton("📥 Download", callback_data=f"dl_{video_path}"),
+                 InlineKeyboardButton("✍️ Revise", callback_data=f"rev_{video_path}_{brand}")],
+                [InlineKeyboardButton(f"🚀 Instagram (@{brand_label})", callback_data=f"pub_{video_path}_{brand}")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            pkg = f"📝 {title.upper()}\n\n{caption}\n\n{tags}"
+
+            if os.path.exists(video_path):
+                with open(video_path, "rb") as vf:
+                    import asyncio
+                    loop = asyncio.new_event_loop()
+                    loop.run_until_complete(context.bot.send_video(
+                        chat_id=chat_id, video=vf,
+                        caption=f"{brand_label} — Video Hazır!",
+                        reply_markup=reply_markup
+                    ))
+                    loop.run_until_complete(context.bot.send_message(chat_id=chat_id, text=pkg))
+                    loop.close()
+            else:
+                import asyncio
+                loop = asyncio.new_event_loop()
+                loop.run_until_complete(context.bot.send_message(chat_id=chat_id, text=f"❌ Video dosyası bulunamadı: {video_path}"))
+                loop.close()
+
+        except Exception as e:
+            import asyncio
+            loop = asyncio.new_event_loop()
+            loop.run_until_complete(context.bot.send_message(chat_id=chat_id, text=f"❌ Video hatası: {e}"))
+            loop.close()
 
     async def _execute_task(self, update: Update, context: ContextTypes.DEFAULT_TYPE, agent: str, task: str):
         chat_id = update.effective_chat.id

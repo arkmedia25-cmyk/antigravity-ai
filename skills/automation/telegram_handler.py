@@ -11,6 +11,10 @@ _project_root = _os.path.abspath(_os.path.join(_os.path.dirname(__file__), "../.
 if _project_root not in _sys.path:
     _sys.path.insert(0, _project_root)
 
+# ── ARK AGENTS PATH ──────────────────────────────────────────────────────────
+_ark_root = _os.path.join(_project_root, "ark_agents")
+# NOT: ark path'leri global sys.path'e eklenmez — handler'lar kendi import'larini yapar
+
 # Önemli: .env dosyasındaki PEXELS_API_KEY gibi yeni anahtarları yükle
 load_dotenv(os.path.join(_project_root, ".env"))
 
@@ -44,15 +48,31 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../agents/email-agen
 _project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
- 
+
 _src_path = os.path.join(_project_root, "src")
 if _src_path not in sys.path:
     sys.path.insert(0, _src_path)
 
-from cmo_agent import run_cmo
-from linkedin_agent import run_linkedin
-from content_agent import run_content
-from email_agent import run_email
+# Legacy agent imports — graceful fallback so bot never crashes on import
+try:
+    from cmo_agent import run_cmo
+except ImportError:
+    def run_cmo(task): return "CMO agent niet beschikbaar."
+
+try:
+    from linkedin_agent import run_linkedin
+except ImportError:
+    def run_linkedin(task): return "LinkedIn agent niet beschikbaar."
+
+try:
+    from content_agent import run_content
+except ImportError:
+    def run_content(task): return "Content agent niet beschikbaar."
+
+try:
+    from email_agent import run_email
+except ImportError:
+    def run_email(task): return "Email agent niet beschikbaar."
 
 # Phase 3: try to load new src/ system — bot keeps working if this fails
 try:
@@ -84,6 +104,9 @@ except Exception as _ve:
  
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 URL = f"https://api.telegram.org/bot{TOKEN}"
+
+# Gorsel degistirme icin bekleme durumu: {chat_id: {filename, session_path}}
+_pending_regen = {}
  
 def safe_request(url, method="get", **kwargs):
     """Veilige API request met retry logic"""
@@ -131,13 +154,16 @@ def send_video(chat_id, video_path: str, caption: str = ""):
     import json
     try:
         with open(video_path, "rb") as f:
-            # Triple Button Layout (Download, Instagram, TikTok)
+            fname = os.path.basename(video_path)
             buttons = [
-                {"text": "💾 Dosya Olarak İndir", "callback_data": f"dl_doc_{os.path.basename(video_path)}"},
-                {"text": "🚀 Instagram'da Paylaş", "callback_data": f"publish_ig_{os.path.basename(video_path)}"},
-                {"text": "🎵 TikTok'ta Paylaş", "callback_data": f"publish_tt_{os.path.basename(video_path)}"}
+                [{"text": "🔄 Gorsel Degistir", "callback_data": f"regen_img_{fname}"}],
+                [
+                    {"text": "💾 Indir", "callback_data": f"dl_doc_{fname}"},
+                    {"text": "🚀 Instagram", "callback_data": f"publish_ig_{fname}"},
+                    {"text": "TikTok", "callback_data": f"publish_tt_{fname}"},
+                ],
             ]
-            reply_markup = {"inline_keyboard": [[b] for b in buttons]}
+            reply_markup = {"inline_keyboard": buttons}
             
             safe_request(
                 f"{URL}/sendVideo",
@@ -219,7 +245,9 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
             f"=== {brand_rules} ===\n\n"
             f"Role: Expert Wellness Content Creator. Brand: {brand_label}.\n"
             f"Topic: {topic}\n"
-            "CRITICAL: YOUR OUTPUT MUST BE 100% IN DUTCH. NO TURKISH WORDS ALLOWED.\n"
+            "CRITICAL: YOUR OUTPUT MUST BE 100% IN DUTCH. NO TURKISH OR ENGLISH WORDS ALLOWED IN TITLE, SCRIPT OR CAPTION.\n"
+            "CRITICAL: In the TITLE, write ALL time references in Dutch format (e.g. write '15:00 uur' not '3pm', '3 uur' not '3am').\n"
+            "CRITICAL: The TITLE must be fully Dutch — no English words at all. Max 40 characters.\n"
             "GOAL: Create a distinct Instagram package. If GlowUp, be provocative and energetic. If HolistiGlow, be calm and trustworthy.\n"
             "STRUCTURE:\n"
             "1. HOOK (5-8 sec): Curiosity or problem-solving entrance.\n"
@@ -243,8 +271,35 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         script = full_response.split("---SCRIPT---")[-1].split("---CAPTION---")[0].strip()
         caption_body = full_response.split("---CAPTION---")[-1].split("---TAGS---")[0].strip()
         tags = full_response.split("---TAGS---")[-1].strip()
-        
-        if not title_body: title_body = topic # Fallback
+
+        if not title_body: title_body = topic  # Fallback
+
+        # Vertaal Engelse tijdsaanduidingen naar Nederlands in de titel
+        def _nl_title(t: str) -> str:
+            import re as _re
+            # "3pm" → "15:00", "3am" → "03:00", "12pm" → "12:00"
+            def _pm(m):
+                h = int(m.group(1))
+                return f"{(h % 12) + 12 if h != 12 else 12}:00"
+            def _am(m):
+                h = int(m.group(1))
+                return f"{h % 12:02d}:00"
+            t = _re.sub(r'\b(\d{1,2})\s*pm\b', _pm, t, flags=_re.IGNORECASE)
+            t = _re.sub(r'\b(\d{1,2})\s*am\b', _am, t, flags=_re.IGNORECASE)
+            # Veelvoorkomende Engelse woorden → Nederlands
+            _map = {
+                r'\bthe\b': 'de', r'\byour\b': 'jouw', r'\byou\b': 'jij',
+                r'\bwhy\b': 'waarom', r'\bhow\b': 'hoe', r'\bwhat\b': 'wat',
+                r'\bcrash\b': 'crash', r'\benergy\b': 'energie',
+                r'\btips\b': 'tips', r'\bsleep\b': 'slaap',
+                r'\bmorning\b': 'ochtend', r'\bevening\b': 'avond',
+                r'\bnight\b': 'nacht', r'\bday\b': 'dag',
+            }
+            for eng, nl in _map.items():
+                t = _re.sub(eng, nl, t, flags=_re.IGNORECASE)
+            return t.strip()
+
+        title_body = _nl_title(title_body)
 
         # Stap 2: Fragmented TTS (Zero Delay Mode)
         send_message(chat_id, f"Stap 2/3: {brand_label} seslendirme motoru çalışıyor (Kusursuz Akış & Enerji)...")
@@ -369,16 +424,32 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
 
         # Stap 3: Video renderen
         send_message(chat_id, "Stap 3/3: Video renderen (Sıfır Gecikme, Tam Senkronizasyon)...")
+        output_filename = f"reel_{brand}_{ts}.mp4"
         video_path = create_reel(
             fragments=fragment_data,
             image_path=image_path,
-            brand=brand, 
-            output_filename=f"reel_{brand}_{ts}.mp4",
+            brand=brand,
+            output_filename=output_filename,
             watermark_icon=detected_icon
         )
 
+        # Session kaydet (gorsel degistirme icin)
+        import json as _json
+        session_data = {
+            "brand": brand,
+            "topic": topic,
+            "broll_query": broll_query,
+            "caption": caption_body,
+            "tags": tags,
+            "title": title_body,
+            "fragments": [{"sentence": f["sentence"], "audio": f["audio"], "tag": f["tag"]} for f in fragment_data],
+        }
+        session_path = os.path.join(os.getcwd(), "outputs", f"session_{output_filename}.json")
+        with open(session_path, "w", encoding="utf-8") as _sf:
+            _json.dump(session_data, _sf, ensure_ascii=False)
+
         # Verstuur video
-        final_caption = f"✨ {brand_label} Video Ready!\n\nCheck below for your caption & tags 👇"
+        final_caption = f"{brand_label} Video Hazir!\n\nCaption & tags asagida:"
         send_video(chat_id, video_path, caption=final_caption)
         
         # Send Copy-Paste Package (Title, Caption & Tags all in Dutch)
@@ -392,6 +463,69 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
     except Exception as e:
         print(f"[Video] HATA: {e}")
         send_message(chat_id, f"Video olusturulirken hata: {e}")
+
+
+def _regen_video_with_query(chat_id, query, regen_info):
+    """Yeni Pexels gorseli ile videoyu yeniden render et."""
+    import json as _json, requests as _req, time as _time
+    try:
+        session_path = regen_info["session_path"]
+        old_filename = regen_info["filename"]
+
+        with open(session_path, encoding="utf-8") as f:
+            sess = _json.load(f)
+
+        brand = sess["brand"]
+        fragments = sess["fragments"]
+        brand_label = "@GlowUpNL" if brand == "glow" else "@HolistiGlow"
+
+        send_message(chat_id, f"Pexels'te '{query}' aranıyor...")
+
+        # Yeni Pexels gorseli cek
+        pexels_key = os.getenv("PEXELS_API_KEY", "").strip()
+        new_image_path = None
+        if pexels_key:
+            try:
+                ts = _time.strftime("%Y%m%d_%H%M%S")
+                r = _req.get(
+                    "https://api.pexels.com/v1/search",
+                    headers={"Authorization": pexels_key},
+                    params={"query": query, "orientation": "portrait", "per_page": 3, "page": 2},
+                    timeout=10
+                )
+                if r.status_code == 200:
+                    photos = r.json().get("photos", [])
+                    if photos:
+                        img_url = photos[0]["src"]["large2x"]
+                        dl = _req.get(img_url, timeout=15)
+                        if dl.status_code == 200:
+                            new_image_path = os.path.join(os.getcwd(), "outputs", f"broll_regen_{ts}.jpg")
+                            with open(new_image_path, "wb") as f:
+                                f.write(dl.content)
+                            send_message(chat_id, f"Gorsel bulundu! Yeniden render ediliyor...")
+            except Exception as e:
+                send_message(chat_id, f"Pexels hatası: {e} — varsayılan arka plan kullanılıyor.")
+
+        # Videoyu yeniden render et
+        ts = _time.strftime("%Y%m%d_%H%M%S")
+        new_filename = f"reel_{brand}_regen_{ts}.mp4"
+        new_video_path = create_reel(
+            fragments=fragments,
+            image_path=new_image_path,
+            brand=brand,
+            output_filename=new_filename
+        )
+
+        # Yeni session kaydet
+        sess_new = dict(sess)
+        with open(os.path.join(os.getcwd(), "outputs", f"session_{new_filename}.json"), "w", encoding="utf-8") as f:
+            _json.dump(sess_new, f, ensure_ascii=False)
+
+        send_video(chat_id, new_video_path, caption=f"{brand_label} — Gorsel Guncellendi!")
+
+    except Exception as e:
+        print(f"[regen] HATA: {e}")
+        send_message(chat_id, f"Yeniden render hatası: {e}")
 
 
 def send_message(chat_id, text):
@@ -631,32 +765,46 @@ def process_command(chat_id, text):
             send_message(chat_id, status)
 
         elif text.startswith("/start"):
-            # Start the 24/7 Automated Content Factory
             start_content_factory(chat_id)
             send_message(chat_id,
-                "🚀 Antigravity AI Bot Hazır!\n\n"
-                "🎬 **VİDEO ÜRETİMİ (GlowUp & Holisti)**\n"
-                "/video_glow <konu> - Mercan/Şeftali temalı @GlowUpNL videosu\n"
-                "/video_holisti <konu> - Bej/Yeşil temalı @HolistiGlow videosu\n\n"
-                "🧠 **STRATEJİ & ANALİZ**\n"
-                "/cmo - Pazarlama stratejisi ve büyüme tavsiyesi\n"
-                "/research - Pazar trendleri ve rakip analizi\n\n"
-                "📱 **İÇERİK ÜRETİMİ**\n"
-                "/content - Instagram/Reels metinleri\n"
-                "/idea - Viral video fikirleri\n"
-                "/script - Video senaryosu\n\n"
-                "🎨 **TASARIM**\n"
-                "/canva - Canva tasarımları oluştur\n\n"
-                "💡 *Örnek: /video_glow sabah rutini ve enerji*"
+                "Antigravity AI — Klaar!\n\n"
+                "VIDEO MAKEN\n"
+                "/luna <onderwerp>  — Luna maakt @GlowUpNL Reels (energiek, koraal)\n"
+                "/zen <onderwerp>   — Zen maakt @HolistiGlow Reels (rustig, groen)\n\n"
+                "Voorbeelden:\n"
+                "/luna slaap tips voor meer energie\n"
+                "/zen mindfulness ochtend routine\n\n"
+                "OVERIGE COMMANDO'S\n"
+                "/cmo         — Marketingstrategie advies\n"
+                "/research    — Trend & marktanalyse\n"
+                "/content     — Instagram / Reels teksten\n"
+                "/idea        — Virale video ideeen\n"
+                "/stats       — Instagram statistieken\n\n"
+                "Of stuur gewoon een bericht — ik begrijp je!\n\n"
+                "ARK AGENTS\n"
+                "/bora <konu>  — CMO strateji\n"
+                "/burak        — NL trend araştırması\n"
+                "/duru <konu>  — Script / hook / caption\n"
+                "/kaan         — Sistem durumu ve otomasyon"
             )
+
+        elif text.startswith("/luna"):
+            topic = text.replace("/luna", "").strip() or "Energie en gezondheid"
+            send_message(chat_id, f"Luna (GLW-01) aan het werk voor @GlowUpNL...\nOnderwerp: {topic}")
+            threading.Thread(target=_generate_and_send_video, args=(chat_id, topic, "glow"), daemon=True).start()
+
+        elif text.startswith("/zen"):
+            topic = text.replace("/zen", "").strip() or "Holistische wellness"
+            send_message(chat_id, f"Zen (HLG-01) aan het werk voor @HolistiGlow...\nOnderwerp: {topic}")
+            threading.Thread(target=_generate_and_send_video, args=(chat_id, topic, "holisti"), daemon=True).start()
 
         elif text.startswith("/video_glow"):
             topic = text.replace("/video_glow", "").strip() or "Gezondheid"
-            threading.Thread(target=_generate_and_send_video, args=(chat_id, topic, "glow")).start()
-            
+            threading.Thread(target=_generate_and_send_video, args=(chat_id, topic, "glow"), daemon=True).start()
+
         elif text.startswith("/video_holisti"):
             topic = text.replace("/video_holisti", "").strip() or "Wellness"
-            threading.Thread(target=_generate_and_send_video, args=(chat_id, topic, "holisti")).start()
+            threading.Thread(target=_generate_and_send_video, args=(chat_id, topic, "holisti"), daemon=True).start()
 
         elif text.startswith("/stats"):
             send_message(chat_id, "📊 Veriler çekiliyor, lütfen bekleyin...")
@@ -982,13 +1130,160 @@ def process_command(chat_id, text):
                     response = run_linkedin(task)
                     send_message(chat_id, f"💼 LinkedIn:\n{response}")
  
+        # ── ARK AGENTS (Bora / Burak / Duru / Kaan) ──────────────────────────
+        elif text.startswith("/bora"):
+            task = text.replace("/bora", "").strip() or "HolistiGlow içerik stratejisi"
+            send_message(chat_id, f"🎯 Bora (CMO) düşünüyor...\nKonu: {task}")
+            threading.Thread(target=_ark_bora, args=(chat_id, task), daemon=True).start()
+
+        elif text.startswith("/burak"):
+            send_message(chat_id, "🔍 Burak (Research) NL trendleri tarıyor... ~30 saniye")
+            threading.Thread(target=_ark_burak, args=(chat_id,), daemon=True).start()
+
+        elif text.startswith("/duru"):
+            task = text.replace("/duru", "").strip()
+            send_message(chat_id, f"✍️ Duru (Content) çalışıyor...")
+            threading.Thread(target=_ark_duru, args=(chat_id, task), daemon=True).start()
+
+        elif text.startswith("/kaan"):
+            cmd = text.replace("/kaan", "").strip()
+            threading.Thread(target=_ark_kaan, args=(chat_id, cmd), daemon=True).start()
+
         else:
             send_message(chat_id, f"Je schreef: {text}")
- 
+
     except Exception as e:
         print(f"Verwerkingsfout: {e}")
         send_message(chat_id, f"❌ Fout: {e}")
  
+# ── ARK AGENT HANDLERS ───────────────────────────────────────────────────────
+
+def _ark_import(module_name):
+    """ark_agents modüllerini çakışma olmadan import eder."""
+    import importlib.util
+    _agents_path = _os.path.join(_ark_root, "agents")
+    _core_path   = _os.path.join(_ark_root, "core")
+    # Hangi klasörde arayacağımızı belirle
+    for folder in [_agents_path, _core_path]:
+        full_path = _os.path.join(folder, f"{module_name}.py")
+        if _os.path.exists(full_path):
+            # Geçici sys.path ekle, import et, sonra temizle
+            if _agents_path not in _sys.path:
+                _sys.path.insert(0, _agents_path)
+            if _core_path not in _sys.path:
+                _sys.path.insert(0, _core_path)
+            spec = importlib.util.spec_from_file_location(f"ark_{module_name}", full_path)
+            mod  = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            return mod
+    raise ImportError(f"ark modülü bulunamadı: {module_name}")
+
+
+def _ark_bora(chat_id, task):
+    try:
+        cmo = _ark_import("cmo_agent")
+        result = cmo.brainstorm(task)
+        send_message(chat_id, f"🎯 <b>Bora (CMO):</b>\n\n{result}")
+    except Exception as e:
+        send_message(chat_id, f"❌ Bora hatası: {e}")
+
+
+def _ark_burak(chat_id):
+    try:
+        research = _ark_import("research_agent")
+        plan = research.research_trends()
+        research.save_weekly_plan(plan)
+        trends = "\n".join(f"• {t}" for t in plan.get("trends", []))
+        topics = "\n".join(
+            f"<b>Dag {t['dag']}:</b> {t['titel']} → {t['product']}"
+            for t in plan.get("aanbevolen_topics", [])
+        )
+        send_message(chat_id,
+            f"🔍 <b>Burak (Research):</b>\n\n"
+            f"📊 <b>NL Trendler:</b>\n{trends}\n\n"
+            f"🗓 <b>7 Günlük Plan:</b>\n{topics}\n\n"
+            f"✅ Onaylamak için: <code>/kaan approve</code>")
+    except Exception as e:
+        send_message(chat_id, f"❌ Burak hatası: {e}")
+
+
+def _ark_duru(chat_id, task):
+    try:
+        duru = _ark_import("aria_agent")
+        low = task.lower()
+        if "hook" in low:
+            result = duru.write_hook(task.replace("hook", "").strip() or "gut-brain wellness")
+        elif "caption" in low or "instagram" in low or "tiktok" in low:
+            parts = task.split()
+            platform = next((p for p in parts if p in ["instagram", "tiktok", "youtube"]), "instagram")
+            topic = task.replace("caption", "").replace(platform, "").strip()
+            result = duru.write_caption(topic or "gut-brain", "MentaBiotics", platform)
+        elif "carousel" in low:
+            result = duru.write_carousel(task.replace("carousel", "").strip() or "gut-brain en slaap", "MentaBiotics")
+        else:
+            result = duru.write_script(task or "gut-brain en energie", "MentaBiotics")
+        send_message(chat_id, f"✍️ <b>Duru (Content):</b>\n\n{result}")
+    except Exception as e:
+        send_message(chat_id, f"❌ Duru hatası: {e}")
+
+
+def _ark_kaan(chat_id, cmd):
+    try:
+        atlas = _ark_import("atlas_agent")
+        low = cmd.lower().strip()
+
+        if low in ("weekly", "haftalık", "research"):
+            send_message(chat_id, "🌐 <b>Kaan — Haftalık döngü başlatılıyor...</b>\n⏳ ~30 saniye")
+            result = atlas.run_weekly_cycle()
+            plan = result["plan"]
+            trends = "\n".join(f"• {t}" for t in plan.get("trends", []))
+            topics = "\n".join(
+                f"<b>Dag {t['dag']}:</b> {t['titel']} → {t['product']}"
+                for t in plan.get("aanbevolen_topics", [])
+            )
+            send_message(chat_id,
+                f"📊 <b>Trendler:</b>\n{trends}\n\n"
+                f"🗓 <b>7 Günlük Plan:</b>\n{topics}\n\n"
+                f"✅ Onaylamak için: <code>/kaan approve</code>")
+
+        elif low in ("approve", "onayla"):
+            result = atlas.approve_plan()
+            msg = "✅ <b>Plan onaylandı!</b>" if result["ok"] else f"⚠️ {result['error']}"
+            send_message(chat_id, msg)
+
+        elif low in ("today", "bugün"):
+            today = atlas.get_today_topic()
+            if today:
+                send_message(chat_id,
+                    f"📌 <b>Bugünün Konusu:</b>\n<b>{today['titel']}</b>\n"
+                    f"Hook: <i>{today.get('hook','—')}</i>\nÜrün: {today.get('product','—')}")
+            else:
+                send_message(chat_id, "⚠️ Onaylı plan yok. Önce <code>/kaan weekly</code>")
+
+        else:
+            status = atlas.get_status()
+            agents_text = "".join(
+                f"{'🟢' if a['active'] else '⚪'} <b>{a['name']}</b>: {a['turns']} konuşma\n"
+                for a in status["agents"]
+            )
+            plan = status["weekly_plan"]
+            plan_text = (
+                f"✅ Onaylı ({plan['approved_at'][:10] if plan['approved_at'] else '?'})" if plan["approved"]
+                else "⏳ Onay bekliyor" if plan["exists"] else "❌ Plan yok"
+            )
+            kaan_log = "\n".join(f"  • {e[:70]}" for e in status.get("kaan_memory", [])[:3])
+            send_message(chat_id,
+                f"🌐 <b>Kaan — Sistem Durumu</b>\n\n"
+                f"<b>Agent'lar:</b>\n{agents_text}\n"
+                f"<b>Haftalık Plan:</b> {plan_text}\n\n"
+                f"<b>Son Aktiviteler:</b>\n{kaan_log or '  —'}\n\n"
+                f"/kaan weekly — Araştırma\n"
+                f"/kaan approve — Planı onayla\n"
+                f"/kaan today — Bugünün konusu")
+    except Exception as e:
+        send_message(chat_id, f"❌ Kaan hatası: {e}")
+
+
 def handle_command(chat_id, text):
     """Start commando verwerking in aparte thread"""
     thread = threading.Thread(target=process_command, args=(chat_id, text))
@@ -1098,6 +1393,26 @@ def main():
                     chat_id = cb["message"]["chat"]["id"]
                     data = cb["data"]
                     
+                    # Gorsel Degistir Callback
+                    if data.startswith("regen_img_"):
+                        filename = data.replace("regen_img_", "", 1)
+                        session_path = os.path.join(os.getcwd(), "outputs", f"session_{filename}.json")
+                        if os.path.exists(session_path):
+                            _pending_regen[chat_id] = {"filename": filename, "session_path": session_path}
+                            send_message(chat_id,
+                                "Hangi gorsel istiyorsunuz?\n\n"
+                                "Ornek:\n"
+                                "- yoga woman sunrise\n"
+                                "- green smoothie healthy\n"
+                                "- meditation nature calm\n"
+                                "- woman running energy\n\n"
+                                "Ingilizce yaz, Pexels'te arayacagim."
+                            )
+                        else:
+                            send_message(chat_id, "Oturum bulunamadi, lutfen yeni video uret.")
+                        safe_request(f"{URL}/answerCallbackQuery", method="post", data={"callback_query_id": cb["id"]})
+                        continue
+
                     # Brand Selection Callback
                     if data.startswith("brand_"):
                         # brand_glow_video_topic
@@ -1119,28 +1434,69 @@ def main():
                         safe_request(f"{URL}/answerCallbackQuery", method="post", data={"callback_query_id": cb["id"]})
                         continue
 
+                    # Download as Document Callback
+                    if data.startswith("dl_doc_"):
+                        filename = data.replace("dl_doc_", "", 1)
+                        doc_path = os.path.join(os.getcwd(), "outputs", filename)
+                        send_document(chat_id, doc_path, caption="📥 Video dosyası indiriliyor...")
+                        safe_request(f"{URL}/answerCallbackQuery", method="post", data={"callback_query_id": cb["id"]})
+                        continue
+
                     # Social Media Publishing Callback
                     if data.startswith("publish_"):
                         # publish_ig_filename.mp4
                         parts = data.split("_")
                         platform = parts[1] # ig or tt
                         filename = "_".join(parts[2:])
-                        
-                        send_message(chat_id, f"🚀 {platform.upper()} yayını başlatılıyor...\n(Videonun işlenmesi 1-2 dakika sürebilir).")
-                        
-                        public_url = f"http://134.209.80.233:8080/outputs/{filename}"
-                        
-                        def _do_publish():
-                            if platform == "ig":
-                                res = publisher_skill.publish_to_instagram(public_url, f"Generated by @{brand.capitalize()}NL Agency System.")
-                            else:
-                                res = publisher_skill.publish_to_tiktok(public_url, "Automated Content")
-                            
-                            if res["success"]:
-                                send_message(chat_id, f"✅ Yayında! {platform.upper()} ID: {res.get('id')}")
-                            else:
-                                send_message(chat_id, f"❌ Yayın Hatası ({platform.upper()}): {res.get('error')}")
-                        
+
+                        # Extract brand from filename (e.g. agency_glow_123.mp4 → glow)
+                        pub_brand = "glow"
+                        if "holisti" in filename.lower():
+                            pub_brand = "holisti"
+                        elif "glow" in filename.lower():
+                            pub_brand = "glow"
+
+                        send_message(chat_id, f"⏳ Video yükleniyor, lütfen bekleyin (1-2 dk)...")
+
+                        def _do_publish(filename=filename, platform=platform, pub_brand=pub_brand, chat_id=chat_id):
+                            try:
+                                import sys
+                                sys.path.insert(0, os.path.join(os.getcwd(), "src"))
+                                from src.skills.uploader_skill import uploader
+                                import requests as _req
+
+                                local_path = os.path.join(os.getcwd(), "outputs", filename)
+                                send_message(chat_id, f"📤 catbox.moe'ya yükleniyor...")
+                                public_url = uploader.upload_file(local_path)
+
+                                if not public_url:
+                                    send_message(chat_id, "❌ Upload hatası: dosya yüklenemedi (catbox.moe)")
+                                    return
+
+                                send_message(chat_id, f"🔗 Yüklendi: {public_url}\n🚀 Make.com'a gönderiliyor...")
+
+                                webhook_url = os.getenv("MAKE_WEBHOOK_URL")
+                                if not webhook_url:
+                                    send_message(chat_id, "❌ MAKE_WEBHOOK_URL .env'de tanımlı değil!")
+                                    return
+
+                                brand_map = {"glow": "GlowUpNL", "holisti": "HolistiGlow"}
+                                brand_name = brand_map.get(pub_brand, "GlowUpNL")
+                                payload = {
+                                    "video_url": public_url,
+                                    "brand": brand_name,
+                                    "platform": platform,
+                                    "caption": f"✨ {brand_name} | #wellness #health #tips"
+                                }
+
+                                r = _req.post(webhook_url, json=payload, timeout=30)
+                                if r.status_code in [200, 202, 204]:
+                                    send_message(chat_id, f"✅ Make.com'a gönderildi!\n📱 {platform.upper()} yayını başlıyor...\n\nMake.com cevabı: {r.text[:200]}")
+                                else:
+                                    send_message(chat_id, f"❌ Make.com hatası: HTTP {r.status_code}\n{r.text[:300]}")
+                            except Exception as e:
+                                send_message(chat_id, f"❌ Yayın hatası: {e}")
+
                         threading.Thread(target=_do_publish, daemon=True).start()
                         safe_request(f"{URL}/answerCallbackQuery", method="post", data={"callback_query_id": cb["id"]})
                         continue
@@ -1154,7 +1510,17 @@ def main():
                     if "text" in msg:
                         text = msg["text"]
                         print("Ontvangen bericht:", text)
-                        process_command(chat_id, text)
+
+                        # Gorsel degistirme bekleniyor mu?
+                        if chat_id in _pending_regen:
+                            regen_info = _pending_regen.pop(chat_id)
+                            threading.Thread(
+                                target=_regen_video_with_query,
+                                args=(chat_id, text.strip(), regen_info),
+                                daemon=True
+                            ).start()
+                        else:
+                            process_command(chat_id, text)
                     
                     # Handle Voice Messages (Whisper STT)
                     elif "voice" in msg:
