@@ -211,6 +211,7 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
     display_brand = "GlowUpNL" if brand in ("glow", "glowup") else "HolistiGlow"
     accent_rgb = tuple(theme["accent"]) if isinstance(theme["accent"], (list, tuple)) else (255, 112, 86)
     total_frags = len([f for f in fragments if f.get("audio") or f.get("path")])
+    frame_base_p = None
 
     for i, frag in enumerate(fragments):
         a_path = frag.get("audio") or frag.get("path")
