@@ -181,6 +181,7 @@ def _center(draw, text: str, font, cy: int, color):
 # ── Main video assembly (The Fixed Part) ────────────────────────────────────
 
 def create_reel(fragments=None, image_path=None, output_filename=None, brand="glowup", watermark_icon=None):
+    print("[ANTIGRAVITY_DEBUG_V4] Running Single-Command Rendering Pipeline...")
     theme = brand_manager.get_theme_for_video(brand)
     if not theme:
         theme = {"bg": (254, 245, 238), "accent": (255, 112, 86), "text": (62, 44, 40), 
