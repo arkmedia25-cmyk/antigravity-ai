@@ -362,6 +362,10 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
 
     if total_dur == 0: total_dur = 5.0
 
+    if frame_base_p is None:
+        frame_base_p = os.path.abspath(os.path.join(_OUTPUT_DIR, f"base_{session_id}_fallback.png"))
+        _create_gradient_bg(_W, _H, (20,20,20), (50,50,50)).save(frame_base_p)
+
     cmd = ["ffmpeg", "-y"]
     # Input 0: Background image
     cmd.extend(["-loop", "1", "-t", f"{total_dur:.2f}", "-i", frame_base_p])
