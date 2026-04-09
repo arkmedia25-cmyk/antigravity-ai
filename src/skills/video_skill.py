@@ -343,8 +343,8 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
         # ── Save current frame base ──
         # Since we use filter_complex, we only need the base image if it changes per fragment.
         # But here agency mode uses ONE background image for the whole reel.
-        # We'll save the background once.
-        if i == 0:
+        # We'll save the background from the first successfully processed fragment.
+        if frame_base_p is None:
             frame_base_p = os.path.abspath(os.path.join(_OUTPUT_DIR, f"base_{session_id}.png"))
             img.save(frame_base_p)
 
