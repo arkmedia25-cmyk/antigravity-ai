@@ -334,86 +334,92 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
             y = by0 + padding
             for line in lines:
                 lw, lh = _sz(draw, line, f)
-                draw.text(((_W - lw) // 2 + 3, y + 3), line, font=f, fill=(0, 0, 0, 90))
+                draw.text(((_W - lw) // 2 + 3, y + 3), line, font=f, fill=(0, 0, 0, 85))
                 draw.text(((_W - lw) // 2, y), line, font=f, fill=tc)
                 y += lh + 22
 
-        img_p = os.path.abspath(os.path.join(_OUTPUT_DIR, f"f_{session_id}_{i}.png"))
-        img.save(img_p)
+        # ── Save current frame base ──
+        # Since we use filter_complex, we only need the base image if it changes per fragment.
+        # But here agency mode uses ONE background image for the whole reel.
+        # We'll save the background once.
+        if i == 0:
+            frame_base_p = os.path.abspath(os.path.join(_OUTPUT_DIR, f"base_{session_id}.png"))
+            img.save(frame_base_p)
 
-        clip_p = os.path.abspath(os.path.join(_OUTPUT_DIR, f"v_{session_id}_{i}.mp4"))
-        subprocess.run([
-            "ffmpeg", "-y", "-loop", "1", "-t", f"{dur:.2f}", "-i", img_p,
-            "-r", "30", "-c:v", "libx264", "-pix_fmt", "yuv420p",
-            "-preset", "superfast", "-vsync", "cfr", clip_p
-        ], capture_output=True)
-
-        all_video_clips.append(clip_p)
         all_audio_files.append(a_path)
 
-    # ── Concatenate & Mix ────────────────────────────────────────────────────
+    # ── Final Single-Command Assembly ────────────────────────────────────────
 
-    def write_list(p, files):
-        with open(p, "w", encoding="utf-8") as f:
-            for file in files:
-                # Normaliseer paden en ontsnap enkelvoudige aanhalingstekens voor FFmpeg concat
-                safe_p = file.replace(os.sep, '/').replace("'", "'\\''")
-                f.write(f"file '{safe_p}'\n")
+    total_dur = 0
+    valid_audios = []
+    for frag in fragments:
+        ap = frag.get("audio") or frag.get("path")
+        if ap and os.path.exists(ap):
+            valid_audios.append(ap)
+            total_dur += get_duration(ap)
 
-    v_list = os.path.abspath(os.path.join(_OUTPUT_DIR, f"v_list_{session_id}.txt"))
-    a_list = os.path.abspath(os.path.join(_OUTPUT_DIR, f"a_list_{session_id}.txt"))
-    write_list(v_list, all_video_clips)
-    write_list(a_list, all_audio_files)
+    if total_dur == 0: total_dur = 5.0
 
-    final_vo = os.path.abspath(os.path.join(_OUTPUT_DIR, f"vo_{session_id}.mp3"))
-    print(f"[video_skill] Concatenating voiceover...")
-    
-    vo_cmd = [
-        "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-        "-i", a_list.replace(os.sep, '/'),
-        "-af", "aresample=async=1", "-ar", "44100",
-        "-c:a", "libmp3lame", "-b:a", "192k", final_vo
+    cmd = ["ffmpeg", "-y"]
+    # Input 0: Background image
+    cmd.extend(["-loop", "1", "-t", f"{total_dur:.2f}", "-i", frame_base_p])
+    # Inputs 1...N: Audio fragments
+    for ap in valid_audios:
+        cmd.extend(["-i", ap])
+
+    # Filter Complex
+    filter_parts = [
+        f"[0:v]scale=1080:-1,zoompan=z='min(zoom+0.001,1.5)':d={total_dur}*30:s=1080x1920:fps=30[vbg]"
     ]
-    res_vo = subprocess.run(vo_cmd, capture_output=True, text=True)
-    if res_vo.returncode != 0:
-        print(f"[video_skill] Voiceover Concat Error (Code {res_vo.returncode})")
-        # Bekende fallback: Gebruik het eerste audiobestand als concat faalt
-        final_vo = all_audio_files[0] if all_audio_files else final_vo
-
-    # Check for optional background music file
-    music_path = os.path.join(_get_project_root(), "assets", "music", "background.mp3")
-    brand_music = os.path.join(_get_project_root(), "assets", "music", f"background_{brand}.mp3")
-    if os.path.exists(brand_music):
-        music_path = brand_music
-
-    print(f"[video_skill] Assembling final reel: {output_path}")
-    if os.path.exists(music_path):
-        # Mix voiceover (full volume) + background music (15%)
-        print(f"[video_skill] Mixing with background music: {music_path}")
-        final_audio = os.path.abspath(os.path.join(_OUTPUT_DIR, f"audio_{session_id}.mp3"))
-        mix_res = subprocess.run([
-            "ffmpeg", "-y",
-            "-i", final_vo, "-i", music_path,
-            "-filter_complex", "[0:a]volume=1.4[vo];[1:a]volume=0.15,aloop=loop=-1:size=2e+09[bg];[vo][bg]amix=inputs=2:duration=first[aout]",
-            "-map", "[aout]", "-ar", "44100", "-c:a", "libmp3lame", "-b:a", "192k", final_audio
-        ], capture_output=True)
-        if mix_res.returncode != 0:
-            print(f"[video_skill] Music Mix Error: {mix_res.stderr[-500:]}")
+    
+    # Audio Concat
+    if valid_audios:
+        a_inputs = "".join([f"[{i+1}:a]" for i in range(len(valid_audios))])
+        filter_parts.append(f"{a_inputs}concat=n={len(valid_audios)}:v=0:a=1[vo]")
     else:
-        final_audio = final_vo
+        filter_parts.append("anullsrc=r=44100:cl=stereo[vo]")
 
-    final_res = subprocess.run([
-        "ffmpeg", "-y",
-        "-f", "concat", "-safe", "0", "-i", v_list.replace(os.sep, '/'),
-        "-i", final_audio,
-        "-map", "0:v", "-map", "1:a",
-        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
-        "-af", "aresample=async=1", "-shortest",
-        os.path.abspath(output_path)
-    ], capture_output=True)
+    # Subtitles Overlay
+    v_stream = "[vbg]"
+    curr = 0
+    for i, frag in enumerate(fragments):
+        txt = frag.get("sentence") or frag.get("text", "")
+        txt = _clean_text(txt).replace("'", "").replace(":", "\\:")
+        d = get_duration(frag.get("audio") or frag.get("path"))
+        start, end = curr, curr + d
+        if txt:
+            filter_parts.append(
+                f"{v_stream}drawtext=text='{txt}':fontfile='{_get_project_root()}/assets/fonts/Montserrat-Medium.ttf':"
+                f"fontsize=55:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/1.5:box=1:boxcolor=black@0.4:boxborderw=15:"
+                f"enable='between(t,{start},{end})'[v{i}]"
+            )
+            v_stream = f"[v{i}]"
+        curr += d
+
+    # Optional Background Music
+    music_path = os.path.join(_get_project_root(), "assets", "music", f"background_{brand}.mp3")
+    if not os.path.exists(music_path):
+        music_path = os.path.join(_get_project_root(), "assets", "music", "background.mp3")
+
+    if os.path.exists(music_path):
+        cmd.extend(["-i", music_path])
+        m_idx = len(valid_audios) + 1
+        filter_parts.append(f"[{m_idx}:a]volume=0.15,aloop=loop=-1:size=2e+09[bgm]")
+        filter_parts.append(f"[vo]volume=1.4[vovol];[vovol][bgm]amix=inputs=2:duration=first[aout]")
+        map_a = "[aout]"
+    else:
+        map_a = "[vo]"
+
+    cmd.extend([
+        "-filter_complex", ";".join(filter_parts),
+        "-map", v_stream, "-map", map_a,
+        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast",
+        "-c:a", "aac", "-b:a", "192k", "-shortest", os.path.abspath(output_path)
+    ])
+
+    print(f"[video_skill] Running deployment-safe assembly for @{brand}...")
+    final_res = subprocess.run(cmd, capture_output=True, text=True)
     if final_res.returncode != 0:
         print(f"[video_skill] Final Assembly Error: {final_res.stderr[-500:]}")
-
-    return output_path
 
     return output_path
