@@ -5,8 +5,8 @@ from src.agents.sales_agent import SalesAgent
 from src.agents.research_agent import ResearchAgent
 from src.agents.email_agent import EmailAgent
 from src.agents.linkedin_agent import LinkedInAgent
-from src.agents.canva_agent import CanvaAgent
 from src.core.brand_manager import BrandManager
+from src.memory.memory_manager import MemoryManager
 from src.core.logging import get_logger
 
 logger = get_logger("orchestrator")
@@ -18,12 +18,12 @@ _AGENTS = {
     "research": ResearchAgent,
     "email": EmailAgent,
     "linkedin": LinkedInAgent,
-    "canva": CanvaAgent,
 }
 
 class Orchestrator:
     def __init__(self):
         self.brand_manager = BrandManager()
+        self.memory = MemoryManager(namespace="agency")
         self.agents = {name: cls() for name, cls in _AGENTS.items()}
         logger.debug(f"Orchestrator initialized with brands: {self.brand_manager.list_brands()}")
 
@@ -46,7 +46,22 @@ class Orchestrator:
             brand_name = "glowup"
             brand_config = self.brand_manager.get_brand(brand_name)
 
-        logger.debug(f"Routing request to [{agent}] for brand [@{brand_name}]")
+        # [MEMORY] Load user context
+        context = {}
+        if chat_id:
+            # Load last 3 tasks
+            history = self.memory.load("last_3_tasks", chat_id=chat_id) or []
+            context["history"] = history
+            
+            # Load funnel stage
+            profile = self.memory.get_user_profile(chat_id)
+            context["user_profile"] = profile
+            
+            # Track this interaction
+            self.memory.track_interaction(chat_id, agent, clean_text)
+            self.memory.track_last_tasks(chat_id, clean_text)
+
+        logger.debug(f"Routing request to [{agent}] for brand [@{brand_name}] (chat_id={chat_id})")
 
         if not clean_text:
             return "[Orchestrator] Empty input — nothing to process."
@@ -55,6 +70,4 @@ class Orchestrator:
         if selected is None:
             return f"[Orchestrator] Unknown agent: '{agent}'."
 
-        # Inject brand context into agent process if needed
-        # We pass brand as a separate argument to the agent's process method
-        return selected.process(clean_text, chat_id=chat_id, brand=brand_name)
+        return selected.process(clean_text, chat_id=chat_id, brand=brand_name, context=context)

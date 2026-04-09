@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Wellness Video Producer — Dr. Priya Pipeline
-Akış: Claude script → ElevenLabs ses → HeyGen video → Telegram
+Akis: Claude script → ElevenLabs ses → HeyGen video → Telegram
 """
 
 import os
@@ -12,7 +12,7 @@ import re
 import requests
 from dotenv import load_dotenv
 
-PROJECT_ROOT = "/root/antigravity-ai"
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 os.chdir(PROJECT_ROOT)
 sys.path.insert(0, PROJECT_ROOT)
 
@@ -30,19 +30,22 @@ EL_VOICE_ID      = os.getenv("ELEVENLABS_VOICE_ID", "bH1SkJMbYirLovnne9JM")
 
 claude = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
+PEXELS_KEY = os.getenv("PEXELS_API_KEY")
+OPENAI_KEY = os.getenv("OPENAI_API_KEY")
+
 # ─── SCRIPT ───────────────────────────────────────────────────────────────────
 
 def generate_script(topic: str, hook: str) -> str:
-    prompt = f"""Maak een krachtig Instagram Reels script van 30 seconden voor dit wellness onderwerp.
+    prompt = f"""Maak een krachtig Instagram Reels script van 60 seconden voor dit wellness onderwerp.
 
 Onderwerp: "{topic}"
 Hook: "{hook}"
 
 REGELS:
-- Zin 1 (hook, eerste 2 seconden): Begin met een schokkend feit of statistiek. Niet met een vraag.
-  Voorbeelden: "8 van de 10 mensen doen dit fout..." / "Dit kost je elke dag 2 uur slaap." / "Wetenschappers ontdekten dat 73% van de vrouwen..."
+- Zin 1 (hook, eerste 3-4 seconden): Begin met een schokkend feit of statistiek. Niet met een vraag.
+  Voorbeelden: "8 van de 10 mensen doen dit fout..." / "Dit kost je her seferinde 2 uur slaap." / "Wetenschappers ontdekten dat 73% van de vrouwen..."
 - Daarna: vloeiende wetenschappelijke uitleg, geen opsommingen, geen bullets.
-- Maximaal 80 woorden. Nederlands. Begrijpelijk maar onderbouwd.
+- Ongeveer 130-150 woorden. Nederlands. Begrijpelijk maar onderbouwd.
 - Laatste zin (CTA): Eindig met één van deze varianten (wissel af):
   "Sla dit op — je hebt het vanavond nodig."
   "Stuur dit naar iemand die dit moet weten."
@@ -52,10 +55,86 @@ Geef ALLEEN de spreektekst terug, geen uitleg."""
 
     resp = claude.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=300,
+        max_tokens=600,
         messages=[{"role": "user", "content": prompt}]
     )
     return resp.content[0].text.strip()
+
+
+def generate_visual_plan(topic: str, script: str) -> list:
+    """Claude determines the best visuals for the script segments."""
+    prompt = f"""Je bent een visual director voor HolistiGlow Instagram Reels.
+Onderwerp: "{topic}"
+Script: "{script}"
+
+Verdeel het script in 5 logische scenes en geef voor elke scene:
+1. De tekst die op dat moment wordt uitgesproken.
+2. Een zoekterm voor Pexels (Engels, realistisch, max 3 woorden).
+3. Beslis: "pexels" (voor echte foto's) of "dalle" (voor abstracte/wetenschappelijke concepten).
+4. Een DALL-E 3 prompt (Engels, cinematic, photorealistic, 25 woorden max).
+
+ANTWOORD ALLEEN IN DIT JSON FORMAAT:
+{{"scenes": [
+  {{"text": "...", "source": "pexels", "query": "...", "dalle": "..."}},
+  ...
+]}}"""
+
+    resp = claude.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=800,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    try:
+        match = re.search(r'\{.*\}', resp.content[0].text, re.DOTALL)
+        return json.loads(match.group(0)).get("scenes", [])
+    except:
+        return []
+
+
+def fetch_visuals(scenes: list) -> list:
+    """Fetches images from Pexels or DALL-E 3 based on the plan."""
+    import openai
+    oa_client = openai.OpenAI(api_key=OPENAI_KEY)
+    
+    final_visuals = []
+    output_dir = os.path.join(os.environ.get("TEMP", "/tmp"), "visuals")
+    os.makedirs(output_dir, exist_ok=True)
+
+    for i, sc in enumerate(scenes):
+        v_path = os.path.join(output_dir, f"scene_{i}.jpg")
+        success = False
+        
+        if sc["source"] == "pexels":
+            print(f"  [PEXELS] Zoeken naar: {sc['query']}")
+            p_url = f"https://api.pexels.com/v1/search?query={requests.utils.quote(sc['query'])}&per_page=5&orientation=portrait"
+            r = requests.get(p_url, headers={"Authorization": PEXELS_KEY}, timeout=15)
+            if r.status_code == 200:
+                photos = r.json().get("photos", [])
+                if photos:
+                    img_url = photos[0]["src"]["large2x"]
+                    img_data = requests.get(img_url).content
+                    with open(v_path, "wb") as f: f.write(img_data)
+                    success = True
+        
+        if not success: # DALL-E fallback or direct
+            print(f"  [DALL-E] Genereren: {sc['dalle'][:50]}...")
+            try:
+                d_resp = oa_client.images.generate(
+                    model="dall-e-3",
+                    prompt=sc["dalle"] + " Cinematic portrait 9:16, high quality, photorealistic, no text.",
+                    size="1024x1792", quality="standard", n=1
+                )
+                img_data = requests.get(d_resp.data[0].url).content
+                with open(v_path, "wb") as f: f.write(img_data)
+                success = True
+            except Exception as e:
+                print(f"  [DALL-E] Fout: {e}")
+
+        if success:
+            sc["image_path"] = v_path
+            final_visuals.append(sc)
+    
+    return final_visuals
 
 
 def generate_metadata(topic: str, script: str) -> dict:
@@ -112,7 +191,7 @@ def generate_voice(text: str) -> str:
     if resp.status_code != 200:
         raise Exception(f"ElevenLabs hata: {resp.status_code} — {resp.text[:200]}")
 
-    audio_path = f"/tmp/priya_voice_{int(time.time())}.mp3"
+    audio_path = os.path.join(os.environ.get("TEMP", "/tmp"), f"priya_voice_{int(time.time())}.mp3")
     with open(audio_path, "wb") as f:
         f.write(resp.content)
     print(f"  [TTS] Ses kaydedildi: {audio_path} ({len(resp.content)/1024:.1f} KB)")
@@ -122,7 +201,7 @@ def generate_voice(text: str) -> str:
 # ─── HEYGEN VIDEO ─────────────────────────────────────────────────────────────
 
 def create_heygen_video(script: str, audio_path: str) -> str:
-    # Sesi HeyGen'e yükle
+    # Sesi HeyGen'e yukle
     upload_url = "https://upload.heygen.com/v1/asset"
     with open(audio_path, "rb") as f:
         upload_resp = requests.post(
@@ -139,9 +218,9 @@ def create_heygen_video(script: str, audio_path: str) -> str:
         raise Exception(f"HeyGen upload hata: {upload_resp.status_code} — {upload_resp.text[:200]}")
 
     asset_id = upload_resp.json().get("data", {}).get("id")
-    print(f"  [HEYGEN] Ses yüklendi, asset_id: {asset_id}")
+    print(f"  [HEYGEN] Ses yuklendi, asset_id: {asset_id}")
 
-    # Video oluştur — kare format, deformasyon yok
+    # Video olustur — kare format, deformasyon yok
     video_payload = {
         "video_inputs": [{
             "character": {
@@ -176,11 +255,11 @@ def create_heygen_video(script: str, audio_path: str) -> str:
         raise Exception(f"HeyGen video hata: {create_resp.text[:200]}")
 
     video_id = create_resp.json().get("data", {}).get("video_id")
-    print(f"  [HEYGEN] Video oluşturuluyor, video_id: {video_id}")
+    print(f"  [HEYGEN] Video olusturuluyor, video_id: {video_id}")
     return video_id
 
 
-def wait_for_video(video_id: str, timeout: int = 300) -> str:
+def wait_for_video(video_id: str, timeout: int = 900) -> str:
     url = f"https://api.heygen.com/v1/video_status.get?video_id={video_id}"
     headers = {"X-Api-Key": HEYGEN_API_KEY}
     start = time.time()
@@ -194,21 +273,21 @@ def wait_for_video(video_id: str, timeout: int = 300) -> str:
         if status == "completed":
             return data.get("video_url")
         elif status == "failed":
-            raise Exception(f"HeyGen video başarısız: {data}")
+            raise Exception(f"HeyGen video basarisiz: {data}")
 
         time.sleep(10)
 
-    raise Exception("HeyGen timeout — 5 dakika aşıldı")
+    raise Exception(f"HeyGen timeout — {timeout // 60} dakika asildi")
 
 
 def download_video(video_url: str) -> str:
-    output_path = f"/tmp/drpriya_{int(time.time())}.mp4"
+    output_path = os.path.join(os.environ.get("TEMP", "/tmp"), f"drpriya_{int(time.time())}.mp4")
     resp = requests.get(video_url, timeout=120, stream=True)
     with open(output_path, "wb") as f:
         for chunk in resp.iter_content(chunk_size=8192):
             f.write(chunk)
     size_mb = os.path.getsize(output_path) / 1024 / 1024
-    print(f"  [VIDEO] İndirildi: {output_path} ({size_mb:.1f} MB)")
+    print(f"  [VIDEO] Indirildi: {output_path} ({size_mb:.1f} MB)")
     return output_path
 
 
@@ -223,145 +302,6 @@ def get_duration(video_path: str) -> float:
     )
     return float(r.stdout.strip())
 
-
-def compose_reel(avatar_path: str, script: str, baslik: str) -> str:
-    """
-    HolistiGlow Premium Reel (1080x1920):
-    ─ Zemin: koyu yeşil (#162E20)
-    ─ Dr. Priya: 960x960, ortalanmış, mat altın çerçeve
-    ─ Üst: HolistiGlow logo + altın çizgi
-    ─ Alt: konu başlığı + CTA
-    ─ Son 0.8s kırp + fade-out
-    ─ End card (4s): logo + Kaydet / Beğen / Abone Ol / Paylaş
-    """
-    import subprocess
-
-    output_path = f"/tmp/reel_final_{int(time.time())}.mp4"
-    duration     = get_duration(avatar_path)
-    trim_dur     = duration          # konuşmanın tamamı korunur
-    fade_start   = trim_dur - 0.6   # son 0.6s fade → göz kapanma artifactı gizlenir
-    endcard_dur  = 6.0   # 6 saniye — mesajlar 2s görünür, sonra fade
-
-    hook_text = baslik[:38]
-    logo_text = "HolistiGlow"
-    cta_text  = "Sla op · Deel · Abonneer"
-
-    font_bold = "/root/antigravity-ai/assets/fonts/PlayfairDisplay-Bold.ttf"
-    font_med  = "/root/antigravity-ai/assets/fonts/Montserrat-Regular.ttf"
-    if not os.path.exists(font_bold):
-        font_bold = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-        font_med  = font_bold
-
-    def esc(t):
-        return t.replace("'", "\u2019").replace(":", "\\:").replace("@", "\\@")
-
-    BG    = "#2A5C45"   # marka yeşili (açık, HolistiGlow primary)
-    GOLD  = "#C8A97A"   # mat altın
-    WHITE = "white"
-
-    AV_SIZE = 960
-    AV_X    = (1080 - AV_SIZE) // 2   # 60
-    AV_Y    = 310       # Dr. Priya daha aşağıda → logo ile arası açık
-    FR      = 14        # kalın altın çerçeve
-
-    # Layout (1080x1920):
-    # y=0   → 265  : Logo alanı
-    # y=210 : Altın çizgi
-    # y=265 → 310  : Boşluk (45px)
-    # y=296 → 1270 : Dr. Priya (altın çerçeve FR=14 dahil: 296..1284)
-    # y=1270→ 1330 : Boşluk
-    # y=1330→ 1920 : Alt alan (hook + cta)
-
-    fc = (
-        # ── MAIN VIDEO ────────────────────────────────────────────────────────
-        f"[0:v]trim=duration={trim_dur:.2f},setpts=PTS-STARTPTS,"
-        f"crop=iw*0.80:ih*0.90:(iw-iw*0.80)/2:(ih-ih*0.90)/2,"
-        f"scale={AV_SIZE}:{AV_SIZE}[priya];"
-
-        f"color=c={BG}:s=1080x1920:r=30:d={trim_dur:.2f}[bg];"
-        f"[bg][priya]overlay={AV_X}:{AV_Y}[v1];"
-
-        # Kalın mat altın çerçeve
-        f"[v1]drawbox=x={AV_X-FR}:y={AV_Y-FR}:w={AV_SIZE+FR*2}:h={AV_SIZE+FR*2}:"
-        f"color={GOLD}@0.9:t={FR}[v2];"
-
-        # Üst logo alanı (AV_Y-FR = 296 → h=296 ile tamamen kapla)
-        f"[v2]drawbox=x=0:y=0:w=1080:h={AV_Y-FR}:color={BG}@1.0:t=fill[v3];"
-        f"[v3]drawtext=fontfile='{font_bold}':text='{esc(logo_text)}':"
-        f"fontcolor={WHITE}:fontsize=62:x=(w-text_w)/2:y=88:"
-        f"shadowcolor=black@0.2:shadowx=1:shadowy=1[v4];"
-        f"[v4]drawbox=x=80:y=210:w=920:h=3:color={GOLD}@0.85:t=fill[v5];"
-
-        # Alt alan (Dr. Priya'nın altından itibaren)
-        f"[v5]drawbox=x=0:y={AV_Y+AV_SIZE+FR+40}:w=1080:h=640:color={BG}@1.0:t=fill[v6];"
-        f"[v6]drawtext=fontfile='{font_bold}':text='{esc(hook_text)}':"
-        f"fontcolor={WHITE}:fontsize=44:x=(w-text_w)/2:y={AV_Y+AV_SIZE+FR+60}:"
-        f"shadowcolor=black@0.2:shadowx=1:shadowy=1[v7];"
-        f"[v7]drawbox=x=80:y={AV_Y+AV_SIZE+FR+160}:w=920:h=2:color={GOLD}@0.75:t=fill[v8];"
-        f"[v8]drawtext=fontfile='{font_med}':text='{esc(cta_text)}':"
-        f"fontcolor={GOLD}:fontsize=30:x=(w-text_w)/2:y={AV_Y+AV_SIZE+FR+195}[v9];"
-
-        # Fade-out
-        f"[v9]fade=t=out:st={fade_start:.2f}:d=0.5[main_v];"
-        f"[0:a]atrim=duration={trim_dur:.2f},asetpts=PTS-STARTPTS,"
-        f"afade=t=out:st={fade_start:.2f}:d=0.5[main_a];"
-
-        # ── END CARD (4 saniye) — Hollandaca ──────────────────────────────────
-        f"color=c={BG}:s=1080x1920:r=30:d={endcard_dur}[ec_bg];"
-
-        f"[ec_bg]drawtext=fontfile='{font_bold}':text='{esc(logo_text)}':"
-        f"fontcolor={WHITE}:fontsize=90:x=(w-text_w)/2:y=660:"
-        f"shadowcolor=black@0.3:shadowx=2:shadowy=2[ec1];"
-
-        f"[ec1]drawbox=x=140:y=810:w=800:h=3:color={GOLD}@0.9:t=fill[ec2];"
-
-        f"[ec2]drawtext=fontfile='{font_bold}':text='Vind ik leuk':"
-        f"fontcolor={GOLD}:fontsize=42:x=(w-text_w)/2:y=860[ec3];"
-
-        f"[ec3]drawtext=fontfile='{font_bold}':text='Abonneer':"
-        f"fontcolor={WHITE}:fontsize=42:x=(w-text_w)/2:y=940[ec4];"
-
-        f"[ec4]drawtext=fontfile='{font_bold}':text='Deel  &  Sla op':"
-        f"fontcolor={GOLD}:fontsize=42:x=(w-text_w)/2:y=1020[ec5];"
-
-        f"[ec5]drawbox=x=140:y=1110:w=800:h=2:color={GOLD}@0.75:t=fill[ec6];"
-
-        f"[ec6]drawtext=fontfile='{font_med}':text='Dagelijkse wellness wetenschap':"
-        f"fontcolor={GOLD}@0.85:fontsize=30:x=(w-text_w)/2:y=1150[ec7];"
-
-        f"[ec7]fade=t=in:st=0:d=0.6,fade=t=out:st={endcard_dur-1.2}:d=1.0[end_v];"
-
-        f"[1:a]atrim=duration={endcard_dur},asetpts=PTS-STARTPTS[end_a];"
-
-        f"[main_v][main_a][end_v][end_a]concat=n=2:v=1:a=1[out_v][out_a]"
-    )
-
-    cmd = [
-        "ffmpeg", "-y",
-        "-i", avatar_path,
-        "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
-        "-filter_complex", fc,
-        "-map", "[out_v]",
-        "-map", "[out_a]",
-        "-c:v", "libx264",
-        "-c:a", "aac",
-        "-b:a", "192k",
-        "-preset", "fast",
-        "-pix_fmt", "yuv420p",
-        output_path
-    ]
-
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        print(f"  [FFMPEG] Hata:\n{result.stderr[-600:]}")
-        return avatar_path
-
-    size_mb = os.path.getsize(output_path) / 1024 / 1024
-    print(f"  [FFMPEG] Reel hazır: {output_path} ({size_mb:.1f} MB)")
-    return output_path
-
-
-# ─── TELEGRAM ─────────────────────────────────────────────────────────────────
 
 def send_to_telegram(video_path: str, baslik: str, gun_no: int, script: str, meta: dict = None):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendVideo"
@@ -383,31 +323,41 @@ def send_to_telegram(video_path: str, baslik: str, gun_no: int, script: str, met
             f"Controleer en publiceer! 🌿"
         )
 
-    # video_id: dosya adından çıkar (reel_final_1234567890.mp4 → 1234567890)
+    # video_id: dosya adindan cikar (reel_final_1234567890.mp4 → 1234567890)
     vid = os.path.splitext(os.path.basename(video_path))[0].split("_")[-1]
 
-    # Videoyu public static klasöre kopyala → direkt indirilebilir URL
+    # Videoyu public static klasore kopyala → direkt indirilebilir URL
     import shutil
-    static_name = f"reel_{vid}.mp4"
-    static_path = f"/opt/n8n/static/{static_name}"
-    shutil.copy2(video_path, static_path)
-    download_url = f"https://arkmediaflow.com/media/{static_name}"
+    static_dir = os.path.join(PROJECT_ROOT, "static")
+    os.makedirs(static_dir, exist_ok=True)
 
-    # Metadata kaydet → bot_handler.py Make.com'a gönderirken kullanır
+    static_name = f"reel_{vid}.mp4"
+    static_path = os.path.join(static_dir, static_name)
+    shutil.copy2(video_path, static_path)
+    
+    # Sunucu urlsini sadece eger Linux ise boyle yap, yoksa yerel kullan
+    import platform
+    if platform.system() == "Linux":
+        download_url = f"https://arkmediaflow.com/media/{static_name}"
+    else:
+        # For Windows/local, use a dummy or skip public link
+        download_url = f"https://static.arkmediaflow.com/media/{static_name}"
+
+    # Metadata kaydet → bot_handler.py Make.com'a gonderirken kullanir
     if meta:
-        meta_path = f"/opt/n8n/static/meta_{vid}.json"
+        meta_path = os.path.join(static_dir, f"meta_{vid}.json")
         with open(meta_path, "w") as mf:
             json.dump({**meta, "video_url": download_url, "baslik": baslik}, mf, ensure_ascii=False)
 
     reply_markup = json.dumps({
         "inline_keyboard": [
             [
-                {"text": "⬇️ İndir",          "url": download_url},
-                {"text": "✏️ Tekrar Düzenle", "callback_data": f"redo_{vid}"}
+                {"text": "⬇️ Indir", "url": download_url},
+                {"text": "✏️ Tekrar Duzenle", "callback_data": f"redo_{vid}"}
             ],
             [
-                {"text": "📸 Instagram'a Gönder", "callback_data": f"instagram_{vid}"},
-                {"text": "🎵 TikTok'a Gönder",    "callback_data": f"tiktok_{vid}"}
+                {"text": "📸 Instagram'a Gonder", "callback_data": f"instagram_{vid}"},
+                {"text": "🎵 TikTok'a Gonder",    "callback_data": f"tiktok_{vid}"}
             ]
         ]
     })
@@ -425,49 +375,205 @@ def send_to_telegram(video_path: str, baslik: str, gun_no: int, script: str, met
             timeout=120
         )
     if resp.status_code == 200:
-        print(f"  [TELEGRAM] Gönderildi ✅  (vid={vid})")
+        print(f"  [TELEGRAM] Gonderildi [OK] (vid={vid})")
     else:
         print(f"  [TELEGRAM] Hata: {resp.status_code} — {resp.text[:200]}")
 
 
 # ─── ANA ──────────────────────────────────────────────────────────────────────
 
+def compose_reel(avatar_path: str, scenes: list, baslik: str) -> str:
+    """
+    HolistiGlow Native Layout (1080x1920):
+    ─ Arka Plan: Hibrit gorseller (Ken Burns effect) - Zaman bazlı geçiş
+    ─ Dr. Priya: Altta dairesel kesim (circular crop) - Sabit overlay
+    ─ Hook & Altyazı: Sahneye göre değişen metinler
+    """
+    import subprocess
+
+    out_final = os.path.join(PROJECT_ROOT, "outputs", f"reel_final_{int(time.time())}.mp4")
+    os.makedirs(os.path.join(PROJECT_ROOT, "outputs"), exist_ok=True)
+    
+    total_dur = get_duration(avatar_path)
+    num_scenes = len(scenes)
+    scene_dur = total_dur / num_scenes if num_scenes else total_dur
+    
+    font_bold = os.path.join(PROJECT_ROOT, "assets", "fonts", "PlayfairDisplay-Bold.ttf")
+    font_med  = os.path.join(PROJECT_ROOT, "assets", "fonts", "Montserrat-Regular.ttf")
+    
+    if not os.path.exists(font_bold):
+        import platform
+        if platform.system() == "Windows":
+            font_bold = "C:/Windows/Fonts/arialbd.ttf"
+            font_med  = "C:/Windows/Fonts/arial.ttf"
+        else:
+            font_bold = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+            font_med  = font_bold
+
+    GREEN = "#829678"
+    DARK  = "#282C2D"
+    W, H  = 1080, 1920
+    
+    # Avatar settings
+    AD = 240   # Diameter
+    AX = (W - AD) // 2
+    AY = H - AD - 100
+
+    # Build FFmpeg command
+    # Inputs: [0:v] Avatar, [1:v] Image 0, [2:v] Image 1, ...
+    cmd = ["ffmpeg", "-y"]
+    cmd.extend(["-i", avatar_path])
+    
+    for sc in scenes:
+        cmd.extend(["-i", sc["image_path"]])
+    
+    # Filter Complex
+    filters = []
+    
+    # 1. Prepare Background Layers (Ken Burns per scene)
+    # We create a full-length background by overlaying scene segments
+    for i in range(num_scenes):
+        start = i * scene_dur
+        # Ensure the last scene covers the remaining time exactly
+        end = (i + 1) * scene_dur if i < num_scenes - 1 else total_dur
+        dur = end - start
+        
+        # Ken Burns for this specific scene
+        # We use 'zoompan' on the specific input. input index is i+1 (0 is avatar)
+        # Note: zoompan s parameter should match output size
+        input_idx = i + 1
+        filters.append(
+            f"[{input_idx}:v]scale=1920:3413:flags=lanczos,crop={W}:{H}:(iw-{W})/2:(ih-{H})/2"
+            f",zoompan=z='zoom+0.0005':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={int(total_dur*30)}:s={W}x{H}:fps=30"
+            f",trim=duration={dur},setpts=PTS-STARTPTS[bg{i}]"
+        )
+
+    # Concat background segments
+    bg_inputs = "".join([f"[bg{i}]" for i in range(num_scenes)])
+    filters.append(f"{bg_inputs}concat=n={num_scenes}:v=1:a=0[full_bg]")
+    
+    # 2. Base Grade (Darken background)
+    filters.append(f"[full_bg]drawbox=x=0:y=0:w={W}:h={H}:color=black@0.4:t=fill[dark_bg]")
+    
+    # 3. Add Dr. Priya Avatar (Circular Crop)
+    # We take the avatar once and apply the crop
+    filters.append(
+        f"[0:v]scale={AD}:{AD},format=rgba"
+        f",geq=r='r(X,Y)':a='255*lt(hypot(X-{AD//2},Y-{AD//2}),{AD//2})'[avatar_circle]"
+    )
+    
+    # Avatar Ring
+    filters.append(
+        f"color=c=white@0.0:s={W}x{H}:r=30,format=rgba"
+        f",geq=r='255':g='255':b='255'"
+        f":a='255*gt(hypot(X-{AX+AD//2},Y-{AY+AD//2}),{AD//2})*lt(hypot(X-{AX+AD//2},Y-{AY+AD//2}),{AD//2+6})'[ring]"
+    )
+    
+    # Overlay Avatar and Ring on Background
+    filters.append(f"[dark_bg][avatar_circle]overlay={AX}:{AY}[with_avatar]")
+    filters.append(f"[with_avatar][ring]overlay=0:0[base_video]")
+    
+    # 4. Text Overlays (Hook and Subtitles)
+    current_v = "[base_video]"
+    
+    # Hook (First scene only)
+    h_parts = baslik.split(' ')
+    h_l1 = " ".join(h_parts[:3]).upper()[:18]
+    h_l2 = " ".join(h_parts[3:]).upper()[:22]
+    
+    # Proper escaping for FFmpeg text
+    h_l1 = h_l1.replace("'", "\u2019").replace(":", "\\:")
+    h_l2 = h_l2.replace("'", "\u2019").replace(":", "\\:")
+    
+    # Apply Hook on first scene duration
+    hook_end = min(4.0, scene_dur) # Hook max 4 seconds or first scene length
+    filters.append(
+        f"{current_v}drawbox=x=80:y=620:w=920:h=6:color={GREEN}@1.0:t=fill:enable='between(t,0,{hook_end})'[v_h1];"
+        f"[v_h1]drawtext=fontfile='{font_bold}':text='{h_l1}':fontcolor=white:fontsize=88:x=(w-text_w)/2:y=650"
+        f":shadowcolor=black@0.6:shadowx=3:shadowy=3:enable='between(t,0,{hook_end})'[v_h2];"
+        f"[v_h2]drawtext=fontfile='{font_bold}':text='{h_l2}':fontcolor={GREEN}:fontsize=68:x=(w-text_w)/2:y=760"
+        f":shadowcolor=black@0.6:shadowx=3:shadowy=3:enable='between(t,0,{hook_end})'[v_h3];"
+        f"[v_h3]drawbox=x=80:y=860:w=920:h=6:color={GREEN}@1.0:t=fill:enable='between(t,0,{hook_end})'[v_hooked]"
+    )
+    current_v = "[v_hooked]"
+    
+    # Subtitles (Scene by scene)
+    for i, sc in enumerate(scenes):
+        start = i * scene_dur
+        end = (i + 1) * scene_dur if i < num_scenes - 1 else total_dur
+        # Don't show subtitles during hook if they overlap
+        if i == 0 and start < hook_end:
+            start = hook_end
+            
+        sub = sc["text"].replace("'", "\u2019").replace(":", "\\:")
+        v_tag = f"[v_sub{i}]"
+        filters.append(
+            f"{current_v}drawbox=x=50:y={AY-170}:w=980:h=130:color=white@0.85:t=fill:enable='between(t,{start},{end})'[v_b{i}];"
+            f"[v_b{i}]drawtext=fontfile='{font_bold}':text='{sub}':fontcolor={DARK}:fontsize=36:x=(w-text_w)/2:y={AY-145}"
+            f":shadowcolor=black@0.05:shadowx=1:shadowy=1:enable='between(t,{start},{end})'{v_tag}"
+        )
+        current_v = v_tag
+
+    # 5. Brand Tag
+    filters.append(
+        f"{current_v}drawtext=fontfile='{font_med}':text='@HolistiGlow':fontcolor=white@0.7:fontsize=28:x=w-text_w-30:y=40[out]"
+    )
+
+    cmd.extend(["-filter_complex", ";".join(filters)])
+    cmd.extend(["-map", "[out]", "-map", "0:a"]) # Use original audio from avatar
+    cmd.extend(["-c:v", "libx264", "-preset", "fast", "-pix_fmt", "yuv420p"])
+    cmd.extend(["-c:a", "aac", "-b:a", "192k"]) # High quality audio
+    cmd.append(out_final)
+    
+    print(f"  [FFMPEG] Render basliyor (Süre: {total_dur:.1f}s)...")
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        print(f"  [FFMPEG] Hata: {res.stderr[-1000:]}")
+        return avatar_path # Fail gracefully to original if render fails
+
+    # Music Mix
+    music_path = os.path.join(PROJECT_ROOT, "assets", "music", "background_holisti.mp3")
+    if os.path.exists(music_path):
+        out_music = out_final.replace(".mp4", "_music.mp4")
+        mix_cmd = [
+            "ffmpeg", "-y", "-i", out_final, "-i", music_path,
+            "-filter_complex", "[1:a]volume=0.15,aloop=loop=-1:size=2e+09[bg];[0:a][bg]amix=inputs=2:duration=first[aout]",
+            "-map", "0:v", "-map", "[aout]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", out_music
+        ]
+        subprocess.run(mix_cmd, capture_output=True)
+        return out_music
+
+    return out_final
+
+
 def main(topic: str, hook: str, baslik: str, gun_no: int = 1):
-    print(f"\n{'='*55}")
-    print(f"  DR. PRIYA PRODUCER — Dag {gun_no}")
-    print(f"  Konu: {baslik}")
-    print(f"{'='*55}\n")
-
-    print("[1/5] Script + metadata üretiliyor (Claude)...")
+    print(f"\n[1/6] Script uretiliyor...")
     script = generate_script(topic, hook)
-    print(f"  Script ({len(script.split())} kelime):\n  {script[:100]}...\n")
     meta = generate_metadata(topic, script)
-    print(f"  Titel: {meta['titel']}")
-    print(f"  Tags:  {meta['tags'][:80]}...\n")
-
-    print("[2/5] Seslendirme (ElevenLabs — Priya)...")
+    
+    print("[2/6] Gorsel plan hazirlaniyor...")
+    scenes = generate_visual_plan(topic, script)
+    scenes = fetch_visuals(scenes)
+    
+    print("[3/6] Seslendirme...")
     audio_path = generate_voice(script)
-
-    print("\n[3/5] HeyGen video oluşturuluyor...")
+    
+    print("[4/6] HeyGen Avatar Video...")
     video_id = create_heygen_video(script, audio_path)
-
-    print("\n[4/5] Video hazırlanıyor (bekle)...")
     video_url = wait_for_video(video_id)
     video_path = download_video(video_url)
-
-    print("\n[4.5/5] FFmpeg ile reel compose ediliyor...")
-    reel_path = compose_reel(video_path, script, baslik)
-
-    print("\n[5/5] Telegram'a gönderiliyor...")
+    
+    print("[5/6] FFmpeg Compose...")
+    reel_path = compose_reel(video_path, scenes, baslik)
+    
+    print("[6/6] Telegrama gonderiliyor...")
     send_to_telegram(reel_path, baslik, gun_no, script, meta)
-
-    print(f"\n✅ Tamamlandı: {baslik}\n")
-    return video_path
+    return reel_path
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        print("Kullanım: python3 wellness_producer.py '<topic>' '<hook>' '<baslik>' [gun_no]")
+        print("Kullanim: python3 wellness_producer.py '<topic>' '<hook>' '<baslik>' [gun_no]")
         sys.exit(1)
 
     main(sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4]) if len(sys.argv) > 4 else 1)

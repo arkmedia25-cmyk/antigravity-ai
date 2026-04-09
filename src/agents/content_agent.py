@@ -12,11 +12,10 @@ logger = get_logger("agents.content")
 class ContentAgent(BaseAgent):
     def __init__(self):
         super().__init__(name="content")
-        self.memory = MemoryManager(namespace=self.name)
         self.brand_manager = BrandManager()
         self._system_prompt = load_agent_prompt("content-agent", "content_prompt.txt")
 
-    def process(self, input_data: str, chat_id=None, brand: str = "glowup") -> str:
+    def process(self, input_data: str, chat_id=None, brand: str = "glowup", context: dict = None) -> str:
         # Load brand-specific identity
         brand_config = self.brand_manager.get_brand(brand)
         if not brand_config:
@@ -24,7 +23,11 @@ class ContentAgent(BaseAgent):
             brand_config = self.brand_manager.get_brand(brand)
 
         logger.debug(f"Processing content task for brand [@{brand}]: {input_data[:100]}")
-        self.memory.save(f"{brand}:last_task", input_data, chat_id=chat_id)
+
+        # [MEMORY] Prepare history string
+        history_str = ""
+        if context and context.get("history"):
+             history_str = "\nRecente Interacties:\n" + "\n".join([f"- {t}" for t in context["history"]])
 
         # Build persona-driven prompt
         personality_text = (
@@ -35,7 +38,7 @@ class ContentAgent(BaseAgent):
             f"Marketing Angles: {', '.join(brand_config.get('marketing_angles', []))}"
         )
 
-        response = self._call_ai(input_data, personality_text, chat_id=chat_id, brand=brand)
+        response = self._call_ai(input_data, personality_text, history=history_str, chat_id=chat_id, brand=brand)
 
         # ✨ KESİN ÇÖZÜM: Metin Temizleme Filtresi
         cleaned_response = re.sub(r'\(.*?\)', '', response)
@@ -43,10 +46,9 @@ class ContentAgent(BaseAgent):
         cleaned_response = cleaned_response.replace('"', '').replace('\'', '')
         cleaned_response = cleaned_response.strip()
 
-        self.memory.save(f"{brand}:last_response", cleaned_response, chat_id=chat_id)
         return cleaned_response
 
-    def _call_ai(self, task: str, personality_text: str, chat_id=None, brand: str = "glowup") -> str:
+    def _call_ai(self, task: str, personality_text: str, history: str = "", chat_id=None, brand: str = "glowup") -> str:
         try:
             memory_context = load_memory_context()
             funnel_context = build_funnel_context(chat_id)
@@ -55,8 +57,9 @@ class ContentAgent(BaseAgent):
             full_prompt = (
                 f"{self._system_prompt}\n\n"
                 f"=== BRAND PERSONA - {brand.upper()} ===\n{personality_text}\n\n"
-                f"=== SYSTEM MEMORY ({brand}) ===\n{memory_context}"
+                f"=== SYSTEM MEMORY & KNOWLEDGE ===\n{memory_context}\n"
                 f"{funnel_block}\n"
+                f"=== CONVERSATION HISTORY ===\n{history}\n\n"
                 f"=== TASK ===\n{task}"
             )
 

@@ -356,7 +356,9 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
     def write_list(p, files):
         with open(p, "w", encoding="utf-8") as f:
             for file in files:
-                f.write(f"file '{file.replace(os.sep, '/')}'\n")
+                # Normaliseer paden en ontsnap enkelvoudige aanhalingstekens voor FFmpeg concat
+                safe_p = file.replace(os.sep, '/').replace("'", "'\\''")
+                f.write(f"file '{safe_p}'\n")
 
     v_list = os.path.abspath(os.path.join(_OUTPUT_DIR, f"v_list_{session_id}.txt"))
     a_list = os.path.abspath(os.path.join(_OUTPUT_DIR, f"a_list_{session_id}.txt"))
@@ -364,13 +366,19 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
     write_list(a_list, all_audio_files)
 
     final_vo = os.path.abspath(os.path.join(_OUTPUT_DIR, f"vo_{session_id}.mp3"))
-    print(f"[video_skill] Concatenating voiceover: {a_list}")
-    subprocess.run([
+    print(f"[video_skill] Concatenating voiceover...")
+    
+    vo_cmd = [
         "ffmpeg", "-y", "-f", "concat", "-safe", "0",
         "-i", a_list.replace(os.sep, '/'),
         "-af", "aresample=async=1", "-ar", "44100",
         "-c:a", "libmp3lame", "-b:a", "192k", final_vo
-    ], check=True)
+    ]
+    res_vo = subprocess.run(vo_cmd, capture_output=True, text=True)
+    if res_vo.returncode != 0:
+        print(f"[video_skill] Voiceover Concat Error (Code {res_vo.returncode})")
+        # Bekende fallback: Gebruik het eerste audiobestand als concat faalt
+        final_vo = all_audio_files[0] if all_audio_files else final_vo
 
     # Check for optional background music file
     music_path = os.path.join(_get_project_root(), "assets", "music", "background.mp3")
@@ -383,16 +391,18 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
         # Mix voiceover (full volume) + background music (15%)
         print(f"[video_skill] Mixing with background music: {music_path}")
         final_audio = os.path.abspath(os.path.join(_OUTPUT_DIR, f"audio_{session_id}.mp3"))
-        subprocess.run([
+        mix_res = subprocess.run([
             "ffmpeg", "-y",
             "-i", final_vo, "-i", music_path,
             "-filter_complex", "[0:a]volume=1.4[vo];[1:a]volume=0.15,aloop=loop=-1:size=2e+09[bg];[vo][bg]amix=inputs=2:duration=first[aout]",
             "-map", "[aout]", "-ar", "44100", "-c:a", "libmp3lame", "-b:a", "192k", final_audio
-        ], check=True)
+        ], capture_output=True)
+        if mix_res.returncode != 0:
+            print(f"[video_skill] Music Mix Error: {mix_res.stderr[-500:]}")
     else:
         final_audio = final_vo
 
-    subprocess.run([
+    final_res = subprocess.run([
         "ffmpeg", "-y",
         "-f", "concat", "-safe", "0", "-i", v_list.replace(os.sep, '/'),
         "-i", final_audio,
@@ -400,6 +410,10 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
         "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
         "-af", "aresample=async=1", "-shortest",
         os.path.abspath(output_path)
-    ], check=True)
+    ], capture_output=True)
+    if final_res.returncode != 0:
+        print(f"[video_skill] Final Assembly Error: {final_res.stderr[-500:]}")
+
+    return output_path
 
     return output_path

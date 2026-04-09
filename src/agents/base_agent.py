@@ -9,8 +9,10 @@ class BaseAgent(ABC):
         self.logger.debug(f"Agent initialized: {name}")
 
     @abstractmethod
-    def process(self, input_data: str, chat_id=None) -> str:
+    def process(self, input_data: str, chat_id=None, brand: str = "glowup", context: dict = None) -> str:
         """Process input and return a response.
         chat_id: Telegram chat ID — when provided, data is stored per-user.
+        brand: The brand context (e.g., 'glowup', 'holisti').
+        context: Memory/Conversation history provided by the orchestrator.
         """
         pass

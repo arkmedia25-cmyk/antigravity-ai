@@ -16,32 +16,37 @@ def _load_cmo_prompt() -> str:
 class CmoAgent(BaseAgent):
     def __init__(self):
         super().__init__(name="cmo")
-        self.memory = MemoryManager(namespace=self.name)
 
-    def process(self, input_data: str, chat_id=None) -> str:
-        self.logger.debug(f"Processing task: {input_data[:100]}")
-        self.memory.save("last_task", input_data, chat_id)
+    def process(self, input_data: str, chat_id=None, brand: str = "glowup", context: dict = None) -> str:
+        self.logger.debug(f"Processing task for @{brand}: {input_data[:100]}")
+        
+        # [MEMORY] Prepare history and profile context
+        history_str = ""
+        if context and context.get("history"):
+             history_str = "\nConversation History:\n" + "\n".join([f"- {t}" for t in context["history"]])
+        
+        profile_str = ""
+        if context and context.get("user_profile"):
+            up = context["user_profile"]
+            profile_str = f"User Status: Brand={brand}, Interactions={up.get('funnel:interaction_count', 0)}"
 
-        response = self._call_ai(input_data, chat_id=chat_id)
-
-        self.memory.save("last_response", response, chat_id)
+        response = self._call_ai(input_data, history=history_str, profile=profile_str)
         return response
 
-    def _call_ai(self, task: str, chat_id=None, prev_context="") -> str:
+    def _call_ai(self, task: str, history: str = "", profile: str = "") -> str:
         try:
             system_prompt = (
                 "You are AntiGravity CMO AI - a marketing strategy assistant for Dutch health products. "
-                "You help create Instagram Reels, TikTok, and YouTube Shorts content. "
-                "Remember the user's previous requests and build on them. "
-                "If they say 'but change X to Y', apply changes to previous ideas. "
-                "Always respond in user's language. Be conversational and helpful."
+                "You help create platform-specific content strategies (IG, TikTok). "
+                "Use the provided conversation history to maintain context."
             )
             
             full_prompt = (
-                f"{system_prompt}\n\n"
-                f"Previous context: {prev_context}\n"
-                f"User message: {task}\n"
-                f"Respond naturally and conversationally."
+                f"{system_prompt}\n"
+                f"{profile}\n"
+                f"{history}\n\n"
+                f"User Message: {task}\n"
+                "Respond in Dutch (or the user's language). Be conversational and strategic."
             )
             return ask_ai(full_prompt)
         except Exception as e:

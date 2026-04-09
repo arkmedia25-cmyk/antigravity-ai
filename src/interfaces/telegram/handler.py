@@ -48,7 +48,8 @@ _START_MESSAGE = (
     "🚀 *Antigravity AI Agency OS* aktif!\n\n"
     "🎥 *VİDEO KOMUTLARI:*\n"
     "/luna <konu> - @GlowUpNL için video üretir (enerjik)\n"
-    "/zen <konu> - @HolistiGlow için video üretir (sakin)\n\n"
+    "/zen <konu> - @HolistiGlow için video üretir (sakin)\n"
+    "/priya <konu> - Dr. Priya (HeyGen) gelişmiş video üretir\n\n"
     "💬 *DİĞER KOMUTLAR:*\n"
     "/content @marka <konu> - İçerik stratejisi yazar\n"
     "/cmo <soru> - Stratejik danışmanlık verir\n\n"
@@ -99,13 +100,70 @@ class TelegramHandler:
             threading.Thread(target=self._generate_video_sync, args=(chat_id, topic, "holisti", context), daemon=True).start()
             return
 
-        for cmd, agent in {"/cmo": "cmo", "/content": "content", "/sales": "sales", "/canva": "canva"}.items():
+        if text.startswith("/priya"):
+            topic = text[6:].strip() or "Holistische wellness"
+            await update.message.reply_text(f"🧘 Dr. Priya @HolistiGlow için gelişmiş video hazırlıyor...\nKonu: {topic}")
+            threading.Thread(target=self._generate_priya_sync, args=(chat_id, topic, context), daemon=True).start()
+            return
+
+        for cmd, agent in {"/cmo": "cmo", "/content": "content", "/sales": "sales", "/priya": "content"}.items():
             if text.startswith(cmd):
                 task = text[len(cmd):].strip()
                 await self._execute_task(update, context, agent, task)
                 return
 
         await self._execute_task(update, context, "cmo", text)
+
+    def handle(self, text, chat_id=None):
+        """
+        Backward compatibility bridge for legacy systems (e.g. skills/automation/telegram_handler.py).
+        Routes raw text commands to the Orchestrator.
+        """
+        agent = "cmo"
+        clean_text = text
+        
+        # Simple command mapping
+        if text.startswith("/cmo"):
+            agent = "cmo"
+            clean_text = text[4:].strip()
+        elif text.startswith("/content"):
+            agent = "content"
+            clean_text = text[8:].strip()
+        elif text.startswith("/sales"):
+            agent = "sales"
+            clean_text = text[6:].strip()
+        elif text.startswith("/research"):
+            agent = "research"
+            clean_text = text[9:].strip()
+        elif text.startswith("/linkedin"):
+            agent = "linkedin"
+            clean_text = text[9:].strip()
+        elif text.startswith("/email"):
+            agent = "email"
+            clean_text = text[6:].strip()
+
+        # Route to orchestrator (synchronous call for the bridge)
+        return self.orchestrator.handle_request(clean_text, agent=agent, chat_id=chat_id)
+
+    def _generate_priya_sync(self, chat_id, topic, context):
+        """Advanced Dr. Priya pipeline (HeyGen + ElevenLabs)"""
+        try:
+            import wellness_producer
+            # Parse topic, hook, baslik
+            parts = topic.split("|")
+            t = parts[0].strip() or "Wellness"
+            h = parts[1].strip() if len(parts) > 1 else "Ontdek de kracht van holistische gezondheid."
+            b = parts[2].strip() if len(parts) > 2 else t
+            
+            # This calls the full pipeline: Claude -> ElevenLabs -> HeyGen -> FFmpeg -> Telegram
+            # Note: wellness_producer.main already sends to telegram at the end
+            wellness_producer.main(t, h, b)
+            
+        except Exception as e:
+            import asyncio
+            loop = asyncio.new_event_loop()
+            loop.run_until_complete(context.bot.send_message(chat_id=chat_id, text=f"❌ Priya hatası: {e}"))
+            loop.close()
 
     def _generate_video_sync(self, chat_id, topic, brand, context):
         """Video üretim pipeline — thread içinde çalışır."""

@@ -1,25 +1,23 @@
 from src.agents.base_agent import BaseAgent
 from src.agents.agent_utils import load_memory_context, load_agent_prompt, build_funnel_context
-from src.memory.memory_manager import MemoryManager
 from src.skills.ai_client import ask_ai
-
 
 class EmailAgent(BaseAgent):
     def __init__(self):
         super().__init__(name="email")
-        self.memory = MemoryManager(namespace=self.name)
         self._system_prompt = load_agent_prompt("email-agent", "email_prompt.txt")
 
-    def process(self, input_data: str, chat_id=None) -> str:
+    def process(self, input_data: str, chat_id=None, brand: str = "glowup", context: dict = None) -> str:
         self.logger.debug(f"Processing email task: {input_data[:100]}")
-        self.memory.save("last_task", input_data, chat_id=chat_id)
+        
+        history_str = ""
+        if context and context.get("history"):
+             history_str = "\nConversation History:\n" + "\n".join([f"- {t}" for t in context["history"]])
 
-        response = self._call_ai(input_data, chat_id=chat_id)
-
-        self.memory.save("last_response", response, chat_id=chat_id)
+        response = self._call_ai(input_data, history=history_str, chat_id=chat_id)
         return response
 
-    def _call_ai(self, task: str, chat_id=None) -> str:
+    def _call_ai(self, task: str, history: str = "", chat_id=None) -> str:
         try:
             memory_context = load_memory_context()
             funnel_context = build_funnel_context(chat_id)
@@ -28,8 +26,9 @@ class EmailAgent(BaseAgent):
 
             full_prompt = (
                 f"{self._system_prompt}\n\n"
-                f"=== MERK & PRODUCT CONTEXT ===\n{memory_context}"
+                f"=== SYSTEM KNOWLEDGE ===\n{memory_context}"
                 f"{funnel_block}\n"
+                f"=== CONVERSATION HISTORY ===\n{history}\n\n"
                 f"TAAK: {task}\n\n"
                 f"Schrijf professionele, persoonlijke emails die converteren."
             )
