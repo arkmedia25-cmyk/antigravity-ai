@@ -381,10 +381,8 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
                 send_message(chat_id, f"🔍 Luna Pexels'te '{broll_query}' araması başlattı...")
                 
                 query_url = f"https://api.pexels.com/v1/search"
-                # Pexels API Request with strictly human-centric context
                 pexels_key = os.getenv("PEXELS_API_KEY")
-                # Ensure we search for humans, wellness and aesthetic (no windmills)
-                safe_query = f"aesthetic human wellness {broll_query}"
+                safe_query = broll_query  # AI'ın ürettiği sorguyu direkt kullan
                 params = {
                     "query": safe_query,
                     "orientation": "portrait",
