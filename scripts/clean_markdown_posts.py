@@ -17,7 +17,7 @@ headers = {"Authorization": f"Basic {token}", "Content-Type": "application/json"
 all_posts = []
 page = 1
 while True:
-    r = requests.get(WP_URL, headers=headers, params={"per_page": 100, "page": page}, timeout=15)
+    r = requests.get(WP_URL, headers=headers, params={"per_page": 100, "page": page}, timeout=60)
     batch = r.json()
     if not batch or r.status_code != 200:
         break
