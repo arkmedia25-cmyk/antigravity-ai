@@ -180,7 +180,7 @@ def _center(draw, text: str, font, cy: int, color):
 
 # ── Main video assembly (The Fixed Part) ────────────────────────────────────
 
-def create_reel(fragments=None, image_path=None, output_filename=None, brand="glowup", watermark_icon=None):
+def create_reel(fragments=None, image_path=None, output_filename=None, brand="glowup", watermark_icon=None, on_error=None):
     print("[ANTIGRAVITY_DEBUG_V4] Running Single-Command Rendering Pipeline...")
     theme = brand_manager.get_theme_for_video(brand)
     if not theme:
@@ -373,9 +373,9 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
     for ap in valid_audios:
         cmd.extend(["-i", ap])
 
-    # Filter Complex
+    # Filter Complex — static scale+pad (zoompan removed: too slow for VPS, causes silent hang)
     filter_parts = [
-        f"[0:v]scale=1080:-1,zoompan=z='min(zoom+0.001,1.5)':d={total_dur}*30:s=1080x1920:fps=30[vbg]"
+        f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=30[vbg]"
     ]
     
     # Audio Concat
@@ -424,8 +424,20 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
     ])
 
     print(f"[video_skill] Running deployment-safe assembly for @{brand}...")
-    final_res = subprocess.run(cmd, capture_output=True, text=True)
+    final_res = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
     if final_res.returncode != 0:
-        print(f"[video_skill] Final Assembly Error: {final_res.stderr[-500:]}")
+        err_tail = final_res.stderr[-600:]
+        print(f"[video_skill] Final Assembly Error: {err_tail}")
+        if on_error:
+            on_error(f"FFmpeg hata (kod {final_res.returncode}):\n{err_tail[-200:]}")
+        return ""
 
-    return output_path
+    abs_out = os.path.abspath(output_path)
+    if not os.path.exists(abs_out):
+        msg = f"[video_skill] Cikti dosyasi olusturulamadi: {abs_out}"
+        print(msg)
+        if on_error:
+            on_error("Video dosyası oluşturulamadı.")
+        return ""
+
+    return abs_out

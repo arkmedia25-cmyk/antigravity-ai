@@ -435,8 +435,12 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
             image_path=image_path,
             brand=brand,
             output_filename=output_filename,
-            watermark_icon=detected_icon
+            watermark_icon=detected_icon,
+            on_error=lambda msg: send_message(chat_id, f"❌ Render hatası: {msg}")
         )
+
+        if not video_path:
+            return  # on_error already notified Telegram
 
         # Session kaydet (gorsel degistirme icin)
         import json as _json
