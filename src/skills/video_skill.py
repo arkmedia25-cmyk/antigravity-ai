@@ -385,21 +385,52 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
     else:
         filter_parts.append("anullsrc=r=44100:cl=stereo[vo]")
 
-    # Subtitles Overlay
+    # Subtitles Overlay — word-wrapped, max 3 lines, max 32 chars per line
+    def _ffmpeg_wrap(text: str, max_chars: int = 32) -> list:
+        words = text.split()
+        lines, cur = [], ""
+        for w in words:
+            test = (cur + " " + w).strip()
+            if len(test) <= max_chars:
+                cur = test
+            else:
+                if cur:
+                    lines.append(cur)
+                cur = w
+        if cur:
+            lines.append(cur)
+        return lines[:3]  # max 3 satir
+
     v_stream = "[vbg]"
     curr = 0
+    font_path = f"{_get_project_root()}/assets/fonts/Montserrat-Medium.ttf"
     for i, frag in enumerate(fragments):
         txt = frag.get("sentence") or frag.get("text", "")
         txt = _clean_text(txt).replace("'", "").replace(":", "\\:")
         d = get_duration(frag.get("audio") or frag.get("path"))
         start, end = curr, curr + d
         if txt:
-            filter_parts.append(
-                f"{v_stream}drawtext=text='{txt}':fontfile='{_get_project_root()}/assets/fonts/Montserrat-Medium.ttf':"
-                f"fontsize=55:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/1.5:box=1:boxcolor=black@0.4:boxborderw=15:"
-                f"enable='between(t,{start},{end})'[v{i}]"
-            )
-            v_stream = f"[v{i}]"
+            lines = _ffmpeg_wrap(txt)
+            line_h = 70   # fontsize 55 + padding
+            total_h = len(lines) * line_h
+            # Alt-orta hizalama: video yüksekliğinin 2/3'ü civarı
+            base_y = int(_H * 0.65) - total_h // 2
+            tag_out = f"[v{i}]"
+            cur_v = v_stream
+            for li, line in enumerate(lines):
+                y = base_y + li * line_h
+                tag_in = cur_v
+                # Son satır + son drawtext bu fragment'ın çıkış tag'ini alır
+                is_last = (li == len(lines) - 1)
+                out_tag = tag_out if is_last else f"[v{i}l{li}]"
+                filter_parts.append(
+                    f"{tag_in}drawtext=text='{line}':fontfile='{font_path}':"
+                    f"fontsize=55:fontcolor=white:x=(w-text_w)/2:y={y}:"
+                    f"box=1:boxcolor=black@0.4:boxborderw=12:"
+                    f"enable='between(t,{start},{end})'{out_tag}"
+                )
+                cur_v = out_tag
+            v_stream = tag_out
         curr += d
 
     # Optional Background Music
