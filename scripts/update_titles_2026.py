@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
 update_titles_2026.py — amarereview.nl'deki tüm 2025 başlıklı postları 2026 yapar
+Başlık + yayın tarihi güncellenir.
 """
 import base64
 import requests
+from datetime import datetime
 
 WP_URL      = "https://amarereview.nl/wp-json/wp/v2/posts"
 WP_USER     = "arkmedia25@gmail.com"
@@ -26,6 +28,8 @@ while True:
 
 print(f"Toplam {len(all_posts)} post bulundu.")
 
+today = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
 updated = 0
 for post in all_posts:
     raw_title = post["title"]["rendered"]
@@ -34,11 +38,11 @@ for post in all_posts:
         r = requests.post(
             f"{WP_URL}/{post['id']}",
             headers=headers,
-            json={"title": new_title},
+            json={"title": new_title, "date": today, "modified": today},
             timeout=15
         )
         if r.status_code in (200, 201):
-            print(f"✅ {raw_title[:60]} → 2026")
+            print(f"✅ {raw_title[:60]} → 2026 ({today[:10]})")
             updated += 1
         else:
             print(f"❌ HATA ({r.status_code}): {raw_title[:60]}")
