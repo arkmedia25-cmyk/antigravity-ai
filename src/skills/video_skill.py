@@ -281,7 +281,7 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
             bx0, bx1 = 60, _W - 60
             by0 = bar_h + 80
             by1 = by0 + total_h + padding * 2
-            glass = (255, 255, 255, 210) if not image_path else (0, 0, 0, 150)
+            glass = (255, 255, 255, 210) if not image_path else (50, 50, 50, 180)
             _draw_rounded_rect(overlay_draw2, [bx0, by0, bx1, by1], 50, glass)
             img.paste(overlay_img2, (0, 0), overlay_img2)
             draw = ImageDraw.Draw(img)
