@@ -153,17 +153,22 @@ def _safe_text(text) -> str:
     return text if text else "(geen inhoud)"
 
 
-def send_video(chat_id, video_path: str, caption: str = ""):
+def send_video(chat_id, video_path: str, caption: str = "", download_url: str = ""):
     """Stuur video bestand naar Telegram chat met download button."""
     print(f"[send_video] chat_id={chat_id} | path={video_path}")
     import json
     try:
         with open(video_path, "rb") as f:
             fname = os.path.basename(video_path)
+            dl_btn = (
+                {"text": "💾 Indir", "url": download_url}
+                if download_url else
+                {"text": "💾 Indir", "callback_data": f"dl_doc_{fname}"}
+            )
             buttons = [
                 [{"text": "🔄 Gorsel Degistir", "callback_data": f"regen_img_{fname}"}],
                 [
-                    {"text": "💾 Indir", "callback_data": f"dl_doc_{fname}"},
+                    dl_btn,
                     {"text": "🚀 Instagram", "callback_data": f"publish_ig_{fname}"},
                     {"text": "TikTok", "callback_data": f"publish_tt_{fname}"},
                 ],
@@ -455,10 +460,19 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
         with open(session_path, "w", encoding="utf-8") as _sf:
             _json.dump(session_data, _sf, ensure_ascii=False)
 
-        # Verstuur video
+        # Video'yu static klasöre kopyala → public URL
+        import shutil as _shutil
+        static_dir = os.path.join(os.getcwd(), "static")
+        os.makedirs(static_dir, exist_ok=True)
+        static_name = os.path.basename(video_path)
+        static_path = os.path.join(static_dir, static_name)
+        _shutil.copy2(video_path, static_path)
+        public_url = f"https://arkmediaflow.com/media/{static_name}"
+
+        # Verstuur video met URL download buton
         final_caption = f"{brand_label} Video Hazir!\n\nCaption & tags asagida:"
-        send_video(chat_id, video_path, caption=final_caption)
-        
+        send_video(chat_id, video_path, caption=final_caption, download_url=public_url)
+
         # Send Copy-Paste Package (Title, Caption & Tags all in Dutch)
         package = (
             f"📝 **{title_body.upper()}**\n\n"
@@ -466,6 +480,29 @@ def _generate_and_send_video(chat_id, topic, brand="holisti"):
             f"`{tags}`"
         )
         send_message(chat_id, package)
+
+        # Make.com otomatik webhook — video hazır olunca direkt gönder
+        import json as _json2
+        import requests as _req2
+        webhook_url = os.getenv("MAKE_WEBHOOK_URL")
+        if webhook_url:
+            try:
+                brand_map = {"glow": "GlowUpNL", "holisti": "HolistiGlow"}
+                make_payload = {
+                    "video_url": public_url,
+                    "brand": brand_map.get(brand, brand_label),
+                    "caption": caption_body,
+                    "tags": tags,
+                    "title": title_body,
+                    "topic": topic,
+                }
+                r = _req2.post(webhook_url, json=make_payload, timeout=15)
+                if r.status_code in [200, 202, 204]:
+                    send_message(chat_id, f"✅ Make.com'a otomatik gönderildi!")
+                else:
+                    send_message(chat_id, f"⚠️ Make.com: HTTP {r.status_code} — {r.text[:100]}")
+            except Exception as me:
+                print(f"[Make.com] Hata: {me}")
 
     except Exception as e:
         print(f"[Video] HATA: {e}")
