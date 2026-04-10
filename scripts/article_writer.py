@@ -24,63 +24,63 @@ PRODUCTS = {
     "happy_juice": {
         "name": "Amare Happy Juice Edge Plus",
         "slug": "happy-juice-edge-plus-watermelon",
-        "wp_slug": "amare-happy-juice-review-2025",
+        "wp_slug": "amare-happy-juice-review-2026",
         "keywords": ["happy juice", "amare happy juice", "happy juice review", "happy juice ervaringen"],
         "topic": "energie en focus",
     },
     "sunrise": {
         "name": "Amare Sunrise",
         "slug": "sunrise",
-        "wp_slug": "amare-sunrise-review-2025",
+        "wp_slug": "amare-sunrise-review-2026",
         "keywords": ["amare sunrise", "sunrise supplement", "ochtend energie supplement"],
         "topic": "ochtendenergie en opstartritueel",
     },
     "sunset": {
         "name": "Amare Sunset",
         "slug": "sunset",
-        "wp_slug": "amare-sunset-review-2025",
+        "wp_slug": "amare-sunset-review-2026",
         "keywords": ["amare sunset", "sunset supplement", "slaap supplement"],
         "topic": "slaapkwaliteit en avondontspanning",
     },
     "edge": {
         "name": "Amare Edge",
         "slug": "edge",
-        "wp_slug": "amare-edge-review-2025",
+        "wp_slug": "amare-edge-review-2026",
         "keywords": ["amare edge", "focus supplement", "mentale energie"],
         "topic": "mentale focus en cognitieve prestaties",
     },
     "restore": {
         "name": "Amare Restore",
         "slug": "restore",
-        "wp_slug": "amare-restore-review-2025",
+        "wp_slug": "amare-restore-review-2026",
         "keywords": ["amare restore", "darm supplement", "darmgezondheid"],
         "topic": "darmgezondheid en detox",
     },
     "triangle": {
         "name": "Amare Triangle of Wellness Xtreme",
         "slug": "triangle-of-wellness-xtreme",
-        "wp_slug": "amare-triangle-wellness-review-2025",
+        "wp_slug": "amare-triangle-wellness-review-2026",
         "keywords": ["amare triangle", "triangle of wellness", "amare compleet pakket"],
         "topic": "complete mentale en fysieke wellness",
     },
     "ignite_her": {
         "name": "Amare Ignite for Her",
         "slug": "ignite-for-her",
-        "wp_slug": "amare-ignite-for-her-review-2025",
+        "wp_slug": "amare-ignite-for-her-review-2026",
         "keywords": ["amare ignite for her", "hormoonbalans vrouw", "vrouwen supplement"],
         "topic": "hormoonbalans en vrouwelijke vitaliteit",
     },
     "ignite_him": {
         "name": "Amare Ignite for Him",
         "slug": "ignite-for-him",
-        "wp_slug": "amare-ignite-for-him-review-2025",
+        "wp_slug": "amare-ignite-for-him-review-2026",
         "keywords": ["amare ignite for him", "testosteron supplement", "energie man"],
         "topic": "mannelijke hormoonbalans en vitaliteit",
     },
     "hl5": {
         "name": "Amare HL5 Collageen",
         "slug": "hl5",
-        "wp_slug": "amare-hl5-collageen-review-2025",
+        "wp_slug": "amare-hl5-collageen-review-2026",
         "keywords": ["amare hl5", "collageen supplement", "huid supplement"],
         "topic": "huid, haar en gewrichten via collageen",
         "vorm": "vloeibaar (drinkbare shot, aangenaam van smaak — geen poeder of capsule)",
@@ -88,79 +88,79 @@ PRODUCTS = {
     "fit20": {
         "name": "Amare Fit20 Eiwitshake Vanille",
         "slug": "fit20-vanilla",
-        "wp_slug": "amare-fit20-review-2025",
+        "wp_slug": "amare-fit20-review-2026",
         "keywords": ["amare fit20", "eiwitshake", "proteïne supplement"],
         "topic": "spieropbouw en gezond gewicht",
     },
     "mentabiotics": {
         "name": "Amare MentaBiotics",
         "slug": "mentabiotics",
-        "wp_slug": "amare-mentabiotics-review-2025",
+        "wp_slug": "amare-mentabiotics-review-2026",
         "keywords": ["amare mentabiotics", "probiotica supplement", "darm-hersenas"],
         "topic": "darm-hersenverbinding en mentale balans via probiotica",
     },
     "on_shots": {
         "name": "Amare ON Shots",
         "slug": "on-shots",
-        "wp_slug": "amare-on-shots-review-2025",
+        "wp_slug": "amare-on-shots-review-2026",
         "keywords": ["amare on shots", "energie shot", "adaptogenen supplement"],
         "topic": "snelle energie en focus via adaptogene shots",
     },
     "nitro_xtreme": {
         "name": "Amare Nitro Xtreme",
         "slug": "nitro-xtreme-56ml",
-        "wp_slug": "amare-nitro-xtreme-review-2025",
+        "wp_slug": "amare-nitro-xtreme-review-2026",
         "keywords": ["amare nitro xtreme", "doorbloeding supplement", "no supplement"],
         "topic": "doorbloeding, energie en fysieke prestaties",
     },
     "origin": {
         "name": "Amare Origin Chocolate Eiwitshake",
         "slug": "origin-chocolate",
-        "wp_slug": "amare-origin-chocolate-review-2025",
+        "wp_slug": "amare-origin-chocolate-review-2026",
         "keywords": ["amare origin", "vegan eiwitshake", "chocolade proteïne"],
         "topic": "plantaardige eiwitten en gezond gewicht",
     },
     "skin_to_mind": {
         "name": "Amare Skin to Mind Collection",
         "slug": "skin-to-mind-collection",
-        "wp_slug": "amare-skin-to-mind-review-2025",
+        "wp_slug": "amare-skin-to-mind-review-2026",
         "keywords": ["amare huidverzorging", "skin to mind", "amare serum"],
         "topic": "huidverzorging van binnenuit en van buitenaf",
     },
     "rootist": {
         "name": "Amare Rootist Haarverzorging",
         "slug": "rootist-dynamic-pack",
-        "wp_slug": "amare-rootist-haarwelzijn-review-2025",
+        "wp_slug": "amare-rootist-haarwelzijn-review-2026",
         "keywords": ["amare rootist", "haaruitval supplement", "haar welzijn"],
         "topic": "haargroei, haaruitval en gezonde hoofdhuid",
     },
     "edge_mango": {
         "name": "Amare Edge Plus Mango",
         "slug": "edge-plus-mango",
-        "wp_slug": "amare-edge-plus-mango-review-2025",
+        "wp_slug": "amare-edge-plus-mango-review-2026",
         "keywords": ["amare edge mango", "happy juice mango", "focus drank"],
         "topic": "focus, darmgezondheid en mentale helderheid",
     },
 }
 
 SEO_TITLES = {
-    "happy_juice":  "Amare Happy Juice Review 2025 – Eerlijke Ervaringen & Resultaten",
-    "sunrise":      "Amare Sunrise Review 2025 – Ochtendenergie Supplement, Werkt Het?",
-    "sunset":       "Amare Sunset Review 2025 – Beter Slapen met Dit Supplement?",
-    "edge":         "Amare Edge Review 2025 – Meer Focus en Mentale Energie?",
-    "restore":      "Amare Restore Review 2025 – Darmgezondheid in een Capsule?",
-    "triangle":     "Amare Triangle of Wellness Review 2025 – Compleet Pakket?",
-    "ignite_her":   "Amare Ignite for Her Review 2025 – Hormoonbalans Supplement",
-    "ignite_him":   "Amare Ignite for Him Review 2025 – Testosteron & Energie",
-    "hl5":          "Amare HL5 Collageen Review 2025 – Voor Huid, Haar & Gewrichten",
-    "fit20":        "Amare Fit20 Review 2025 – Gezonde Eiwitshake of Niet?",
-    "mentabiotics": "Amare MentaBiotics Review 2025 – Probiotica voor Darm & Brein?",
-    "on_shots":     "Amare ON Shots Review 2025 – Adaptogene Energie Shot, Werkt Het?",
-    "nitro_xtreme": "Amare Nitro Xtreme Review 2025 – Doorbloeding & Energie Boost",
-    "origin":       "Amare Origin Chocolate Review 2025 – Vegan Eiwitshake Eerlijk Getest",
-    "skin_to_mind": "Amare Skin to Mind Review 2025 – Huidverzorging van Binnen & Buiten",
-    "rootist":      "Amare Rootist Review 2025 – Oplossing tegen Haaruitval?",
-    "edge_mango":   "Amare Edge Plus Mango Review 2025 – Focus & Darmgezondheid",
+    "happy_juice":  "Amare Happy Juice Review 2026 – Eerlijke Ervaringen & Resultaten",
+    "sunrise":      "Amare Sunrise Review 2026 – Ochtendenergie Supplement, Werkt Het?",
+    "sunset":       "Amare Sunset Review 2026 – Beter Slapen met Dit Supplement?",
+    "edge":         "Amare Edge Review 2026 – Meer Focus en Mentale Energie?",
+    "restore":      "Amare Restore Review 2026 – Darmgezondheid in een Capsule?",
+    "triangle":     "Amare Triangle of Wellness Review 2026 – Compleet Pakket?",
+    "ignite_her":   "Amare Ignite for Her Review 2026 – Hormoonbalans Supplement",
+    "ignite_him":   "Amare Ignite for Him Review 2026 – Testosteron & Energie",
+    "hl5":          "Amare HL5 Collageen Review 2026 – Voor Huid, Haar & Gewrichten",
+    "fit20":        "Amare Fit20 Review 2026 – Gezonde Eiwitshake of Niet?",
+    "mentabiotics": "Amare MentaBiotics Review 2026 – Probiotica voor Darm & Brein?",
+    "on_shots":     "Amare ON Shots Review 2026 – Adaptogene Energie Shot, Werkt Het?",
+    "nitro_xtreme": "Amare Nitro Xtreme Review 2026 – Doorbloeding & Energie Boost",
+    "origin":       "Amare Origin Chocolate Review 2026 – Vegan Eiwitshake Eerlijk Getest",
+    "skin_to_mind": "Amare Skin to Mind Review 2026 – Huidverzorging van Binnen & Buiten",
+    "rootist":      "Amare Rootist Review 2026 – Oplossing tegen Haaruitval?",
+    "edge_mango":   "Amare Edge Plus Mango Review 2026 – Focus & Darmgezondheid",
 }
 
 # ─── Makale Üretimi ─────────────────────────────────────────────────────────────
@@ -225,7 +225,7 @@ REGELS:
 
     client = Anthropic(api_key=CLAUDE_API_KEY)
     response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
+        model="claude-haiku-4-5-20261001",
         max_tokens=2500,
         messages=[{"role": "user", "content": prompt}]
     )
@@ -281,7 +281,7 @@ def write_and_publish(product_key: str) -> str:
     print(f"📝 Makale yazılıyor: {p['name']}")
     content = generate_article(product_key)
 
-    title = SEO_TITLES.get(product_key, f"{p['name']} Review 2025")
+    title = SEO_TITLES.get(product_key, f"{p['name']} Review 2026")
     print(f"📤 WordPress'e yükleniyor: {title}")
     url = post_to_wordpress(title, content, product_key)
 
