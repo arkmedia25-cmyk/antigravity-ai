@@ -27,91 +27,91 @@ print(f"   Bulunan kategoriler: {list(cats.keys())}")
 def cat_id(name):
     return cats.get(name.lower())
 
-# ─── Ürün → SEO + Kategori Haritası ──────────────────────────────────────────
+# ─── Ürün → SEO + Kategori Haritası (keyword research 2026-04-10) ─────────────
 PRODUCT_MAP = {
     "happy-juice": {
-        "focus_kw": "amare happy juice",
-        "meta_desc": "Eerlijke review van Amare Happy Juice Edge Plus. Ervaringen, ingrediënten, voor- en nadelen. Werkt het echt voor energie en focus?",
+        "focus_kw": "amare happy juice ervaringen",
+        "meta_desc": "Amare Happy Juice ervaringen 2026 – werkt het echt? ✅ Eerlijke review na 30 dagen: ingrediënten, bijwerkingen, prijs en waar te kopen.",
         "categories": ["supplement reviews", "energie & focus"],
     },
     "sunrise": {
-        "focus_kw": "amare sunrise",
-        "meta_desc": "Amare Sunrise review 2026: eerlijke ervaringen met dit ochtendenergie supplement. Ingrediënten, resultaten en onze conclusie.",
+        "focus_kw": "amare sunrise ervaringen",
+        "meta_desc": "Amare Sunrise ervaringen 2026 – getest! Ochtendenergie supplement: ingrediënten, bijwerkingen en eerlijk eindoordeel. Lees voor je koopt.",
         "categories": ["supplement reviews", "energie & focus"],
     },
     "sunset": {
-        "focus_kw": "amare sunset",
-        "meta_desc": "Amare Sunset review 2026: helpt dit supplement echt voor betere slaap? Onze eerlijke ervaringen na 30 dagen.",
+        "focus_kw": "amare sunset ervaringen",
+        "meta_desc": "Amare Sunset ervaringen 2026 – beter slapen? Eerlijke test na 30 dagen: werking, bijwerkingen en is het de prijs waard?",
         "categories": ["supplement reviews", "slaap & ontspanning"],
     },
     "edge": {
-        "focus_kw": "amare edge",
-        "meta_desc": "Amare Edge review 2026: meer focus en mentale energie? Eerlijke test met ingrediënten, ervaringen en eindoordeel.",
+        "focus_kw": "amare edge ervaringen",
+        "meta_desc": "Amare Edge ervaringen 2026 – meer focus en energie? ✅ Eerlijke review: ingrediënten, bijwerkingen, prijs en waar kopen in Nederland.",
         "categories": ["supplement reviews", "mentale gezondheid"],
     },
     "restore": {
-        "focus_kw": "amare restore",
-        "meta_desc": "Amare Restore review 2026: verbetert dit supplement je darmgezondheid? Ingrediënten, ervaringen en conclusie.",
+        "focus_kw": "amare restore ervaringen",
+        "meta_desc": "Amare Restore ervaringen 2026 – darmgezondheid supplement getest. Eerlijke review: werking, bijwerkingen en conclusie na 30 dagen.",
         "categories": ["supplement reviews", "darmgezondheid"],
     },
     "triangle": {
-        "focus_kw": "amare triangle of wellness",
-        "meta_desc": "Amare Triangle of Wellness Xtreme review 2026: compleet wellness pakket getest. Eerlijke ervaringen en resultaten.",
+        "focus_kw": "amare triangle of wellness ervaringen",
+        "meta_desc": "Amare Triangle of Wellness ervaringen 2026 – compleet pakket getest. Eerlijke review: wat zit erin, werkt het en is het de prijs waard?",
         "categories": ["supplement reviews", "supplementen"],
     },
     "ignite-for-her": {
-        "focus_kw": "amare ignite for her",
-        "meta_desc": "Amare Ignite for Her review 2026: hormoonbalans supplement voor vrouwen getest. Eerlijke ervaringen en ingrediënten.",
+        "focus_kw": "amare ignite for her ervaringen",
+        "meta_desc": "Amare Ignite for Her ervaringen 2026 – hormoonbalans supplement voor vrouwen getest. Bijwerkingen, ingrediënten en eerlijk oordeel.",
         "categories": ["supplement reviews", "immuunsysteem"],
     },
     "ignite-for-him": {
-        "focus_kw": "amare ignite for him",
-        "meta_desc": "Amare Ignite for Him review 2026: testosteron en energie supplement getest. Eerlijke ervaringen na 30 dagen.",
+        "focus_kw": "amare ignite for him ervaringen",
+        "meta_desc": "Amare Ignite for Him ervaringen 2026 – testosteron supplement getest. Werkt het echt? Ingrediënten, bijwerkingen en waar kopen.",
         "categories": ["supplement reviews", "energie & focus"],
     },
     "hl5": {
-        "focus_kw": "amare hl5 collageen",
-        "meta_desc": "Amare HL5 Collageen review 2026: voor huid, haar en gewrichten. Eerlijke ervaringen met dit vloeibare collageen supplement.",
+        "focus_kw": "amare hl5 collageen ervaringen",
+        "meta_desc": "Amare HL5 Collageen ervaringen 2026 – huid, haar en gewrichten supplement getest. Eerlijke review: werking, bijwerkingen en prijs.",
         "categories": ["supplement reviews", "supplementen"],
     },
     "fit20": {
-        "focus_kw": "amare fit20",
-        "meta_desc": "Amare Fit20 eiwitshake review 2026: gezond en effectief? Eerlijke test met voedingswaarden, smaak en resultaten.",
+        "focus_kw": "amare fit20 ervaringen",
+        "meta_desc": "Amare Fit20 ervaringen 2026 – eiwitshake getest. Eerlijke review: smaak, voedingswaarden, bijwerkingen en is het de prijs waard?",
         "categories": ["supplement reviews", "gewichtsbeheersing"],
     },
     "mentabiotics": {
-        "focus_kw": "amare mentabiotics",
-        "meta_desc": "Amare MentaBiotics review 2026: probiotica voor darm én brein. Eerlijke ervaringen en wetenschappelijke onderbouwing.",
+        "focus_kw": "amare mentabiotics ervaringen",
+        "meta_desc": "Amare MentaBiotics ervaringen 2026 – darm-hersenas probiotica getest. Werkt het echt voor mentale balans? Eerlijke review met bijwerkingen.",
         "categories": ["supplement reviews", "darmgezondheid", "mentale gezondheid"],
     },
     "on-shots": {
-        "focus_kw": "amare on shots",
-        "meta_desc": "Amare ON Shots review 2026: adaptogene energie shot getest. Werkt het echt voor snelle focus en energie?",
+        "focus_kw": "amare on shots ervaringen",
+        "meta_desc": "Amare ON Shots ervaringen 2026 – adaptogene energie shot getest. Snelle focus en energie? Eerlijke review: ingrediënten en bijwerkingen.",
         "categories": ["supplement reviews", "energie & focus"],
     },
     "nitro-xtreme": {
-        "focus_kw": "amare nitro xtreme",
-        "meta_desc": "Amare Nitro Xtreme review 2026: doorbloeding en energie supplement getest. Eerlijke ervaringen en conclusie.",
+        "focus_kw": "amare nitro xtreme ervaringen",
+        "meta_desc": "Amare Nitro Xtreme ervaringen 2026 – doorbloeding supplement getest. Werkt het echt? Eerlijke review: ingrediënten, bijwerkingen en prijs.",
         "categories": ["supplement reviews", "energie & focus"],
     },
     "origin-chocolate": {
-        "focus_kw": "amare origin chocolate",
-        "meta_desc": "Amare Origin Chocolate review 2026: vegan eiwitshake eerlijk getest. Smaak, voedingswaarden en resultaten.",
+        "focus_kw": "amare origin chocolate ervaringen",
+        "meta_desc": "Amare Origin Chocolate ervaringen 2026 – vegan eiwitshake eerlijk getest. Smaak, voedingswaarden, bijwerkingen en conclusie.",
         "categories": ["supplement reviews", "gewichtsbeheersing"],
     },
     "skin-to-mind": {
-        "focus_kw": "amare skin to mind",
-        "meta_desc": "Amare Skin to Mind review 2026: huidverzorging van binnen en buiten getest. Eerlijke ervaringen en resultaten.",
+        "focus_kw": "amare skin to mind ervaringen",
+        "meta_desc": "Amare Skin to Mind ervaringen 2026 – huidverzorging supplement getest. Werkt het van binnen én buiten? Eerlijke review met resultaten.",
         "categories": ["supplement reviews", "supplementen"],
     },
     "rootist": {
-        "focus_kw": "amare rootist",
-        "meta_desc": "Amare Rootist review 2026: oplossing tegen haaruitval? Eerlijke ervaringen met dit haarwelzijn supplement.",
+        "focus_kw": "amare rootist ervaringen",
+        "meta_desc": "Amare Rootist ervaringen 2026 – haaruitval supplement getest. Werkt het echt voor haargroei? Eerlijke review: ingrediënten en resultaten.",
         "categories": ["supplement reviews", "supplementen"],
     },
     "edge-plus-mango": {
-        "focus_kw": "amare edge plus mango",
-        "meta_desc": "Amare Edge Plus Mango review 2026: focus en darmgezondheid in één drank? Eerlijke ervaringen en ingrediënten.",
+        "focus_kw": "amare edge plus mango ervaringen",
+        "meta_desc": "Amare Edge Plus Mango ervaringen 2026 – focus en darmgezondheid in één drank? Eerlijke review: ingrediënten, bijwerkingen en waar kopen.",
         "categories": ["supplement reviews", "energie & focus", "darmgezondheid"],
     },
 }
