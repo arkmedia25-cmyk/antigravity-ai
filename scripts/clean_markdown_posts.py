@@ -17,7 +17,7 @@ headers = {"Authorization": f"Basic {token}", "Content-Type": "application/json"
 all_posts = []
 page = 1
 while True:
-    r = requests.get(WP_URL, headers=headers, params={"per_page": 100, "page": page}, timeout=60)
+    r = requests.get(WP_URL, headers=headers, params={"per_page": 100, "page": page, "context": "edit"}, timeout=60)
     batch = r.json()
     if not batch or r.status_code != 200:
         break
@@ -30,8 +30,8 @@ print(f"{len(all_posts)} post taranıyor...\n")
 
 cleaned = 0
 for post in all_posts:
-    content = post["content"]["rendered"]
-    if "```" in content:
+    content = post["content"]["raw"] if "raw" in post["content"] else post["content"]["rendered"]
+    if "```" in content or "&lt;!--" in content:
         new_content = re.sub(r'```[a-z]*\n?', '', content)
         new_content = re.sub(r'\n?```', '', new_content)
         r = requests.post(f"{WP_URL}/{post['id']}", headers=headers,
