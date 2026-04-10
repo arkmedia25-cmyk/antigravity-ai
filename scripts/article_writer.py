@@ -222,6 +222,51 @@ PRODUCT_FACTS = {
 - Amare producten: MentaBiotics (darm-hersenas), Happy Juice (GABA + probiotica), Restore (darmgezondheid)
 - Trend 2026: gut-brain axis supplementen groeien 23% per jaar in Nederland
 """,
+    "restore": """
+- Ingrediënten: 9 plantaardige extracten (paardenbloemwortel 150mg, gemberwortel 50mg, roze Himalaya-zout 50mg, mariadistelzaadextract 20mg, heermoes 15mg, jeneverbespoeder 15mg, venkelzaadpoeder 15mg, heemstwortelpoeder 15mg, peterseliebladpoeder 10mg, zwarte peper 4:1 extract)
+- Bacterieculturen: 5 stammen — Bifidobacterium infantis, Lactobacillus plantarum, Lactobacillus rhamnosus, Bifidobacterium longum, Lactobacillus acidophilus (2 miljard KVE per 2 capsules)
+- Spijsverteringsenzymen: amylase, protease, lactase, lipase, cellulase (250mg enzymenmengsel per 2 caps)
+- Kenmerken: 60 capsules, glutenvrij, lactosevrij, sojavrij, vrij van noten/pinda's, NIET geschikt voor veganisten, wel voor vegetariërs, HALAL gecertificeerd
+- Dosering: 2x daags 2 capsules bij de maaltijd (max 6/dag)
+- Voordelen: verbeterde darmbalans, lactosevertering (lactase enzym), spijsverteringsondersteuning, darmflora herstel
+""",
+    "on_shots": """
+- Ingrediënten: guaranazaadextract (100mg cafeïne per portie), Alpinia Galanga-extract, groene thee-extract, wilde bosbessen-extract uit Alaska (Vaccinium myrtillus), Bacopa Monnieri, Ashwagandha-wortelextract (Withania somnifera), inositol, citicoline, L-citrulline, taurine, pyrrolochinolinechinon (PQQ)
+- Vitamines: B1 (thiamine 0,68mg), B2 (riboflavine 0,87mg), B3 (niacine 9,92mg), B6 (pyridoxine 0,87mg), B12 (methylcobalamine 1,55µg) — allemaal 100% RI
+- Kenmerken: 60ml vloeibaar sachet, frambozen-grapefruit smaak, veganistisch, glutenvrij, lactosevrij, sojavrij, 7 sachets per verpakking
+- Cafeïne: 100mg per portie (natuurlijk uit guarana) — NIET aanbevolen voor kinderen, zwangere of borstvoedende vrouwen
+- Werking: cafeïne verhoogt alertheid; B-vitamines ondersteunen energiemetabolisme en psychische functie; nootropica (Bacopa, Ashwagandha, citicoline) voor focus en mentale helderheid
+- Voordelen: snelle mentale energie, betere concentratie, verminderde vermoeidheid, zonder synthetische additieven
+""",
+    "origin": """
+- Ingrediënten: plantaardig eiwitmengsel (pompoenzaadeiwitpoeder + tuinbooneiwit), MCT-poeder (Medium Chain Triglycerides), prebiotische vezel (inuline), vitamine E, vitamine K, calcium, magnesium, zink, mangaan
+- Eiwitgehalte: 23g plantaardige eiwitten per portie
+- Kenmerken: 100% vegan, glutenvrij, lactosevrij, prebiotisch, chocoladesmaak, geen dierlijke ingrediënten
+- Voordelen: spieropbouw en -herstel, langdurig verzadigingsgevoel (MCT), darmvriendelijk (prebiotica), volledig plantaardig alternatief voor whey
+- Geschikt voor: veganisten, mensen met lactose-intolerantie, sporters, mensen die bewust eten
+""",
+    "ignite_him": """
+- Ingrediënten: rode bietenpoeder, Rhodiola Rosea-extract, Cordyceps Sinensis-extract, bamboe-extract, zink
+- Werking: zink draagt bij aan normale testosteronspiegels en vruchtbaarheid; Rhodiola Rosea adaptogeen voor stressresistentie; Cordyceps Sinensis voor energie en uithoudingsvermogen; rode biet voor doorbloeding (nitraten)
+- Kenmerken: 60 capsules per verpakking, dagelijks 2 capsules
+- Voordelen: ondersteuning mannelijke hormoonbalans, betere testosteronspiegel, meer energie en uithoudingsvermogen, verbeterde doorbloeding, minder vermoeidheid
+- Doelgroep: mannen die energie, vitaliteit en hormonale balans willen ondersteunen
+""",
+    "ignite_her": """
+- Ingrediënten: magnesium, rode bietenpoeder, bamboe-extract, citroenmelisse-extract (Melissa officinalis), shatavari (Asparagus racemosus), fenegriekzaad-extract
+- Werking: magnesium draagt bij aan vermindering van vermoeidheid en normale spier- en zenuwstelselwerking; citroenmelisse voor ontspanning; shatavari voor vrouwelijk hormonaal evenwicht; fenegriek voor hormonale balans
+- Kenmerken: 60 capsules, BEVAT GLUTEN (haver), dagelijks 2 capsules
+- Allergie: BEVAT HAVER/GLUTEN — niet geschikt voor mensen met coeliakie of glutenintolerantie
+- Voordelen: verminderde vermoeidheid, hormonale balans voor vrouwen, betere vitaliteit, ondersteuning spier- en zenuwstelsel
+- Doelgroep: vrouwen die hormonale balans, energie en vitaliteit willen verbeteren
+""",
+    "hl5": """
+- Hoofdingrediënt: 5g gehydrolyseerd collageen Type I + Type III (collageenpeptiden) per sachet
+- Werking: collageenpeptiden worden snel opgenomen en leveren aminozuren (glycine, proline, hydroxyproline) voor synthese van collageen in huid, botten en bindweefsel; type I voor huid en haar, type III voor bindweefsel en bloedvaten
+- Kenmerken: vloeibaar sachet (drinkbaar, aangenaam van smaak), geen poeder of capsule, dagelijks 1 sachet
+- Voordelen: verbeterde huidhydratatie en elasticiteit, sterkere nagels en haar, gezonde gewrichten en botten, ondersteunt bindweefsel
+- Doelgroep: mensen die huidveroudering willen vertragen, gewrichtsproblemen hebben, of haar/nagel kwaliteit willen verbeteren
+""",
 }
 
 SEO_TITLES = {
