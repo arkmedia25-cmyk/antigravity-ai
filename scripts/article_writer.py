@@ -172,6 +172,58 @@ PRODUCTS = {
     },
 }
 
+# ─── Ürün Gerçekleri (PDF Factsheets) ────────────────────────────────────────
+PRODUCT_FACTS = {
+    "happy_juice": """
+- Ingrediënten: Magnesium, prebiotica (inuline), probiotica (Lactobacillus), adaptogenen, GABA, 5-HTP
+- Werking: ondersteunt darm-hersenverbinding (gut-brain axis), kalmeert het zenuwstelsel, verbetert focus
+- Kenmerken: vloeibaar zakje (watermeloen smaak), suikervrij, plantaardig
+- Voordelen: meer energie, betere stemming, minder stress, verbeterde concentratie
+""",
+    "edge": """
+- Ingrediënten: mango-extract, Lycium barbarum (gojibessen), bètacaroteen, vitamine B5 (calciumpantothenaat)
+- Werking: pantotheenzuur ondersteunt energiemetabolisme, synthese van steroïde hormonen en neurotransmitters, helpt vermoeidheid verminderen
+- Kenmerken: plantaardig, geen cafeïne, zakje
+- Voordelen: meer energie zonder crash, dagelijkse vitaliteit, mentale helderheid
+""",
+    "edge_mango": """
+- Ingrediënten: mango-extract, Lycium barbarum (gojibessen), natuurlijke cafeïne (Coffea arabica)
+- Werking: cafeïne verbetert concentratie en verhoogt alertheid; goji ondersteunt algehele vitaliteit
+- Kenmerken: plantaardig, mango smaak, met cafeïne, 30 zakjes
+- Voordelen: snelle focus, verhoogde alertheid, actieve levensstijl ondersteuning
+""",
+    "mentabiotics": """
+- Ingrediënten: magnesium, groene thee-extract, artisjokextract, ApplePhenon, gemberwortelextract, druivenpitextract, zeeden-extract, Bifidobacterium longum, Lactobacillus helveticus, Lactobacillus rhamnosus
+- Werking: magnesium draagt bij aan normale psychische functie; probiotica ondersteunen darm-hersenverbinding; vermindert vermoeidheid
+- Kenmerken: 3 bacteriestammen, plantaardige extracten, wetenschappelijk onderbouwd
+- Voordelen: betere mentale balans, minder angst, gezondere darmflora, meer energie
+""",
+    "nitro_xtreme": """
+- Ingrediënten: noni-vruchtensapconcentraat (hoog geconcentreerd), aanvullende vitamines en mineralen
+- Werking: ondersteuning van nutriëntenopname uit Sunrise en Sunset; essentieel onderdeel Triangle of Wellness
+- Kenmerken: vloeibaar, hoge concentratie noni, speciaal voor actieve mensen
+- Voordelen: betere opname van andere supplementen, verbeterde doorbloeding, meer energie
+""",
+    "sunset": """
+- Ingrediënten: vitamine E (D-alfa-tocoferol, natuurlijke vorm), vitamine A (retinylpalmitaat), vitamine D3 (zonneschijn-vitamine), omega-3 (uit vis)
+- Werking: vitamine E beschermt cellen tegen oxidatieve stress; vitamine D3 voor botten, immuunfunctie en mentaal welbevinden; vitamine A voor zicht en huid
+- Kenmerken: lactosevrij, glutenvrij, NIET geschikt voor veganisten (bevat vis), 3 capsules per dag
+- Voordelen: betere nachtrust, cel bescherming, sterk immuunsysteem, gezonde huid
+""",
+    "triangle": """
+- Inhoud: Sunrise + Sunset + Nitro Xtreme (de drie populairste Amare supplementen)
+- Werking: compleet dagsysteem — ochtend (Sunrise), avond (Sunset), opname-ondersteuning (Nitro)
+- Kenmerken: naadloze dagelijkse routine, synergetische werking van drie producten samen
+- Voordelen: complete mentale en fysieke wellness, dag en nacht ondersteuning, maximale nutriëntenopname
+""",
+    "gut_brain": """
+- Wetenschappelijke basis: darm-hersenverbinding (vaguszenuw); 95% serotonine geproduceerd in darmen
+- Relevante supplementen: probiotica (Lactobacillus, Bifidobacterium), magnesium, prebiotica, adaptogenen
+- Amare producten: MentaBiotics (darm-hersenas), Happy Juice (GABA + probiotica), Restore (darmgezondheid)
+- Trend 2026: gut-brain axis supplementen groeien 23% per jaar in Nederland
+""",
+}
+
 SEO_TITLES = {
     "happy_juice":              "Amare Happy Juice Ervaringen 2026 – Werkt Het Echt? Eerlijke Review",
     "sunrise":                  "Amare Sunrise Ervaringen 2026 – Ochtendenergie Supplement Getest",
@@ -214,8 +266,9 @@ def generate_article(product_key: str) -> str:
 </div>"""
 
     vorm_info = f"\nProductvorm: {p['vorm']}" if p.get('vorm') else ""
+    facts_info = f"\n\nOFFICIËLE PRODUCTFEITEN (gebruik deze exacte informatie):\n{PRODUCT_FACTS[product_key]}" if product_key in PRODUCT_FACTS else ""
     prompt = f"""Schrijf een uitgebreide, betrouwbare Nederlandse productreview van "{p['name']}".
-Het gaat over het thema: {p['topic']}.{vorm_info}
+Het gaat over het thema: {p['topic']}.{vorm_info}{facts_info}
 
 Gebruik precies deze HTML-structuur (geen markdown, alleen HTML):
 
