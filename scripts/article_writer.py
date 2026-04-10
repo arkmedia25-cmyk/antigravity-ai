@@ -221,7 +221,8 @@ REGELS:
 - Geen overdreven reclame — eerlijk en informatief
 - Verwerk deze zoekwoorden natuurlijk: {', '.join(p['keywords'])}
 - Totaal 800–1000 woorden
-- Geef ALLEEN de HTML terug, geen inleiding of uitleg"""
+- Geef ALLEEN de HTML terug, geen inleiding of uitleg
+- VERBODEN: geen ```html of ``` blokken, geen markdown, alleen pure HTML"""
 
     client = Anthropic(api_key=CLAUDE_API_KEY)
     response = client.messages.create(
@@ -229,7 +230,12 @@ REGELS:
         max_tokens=2500,
         messages=[{"role": "user", "content": prompt}]
     )
-    return response.content[0].text.strip()
+    text = response.content[0].text.strip()
+    # Markdown code fences temizle
+    import re
+    text = re.sub(r'^```[a-z]*\n?', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\n?```$', '', text, flags=re.MULTILINE)
+    return text.strip()
 
 
 # ─── WordPress Yayınlama ────────────────────────────────────────────────────────
