@@ -5,6 +5,13 @@ import os
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 if _ROOT not in sys.path:
     sys.path.append(_ROOT)
+
+# Add automation and wordpress scripts to path
+_AUTO = os.path.join(_ROOT, "scripts", "automation")
+_WP = os.path.join(_ROOT, "scripts", "wordpress")
+for _p in [_AUTO, _WP]:
+    if _p not in sys.path:
+        sys.path.append(_p)
 # ---------------------------------------------
 
 
@@ -63,7 +70,12 @@ _START_MESSAGE = (
 class TelegramHandler:
     def __init__(self):
         self.orchestrator = Orchestrator()
-        self.memory = MemoryManager(namespace="telegram") # Fixing AttributeError: missing memory attribute
+        try:
+            self.memory = MemoryManager(namespace="telegram")
+            logger.info("TelegramHandler: MemoryManager initialized.")
+        except Exception as e:
+            logger.error(f"TelegramHandler: MemoryManager init failed: {e}")
+            self.memory = None # Final fallback to avoid crash
         self._user_state = {} 
 
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -383,7 +395,7 @@ def start_telegram_bot():
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler.handle_message))
     application.add_handler(CallbackQueryHandler(handler.handle_callback))
     
-    print("✅ Antigravity Agency OS Botu Hazır!")
+    print("Antigravity Agency OS Botu Hazir!")
     application.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":

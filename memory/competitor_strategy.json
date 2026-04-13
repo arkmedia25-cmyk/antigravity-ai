@@ -1,0 +1,93 @@
+{
+  "last_updated": "2026-04-10",
+  "analysis_source": "brands/bonusan/audit-2026-04-10.md",
+  "competitors": {
+    "bonusan": {
+      "brand": "Bonusan",
+      "campaign": "The Science of You (Mart 2025)",
+      "positioning": "Premium, klinikal, bilimsel — B2B2C model (sağlık profesyoneli → hasta)",
+      "strengths": [
+        "60 yıllık miras (1966)",
+        "15.000+ sağlık profesyoneli ağı",
+        "9/10 Trustpilot skoru (5.800+ yorum)",
+        "Çift laboratuvar test süreci",
+        "Hızlı kargo (22:30'a kadar aynı gün)"
+      ],
+      "creative_weaknesses": [
+        "UGC video yok — tamamen kurumsal estetik",
+        "Duygusal hikaye anlatımı yok — özellik satar, sonuç satmaz",
+        "Sosyal kanıtı (Trustpilot yorumları) kreatiflere taşımıyor",
+        "Jargon ağır: bisglisinat, biyoyararlanım, chelatlanmış",
+        "Hard sell veya aciliyet taktiği yok",
+        "Hook-first video formatı yok",
+        "Hızlı tempolu kreatif yok"
+      ],
+      "whitespace_opportunities": [
+        "UGC video — kameraya bakan gerçek kullanıcı",
+        "Outcome storytelling — gün 1 / gün 7 / gün 30 yolculuğu",
+        "Jargonsuz dil — teknik terimi duygusal sonuca çevir",
+        "Trustpilot yorum kartları kreatif olarak kullanmak",
+        "Kıtlık / aciliyet taktikleri",
+        "Hook-first hızlı video formatı"
+      ]
+    }
+  },
+  "content_strategy": {
+    "core_principle": "Bonusan özelliklere satıyor. Biz duygulara, sonuçlara ve gerçek insanlara satıyoruz.",
+    "messaging_rules": [
+      "Jargon yasak — teknik terimi duygusal sonuca çevir",
+      "Özellik değil sonuç sat — 'magnesium bisglisinat içerir' değil → '3. günden itibaren daha rahat uyu'",
+      "Gerçek insan, gerçek ses — kurumsal dil yasak",
+      "Sosyal kanıtı kreatiflere taşı — her 3 içerikten 1'i testimonial odaklı",
+      "Hook ilk 2 saniyede — kanca hemen, açıklama sonra"
+    ],
+    "priority_formats": [
+      {
+        "format": "UGC video (30-45 sn)",
+        "priority": 1,
+        "why": "Bonusan'da tamamen boş — en yüksek Meta performanslı format",
+        "structure": "Kanca (0-3 sn) → Problem (3-10 sn) → Dönüm noktası (10-25 sn) → Sonuç + CTA (25-45 sn)"
+      },
+      {
+        "format": "Testimonial statik reklam",
+        "priority": 2,
+        "why": "Bonusan 5.800 yorumu var, hiç kullanmıyor",
+        "structure": "Sarı yıldızlar + gerçek yorum metni + ürün görseli"
+      },
+      {
+        "format": "Carousel — Gün yolculuğu",
+        "priority": 3,
+        "why": "Bonusan bu formatı hiç denememiş",
+        "structure": "Slide 1: Gün 1 → Slide 2: Gün 3 → Slide 3: Gün 7 → Slide 4: Gün 30 → Slide 5: CTA"
+      },
+      {
+        "format": "Blog yazısı (SEO)",
+        "priority": 4,
+        "why": "Eğitici içerik boşluğu — jargonsuz supplement rehberleri",
+        "topics": [
+          "Magnesium formu neden önemli?",
+          "Vitamine D3 ile K2 neden birlikte alınmalı?",
+          "Sabah mı akşam mı? Supplement zamanlaması rehberi",
+          "Gut-brain bağlantısı nedir? Basit anlatım"
+        ]
+      }
+    ],
+    "approved_hooks_new": [
+      "Magnesium alıyorsun ama hâlâ uyuyamıyorsun — neden?",
+      "Vitamine D eksikliğin var mı bilmiyorsun bile.",
+      "6 hafta önce hiç supplement kullanmıyordum...",
+      "5.000 kişi yanılıyor olamaz.",
+      "Biyoyararlanım ne demek bilmiyorum ama uyumak istiyorum.",
+      "Gün 1 — Gün 7 — Gün 30: Benim hikayem.",
+      "Sağlık için pahalı kelimeler öğrenmek zorunda değilsin.",
+      "Dürüst olmak gerekirse beklemiyordum..."
+    ],
+    "weekly_content_plan": {
+      "week_1": ["3 testimonial statik kreatif", "3 anti-jargon hook testi (statik+video)"],
+      "week_2": ["UGC video #1 (İlk 7 Gün)", "Carousel set #1 (Gün yolculuğu)"],
+      "week_3": ["UGC video #2", "Blog #1 (Magnesium formu)"],
+      "week_4": ["UGC video #3", "Blog #2 (D3 + K2)"],
+      "ongoing": ["Ayda 4 UGC video", "Ayda 4 blog", "Haftada 2+ testimonial içerik"]
+    }
+  }
+}

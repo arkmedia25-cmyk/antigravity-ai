@@ -14,27 +14,16 @@
 
 ## HIZLI DURUM PANELİ (en son durum — 2026-04-04)
 
-> **NOT:** Hetzner VPS (116.203.74.27 / arkmediaflow.com) artık kullanılmıyor. Tüm sistem DigitalOcean üzerinde.
-
 | Sistem | Durum | Detay |
 |---|---|---|
-| Telegram Bot | ✅ Çalışıyor | polling modu, DigitalOcean'da canlı |
-| Canva OAuth | ✅ **Gekoppeld!** | 2026-03-29 00:22 CET bağlandı |
+| Telegram Bot | ✅ Çalışıyor | polling, memory fix, encoding fix (13 Apr) |
+| Dr. Priya VO | ✅ Canlı | Emojis & Titles filtered (Sanitized) |
 | Make.com Webhook | ✅ Bağlı | .env'de MAKE_WEBHOOK_URL mevcut |
-| Instagram Publish (Meta API) | ⚠️ Yarım | publisher_skill.py hazır, .env credentials eksik |
-| TikTok Publish | ❌ Placeholder | "under development" döndürüyor |
-| Video Kalitesi (PIL+FFmpeg) | ⚠️ Çalışıyor | Düşük kalite, Remotion ile değiştirilecek |
-| Remotion video-engine | ⚠️ Kurulu | HelloWorld template, brand composition yok |
-| Luna (GLW-01) agent | ✅ Aktif | @GlowUpNL, energetik, mercan/şeftali |
-| Zen (HLG-01) agent | ✅ Aktif | @HolistiGlow, sakin, bej/yeşil |
-| Pexels B-Roll | ✅ Aktif | telegram_handler.py'de entegre |
-| Hetzner VPS | 🚫 Kullanılmıyor | Unut/sil |
-| SSL (arkmediaflow.com) | ✅ Aktif | https callback çalışıyor |
-| Memory (SQLite) | ✅ Kalıcı | 11 kayıt, restart sonrası korunuyor |
-| OpenAI (gpt-4.1-mini) | ✅ Bağlı | Ana AI motoru |
-| Funnel Tracking | ✅ Aktif | chat_id 812914122 → stage: intent (19 etkileşim) |
-| Test Sayısı | ✅ 105 test | Phase 9 itibarıyla tamamı geçiyor |
-| PROJE_DOKUMAN.md | ✅ Güncel | 2026-03-29 tarihiyle senkronize |
+| Instagram Publish | ✅ Make.com | `/smart_publish.py` + webhook entegre |
+| Video Kalitesi | ✅ Peak | FFmpeg composer + sanitization (13 Apr) |
+| Multimodal Skill | ✅ Aktif | `/multimodal` yüklendi |
+| RAG Test Skill | ✅ Aktif | `/test-ai` yüklendi |
+| PROJE_DOKUMAN.md | ✅ Güncel | 2026-04-13 Büyük Reorganizasyon |
 
 ---
 
@@ -94,7 +83,18 @@ Yeni sistem (`src/`) hata verirse → eski sistem (`agents/` + `skills/automatio
 ## 2. Klasör Yapısı
 
 ```
-Antigravity/
+├── scripts/                            ← Yeni organize edilmiş scriptler
+│   ├── automation/                     ← Bot, video üreticiler, otomasyon
+│   │   ├── wellness_producer.py
+│   │   ├── autonomous_producer.py
+│   │   └── ... (diğer otomasyon scriptleri)
+│   └── wordpress/                      ← Amare Bridge ve WP restorasyon scriptleri
+│       ├── rebuild_homepage.py
+│       └── ... (WP araçları)
+│
+├── logs/                             ← Merkezi log yönetimi
+│   ├── app.log
+│   └── bot_output.log
 │
 ├── src/                              ← YENİ sistem (Phase 0-9)
 │   ├── __init__.py

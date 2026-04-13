@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-04-13] - Big Cleanup & Automation Restoration
+
+### Major Reorganization
+- **Project Structure:** Moved all root scripts to `/scripts/automation` and `/scripts/wordpress`.
+- **Logs:** Centralized all logs into the `/logs` directory.
+
+### Bug Fixes
+- **Telegram Bot (@my_ai_ark_agent_bot):** Fixed `MemoryManager` AttributeError and console `UnicodeEncodeError`. Bot is now online.
+- **Dr. Priya Voiceover:** Implemented `clean_script_for_tts` to filter emojis and non-spoken metadata from script generation.
+- **Pillow Error:** Installed missing `Pillow` (PIL) library.
+
+### New Skills
+- **Multimodal Analysis:** Added `/multimodal` for product photo analysis.
+- **RAG Testing:** Added `/test-ai` for retrieval accuracy and source attribution.
+
 ## [2026-04-01] - Stability & Pipeline Fixes
 
 ### Bug Fixes - 2026-04-01

@@ -169,6 +169,37 @@ TAGS: [15-20 relevante hashtags, mix van groot en niche, geen #, komma-gescheide
     return meta
 
 
+# ─── SCRIPT CLEANING ──────────────────────────────────────────────────────────
+
+def clean_script_for_tts(text: str) -> str:
+    """Removes headers, emojis, and bracketed metadata for a clean voiceover."""
+    # Remove lines starting with common headers
+    headers = ["TITEL:", "TITLE:", "DESCRIPTION:", "TAGS:", "TOPIC:", "HOOK:", "CTA:", "SCENE:", "SCRIPT:"]
+    lines = text.splitlines()
+    clean_lines = []
+    
+    for line in lines:
+        upper_line = line.strip().upper()
+        if any(upper_line.startswith(h) for h in headers):
+            continue
+        # Remove anything like "Dr. Priya — Dag 7/30" or similar
+        if "DR. PRIYA" in upper_line and ("DAG" in upper_line or "DAY" in upper_line):
+            continue
+        clean_lines.append(line)
+    
+    text = "\n".join(clean_lines)
+    
+    # Remove everything inside square brackets [SCENE 1] etc.
+    text = re.sub(r'\[.*?\]', '', text)
+    
+    # Remove emojis
+    text = text.encode('ascii', 'ignore').decode('ascii')
+    
+    # Remove redundant whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+    
+    return text
+
 # ─── ELEVENLABS TTS ───────────────────────────────────────────────────────────
 
 def generate_voice(text: str) -> str:
@@ -303,6 +334,42 @@ def get_duration(video_path: str) -> float:
     return float(r.stdout.strip())
 
 
+def _esc(text: str) -> str:
+    """Escape text for FFmpeg drawtext filter."""
+    text = text.replace('\\', '\\\\')
+    text = text.replace("'", "\u2019")   # typographic apostrophe — safe in drawtext
+    text = text.replace(':', '\\:')
+    text = text.replace('%', '\\%')
+    text = text.replace('[', '\\[').replace(']', '\\]')
+    text = text.replace(',', '\\,')
+    return text
+
+
+def _fpath(path: str) -> str:
+    """Convert any path to FFmpeg-safe font path (handles Windows drive letters)."""
+    path = path.replace('\\', '/')
+    if len(path) >= 2 and path[1] == ':':
+        path = path[0] + '\\:' + path[2:]
+    return path
+
+
+def _wrap(text: str, max_chars: int = 38) -> list:
+    """Split text into lines of max_chars for subtitle overlay (max 2 lines)."""
+    words = text.split()
+    lines, cur = [], ""
+    for w in words:
+        test = (cur + " " + w).strip()
+        if len(test) <= max_chars:
+            cur = test
+        else:
+            if cur:
+                lines.append(cur)
+            cur = w
+    if cur:
+        lines.append(cur)
+    return lines[:2]
+
+
 def send_to_telegram(video_path: str, baslik: str, gun_no: int, script: str, meta: dict = None):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendVideo"
 
@@ -384,164 +451,215 @@ def send_to_telegram(video_path: str, baslik: str, gun_no: int, script: str, met
 
 def compose_reel(avatar_path: str, scenes: list, baslik: str) -> str:
     """
-    HolistiGlow Native Layout (1080x1920):
-    ─ Arka Plan: Hibrit gorseller (Ken Burns effect) - Zaman bazlı geçiş
-    ─ Dr. Priya: Altta dairesel kesim (circular crop) - Sabit overlay
-    ─ Hook & Altyazı: Sahneye göre değişen metinler
+    HolistiGlow Native Layout v2 (1080x1920):
+    ─ Arka Plan : Hibrit gorseller (Ken Burns) — sahneye gore gecis
+    ─ Dr. Priya : Buyuk dairesel overlay (alt-orta)
+    ─ Altyazı   : 2-satir wrapped, glassmorphism kutu
+    ─ Hook      : Ilk 4sn — buyuk bold tipografi
+    ─ Gradient  : Alt kisim karanlik vignette (okunabilirlik)
     """
     import subprocess
 
     out_final = os.path.join(PROJECT_ROOT, "outputs", f"reel_final_{int(time.time())}.mp4")
     os.makedirs(os.path.join(PROJECT_ROOT, "outputs"), exist_ok=True)
-    
+
     total_dur = get_duration(avatar_path)
-    num_scenes = len(scenes)
-    scene_dur = total_dur / num_scenes if num_scenes else total_dur
-    
-    font_bold = os.path.join(PROJECT_ROOT, "assets", "fonts", "PlayfairDisplay-Bold.ttf")
-    font_med  = os.path.join(PROJECT_ROOT, "assets", "fonts", "Montserrat-Regular.ttf")
-    
-    if not os.path.exists(font_bold):
-        import platform
+    num_scenes = max(len(scenes), 1)
+    scene_dur  = total_dur / num_scenes
+
+    # ── Fonts ────────────────────────────────────────────────────────────────
+    font_bold_raw = os.path.join(PROJECT_ROOT, "assets", "fonts", "PlayfairDisplay-Bold.ttf")
+    font_med_raw  = os.path.join(PROJECT_ROOT, "assets", "fonts", "Montserrat-Medium.ttf")
+    font_reg_raw  = os.path.join(PROJECT_ROOT, "assets", "fonts", "Montserrat-Regular.ttf")
+
+    import platform
+    if not os.path.exists(font_bold_raw):
         if platform.system() == "Windows":
-            font_bold = "C:/Windows/Fonts/arialbd.ttf"
-            font_med  = "C:/Windows/Fonts/arial.ttf"
+            font_bold_raw = "C:/Windows/Fonts/arialbd.ttf"
+            font_med_raw  = "C:/Windows/Fonts/arialbd.ttf"
+            font_reg_raw  = "C:/Windows/Fonts/arial.ttf"
         else:
-            font_bold = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-            font_med  = font_bold
+            font_bold_raw = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+            font_med_raw  = font_bold_raw
+            font_reg_raw  = font_bold_raw
 
-    GREEN = "#829678"
-    DARK  = "#282C2D"
-    W, H  = 1080, 1920
-    
-    # Avatar settings
-    AD = 240   # Diameter
-    AX = (W - AD) // 2
-    AY = H - AD - 100
+    fb = _fpath(font_bold_raw)
+    fm = _fpath(font_med_raw)
+    fr = _fpath(font_reg_raw)
 
-    # Build FFmpeg command
-    # Inputs: [0:v] Avatar, [1:v] Image 0, [2:v] Image 1, ...
-    cmd = ["ffmpeg", "-y"]
-    cmd.extend(["-i", avatar_path])
-    
+    # ── Layout constants ─────────────────────────────────────────────────────
+    GREEN  = "#829678"
+    CREAM  = "#FDF6EE"
+    DARK   = "#1A1A1A"
+    W, H   = 1080, 1920
+    AD     = 320          # Avatar diameter (larger)
+    AX     = (W - AD) // 2
+    AY     = H - AD - 60  # Avatar Y position
+
+    # Subtitle box sits above avatar
+    SUB_BOX_H  = 210      # tall enough for 2 lines
+    SUB_BOX_Y  = AY - SUB_BOX_H - 24
+    SUB_L1_Y   = SUB_BOX_Y + 28
+    SUB_L2_Y   = SUB_BOX_Y + 112
+
+    # ── Build FFmpeg inputs ───────────────────────────────────────────────────
+    # Use -loop 1 + -framerate 30 so images generate frames at 30fps
+    cmd = ["ffmpeg", "-y", "-i", avatar_path]
     for sc in scenes:
-        cmd.extend(["-i", sc["image_path"]])
-    
-    # Filter Complex
+        cmd.extend(["-loop", "1", "-framerate", "30", "-i", sc.get("image_path", "")])
+
     filters = []
-    
-    # 1. Prepare Background Layers (Ken Burns per scene)
-    # We create a full-length background by overlaying scene segments
+
+    # ── 1. Ken Burns backgrounds (scale+crop pan — FAST, no zoompan) ─────────
+    # Pan directions alternate per scene for visual variety
+    pan_xy = [
+        (f"(iw-ow)*(t/{scene_dur:.4f})", f"(ih-oh)*0.3"),   # pan right
+        (f"(iw-ow)*0.3",                  f"(ih-oh)*(t/{scene_dur:.4f})"),  # pan down
+        (f"(iw-ow)*(1-t/{scene_dur:.4f})",f"(ih-oh)*0.7"),  # pan left
+        (f"(iw-ow)*0.7",                  f"(ih-oh)*(1-t/{scene_dur:.4f})"), # pan up
+        (f"(iw-ow)*0.5",                  f"(ih-oh)*0.5"),   # center
+    ]
+
     for i in range(num_scenes):
-        start = i * scene_dur
-        # Ensure the last scene covers the remaining time exactly
-        end = (i + 1) * scene_dur if i < num_scenes - 1 else total_dur
-        dur = end - start
-        
-        # Ken Burns for this specific scene
-        # We use 'zoompan' on the specific input. input index is i+1 (0 is avatar)
-        # Note: zoompan s parameter should match output size
-        input_idx = i + 1
+        dur = scene_dur if i < num_scenes - 1 else (total_dur - i * scene_dur)
+        idx = i + 1
+        px, py = pan_xy[i % len(pan_xy)]
+        # Scale to 110% of output, then crop with pan expression
         filters.append(
-            f"[{input_idx}:v]scale=1920:3413:flags=lanczos,crop={W}:{H}:(iw-{W})/2:(ih-{H})/2"
-            f",zoompan=z='zoom+0.0005':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={int(total_dur*30)}:s={W}x{H}:fps=30"
-            f",trim=duration={dur},setpts=PTS-STARTPTS[bg{i}]"
+            f"[{idx}:v]scale=1188:2112:flags=lanczos,setsar=1"
+            f",fps=30,crop={W}:{H}:'{px}':'{py}'"
+            f",trim=duration={dur:.4f},setpts=PTS-STARTPTS[bg{i}]"
         )
 
-    # Concat background segments
-    bg_inputs = "".join([f"[bg{i}]" for i in range(num_scenes)])
+    bg_inputs = "".join(f"[bg{i}]" for i in range(num_scenes))
     filters.append(f"{bg_inputs}concat=n={num_scenes}:v=1:a=0[full_bg]")
-    
-    # 2. Base Grade (Darken background)
-    filters.append(f"[full_bg]drawbox=x=0:y=0:w={W}:h={H}:color=black@0.4:t=fill[dark_bg]")
-    
-    # 3. Add Dr. Priya Avatar (Circular Crop)
-    # We take the avatar once and apply the crop
+
+    # ── 2. Bottom dark gradient for readability ───────────────────────────────
+    filters.append(
+        f"[full_bg]drawbox=x=0:y={H//2}:w={W}:h={H//2}:color=black@0.55:t=fill[dark_bg]"
+    )
+
+    # ── 3. Avatar circle + glow ring ─────────────────────────────────────────
     filters.append(
         f"[0:v]scale={AD}:{AD},format=rgba"
-        f",geq=r='r(X,Y)':a='255*lt(hypot(X-{AD//2},Y-{AD//2}),{AD//2})'[avatar_circle]"
+        f",geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)'"
+        f":a='255*lt(hypot(X-{AD//2},Y-{AD//2}),{AD//2-2})'[avatar_circle]"
     )
-    
-    # Avatar Ring
+    # Glow ring (green, 8px wide)
+    R = AD // 2
+    CX_ring = AX + R
+    CY_ring = AY + R
     filters.append(
         f"color=c=white@0.0:s={W}x{H}:r=30,format=rgba"
-        f",geq=r='255':g='255':b='255'"
-        f":a='255*gt(hypot(X-{AX+AD//2},Y-{AY+AD//2}),{AD//2})*lt(hypot(X-{AX+AD//2},Y-{AY+AD//2}),{AD//2+6})'[ring]"
+        f",geq=r='130':g='150':b='120'"
+        f":a='220*gt(hypot(X-{CX_ring},Y-{CY_ring}),{R})*lt(hypot(X-{CX_ring},Y-{CY_ring}),{R+8})'[ring]"
     )
-    
-    # Overlay Avatar and Ring on Background
     filters.append(f"[dark_bg][avatar_circle]overlay={AX}:{AY}[with_avatar]")
     filters.append(f"[with_avatar][ring]overlay=0:0[base_video]")
-    
-    # 4. Text Overlays (Hook and Subtitles)
+
+    # ── 4. Hook (first 4s) ────────────────────────────────────────────────────
     current_v = "[base_video]"
-    
-    # Hook (First scene only)
-    h_parts = baslik.split(' ')
-    h_l1 = " ".join(h_parts[:3]).upper()[:18]
-    h_l2 = " ".join(h_parts[3:]).upper()[:22]
-    
-    # Proper escaping for FFmpeg text
-    h_l1 = h_l1.replace("'", "\u2019").replace(":", "\\:")
-    h_l2 = h_l2.replace("'", "\u2019").replace(":", "\\:")
-    
-    # Apply Hook on first scene duration
-    hook_end = min(4.0, scene_dur) # Hook max 4 seconds or first scene length
+    hook_end  = min(4.5, scene_dur)
+
+    words  = baslik.split()
+    mid    = max(1, len(words) // 2)
+    h_l1   = _esc(" ".join(words[:mid]).upper())
+    h_l2   = _esc(" ".join(words[mid:]).upper())
+
     filters.append(
-        f"{current_v}drawbox=x=80:y=620:w=920:h=6:color={GREEN}@1.0:t=fill:enable='between(t,0,{hook_end})'[v_h1];"
-        f"[v_h1]drawtext=fontfile='{font_bold}':text='{h_l1}':fontcolor=white:fontsize=88:x=(w-text_w)/2:y=650"
-        f":shadowcolor=black@0.6:shadowx=3:shadowy=3:enable='between(t,0,{hook_end})'[v_h2];"
-        f"[v_h2]drawtext=fontfile='{font_bold}':text='{h_l2}':fontcolor={GREEN}:fontsize=68:x=(w-text_w)/2:y=760"
-        f":shadowcolor=black@0.6:shadowx=3:shadowy=3:enable='between(t,0,{hook_end})'[v_h3];"
-        f"[v_h3]drawbox=x=80:y=860:w=920:h=6:color={GREEN}@1.0:t=fill:enable='between(t,0,{hook_end})'[v_hooked]"
+        # Accent bar top
+        f"{current_v}drawbox=x=90:y=580:w=900:h=5:color={GREEN}@1.0:t=fill:enable='between(t,0,{hook_end})'[vh1]"
+    )
+    filters.append(
+        f"[vh1]drawtext=fontfile='{fb}':text='{h_l1}'"
+        f":fontcolor={CREAM}:fontsize=96:x=(w-text_w)/2:y=600"
+        f":shadowcolor=black@0.7:shadowx=4:shadowy=4:enable='between(t,0,{hook_end})'[vh2]"
+    )
+    filters.append(
+        f"[vh2]drawtext=fontfile='{fb}':text='{h_l2}'"
+        f":fontcolor={GREEN}:fontsize=72:x=(w-text_w)/2:y=726"
+        f":shadowcolor=black@0.5:shadowx=3:shadowy=3:enable='between(t,0,{hook_end})'[vh3]"
+    )
+    # Accent bar bottom
+    filters.append(
+        f"[vh3]drawbox=x=90:y=830:w=900:h=5:color={GREEN}@1.0:t=fill:enable='between(t,0,{hook_end})'[v_hooked]"
     )
     current_v = "[v_hooked]"
-    
-    # Subtitles (Scene by scene)
-    for i, sc in enumerate(scenes):
-        start = i * scene_dur
-        end = (i + 1) * scene_dur if i < num_scenes - 1 else total_dur
-        # Don't show subtitles during hook if they overlap
-        if i == 0 and start < hook_end:
-            start = hook_end
-            
-        sub = sc["text"].replace("'", "\u2019").replace(":", "\\:")
-        v_tag = f"[v_sub{i}]"
-        filters.append(
-            f"{current_v}drawbox=x=50:y={AY-170}:w=980:h=130:color=white@0.85:t=fill:enable='between(t,{start},{end})'[v_b{i}];"
-            f"[v_b{i}]drawtext=fontfile='{font_bold}':text='{sub}':fontcolor={DARK}:fontsize=36:x=(w-text_w)/2:y={AY-145}"
-            f":shadowcolor=black@0.05:shadowx=1:shadowy=1:enable='between(t,{start},{end})'{v_tag}"
-        )
-        current_v = v_tag
 
-    # 5. Brand Tag
+    # ── 5. Subtitles — wrapped 2-line glassmorphism ───────────────────────────
+    for i, sc in enumerate(scenes):
+        t_start = i * scene_dur
+        t_end   = (i + 1) * scene_dur if i < num_scenes - 1 else total_dur
+        if i == 0:
+            t_start = max(t_start, hook_end)
+
+        lines = _wrap(_esc(sc.get("text", "")), max_chars=36)
+        l1 = lines[0] if len(lines) > 0 else ""
+        l2 = lines[1] if len(lines) > 1 else ""
+
+        en = f"between(t,{t_start:.4f},{t_end:.4f})"
+        vtag = f"[vsub{i}]"
+
+        # Semi-transparent frosted box
+        filters.append(
+            f"{current_v}drawbox=x=40:y={SUB_BOX_Y}:w={W-80}:h={SUB_BOX_H}"
+            f":color=black@0.55:t=fill:enable='{en}'[vbox{i}]"
+        )
+        # Left accent stripe
+        filters.append(
+            f"[vbox{i}]drawbox=x=40:y={SUB_BOX_Y}:w=6:h={SUB_BOX_H}"
+            f":color={GREEN}@1.0:t=fill:enable='{en}'[vstripe{i}]"
+        )
+        # Line 1
+        filters.append(
+            f"[vstripe{i}]drawtext=fontfile='{fm}':text='{l1}'"
+            f":fontcolor=white:fontsize=44:x=(w-text_w)/2:y={SUB_L1_Y}"
+            f":enable='{en}'[vl1_{i}]"
+        )
+        # Line 2 (empty if only 1 line)
+        filters.append(
+            f"[vl1_{i}]drawtext=fontfile='{fr}':text='{l2}'"
+            f":fontcolor=white@0.85:fontsize=40:x=(w-text_w)/2:y={SUB_L2_Y}"
+            f":enable='{en}'{vtag}"
+        )
+        current_v = vtag
+
+    # ── 6. Brand watermark (top-right) ────────────────────────────────────────
     filters.append(
-        f"{current_v}drawtext=fontfile='{font_med}':text='@HolistiGlow':fontcolor=white@0.7:fontsize=28:x=w-text_w-30:y=40[out]"
+        f"{current_v}drawtext=fontfile='{fm}':text='@HolistiGlow'"
+        f":fontcolor=white@0.80:fontsize=32:x=w-text_w-36:y=44"
+        f":shadowcolor=black@0.5:shadowx=2:shadowy=2[vbrand]"
     )
 
+    # ── 7. SAR fix (square pixels) ───────────────────────────────────────────
+    filters.append("[vbrand]setsar=1[out]")
+
     cmd.extend(["-filter_complex", ";".join(filters)])
-    cmd.extend(["-map", "[out]", "-map", "0:a"]) # Use original audio from avatar
-    cmd.extend(["-c:v", "libx264", "-preset", "fast", "-pix_fmt", "yuv420p"])
-    cmd.extend(["-c:a", "aac", "-b:a", "192k"]) # High quality audio
+    cmd.extend(["-map", "[out]", "-map", "0:a"])
+    cmd.extend(["-c:v", "libx264", "-preset", "fast", "-crf", "20", "-pix_fmt", "yuv420p"])
+    cmd.extend(["-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart"])
     cmd.append(out_final)
-    
-    print(f"  [FFMPEG] Render basliyor (Süre: {total_dur:.1f}s)...")
+
+    print(f"  [FFMPEG] Render basliyor (Sure: {total_dur:.1f}s)...")
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode != 0:
-        print(f"  [FFMPEG] Hata: {res.stderr[-1000:]}")
-        return avatar_path # Fail gracefully to original if render fails
+        print(f"  [FFMPEG] Hata:\n{res.stderr[-1500:]}")
+        return avatar_path
 
-    # Music Mix
+    # ── 8. Music Mix ─────────────────────────────────────────────────────────
     music_path = os.path.join(PROJECT_ROOT, "assets", "music", "background_holisti.mp3")
     if os.path.exists(music_path):
         out_music = out_final.replace(".mp4", "_music.mp4")
         mix_cmd = [
             "ffmpeg", "-y", "-i", out_final, "-i", music_path,
-            "-filter_complex", "[1:a]volume=0.15,aloop=loop=-1:size=2e+09[bg];[0:a][bg]amix=inputs=2:duration=first[aout]",
-            "-map", "0:v", "-map", "[aout]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", out_music
+            "-filter_complex",
+            "[1:a]volume=0.12,aloop=loop=-1:size=2e+09[bg];[0:a][bg]amix=inputs=2:duration=first[aout]",
+            "-map", "0:v", "-map", "[aout]",
+            "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", out_music
         ]
-        subprocess.run(mix_cmd, capture_output=True)
-        return out_music
+        r2 = subprocess.run(mix_cmd, capture_output=True)
+        if r2.returncode == 0:
+            return out_music
 
     return out_final
 
@@ -556,7 +674,8 @@ def main(topic: str, hook: str, baslik: str, gun_no: int = 1):
     scenes = fetch_visuals(scenes)
     
     print("[3/6] Seslendirme...")
-    audio_path = generate_voice(script)
+    clean_text = clean_script_for_tts(script)
+    audio_path = generate_voice(clean_text)
     
     print("[4/6] HeyGen Avatar Video...")
     video_id = create_heygen_video(script, audio_path)

@@ -1,4 +1,6 @@
-﻿.env
+.env
+__pycache__/
+.env
 __pycache__/
 *.pyc
 *.db
@@ -7,3 +9,16 @@ __pycache__/
 
 outputs/
 Roboto-Bold.ttf
+logs/
+scratch/
+tmp/
+.claude/
+node_modules/
+*.log
+.pytest_cache/
+AI Otomasyonu/
+amare_bridge_site/
+ark_agents/
+brands/
+static/
+assets/

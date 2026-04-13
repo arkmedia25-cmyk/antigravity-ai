@@ -4,9 +4,13 @@
 
 ---
 
-## 📌 Nerede Kaldık? (Mevcut Durum)
+En son **13 Nisan 2026** itibariyle aşağıdaki işlemler tamamlandı:
 
-En son **10 Nisan 2026** itibariyle aşağıdaki işlemler tamamlandı:
+### 🧹 Büyük Reorganizasyon ve Bot Onarımı
+- **Klasör Düzenlemesi** → Tüm scriptler `/scripts/automation/` ve `/scripts/wordpress/` altına taşındı.
+- **Telegram Bot Fix** → `@my_ai_ark_agent_bot` üzerindeki `memory` ve `encoding` hataları giderildi. ✅
+- **Dr. Priya VO Fix** → Seslendirme öncesi "Sanitizer" eklendi (Başlıklar ve emojiler artık okunmuyor). ✅
+- **Bağımlılıklar** → `Pillow` (PIL) ve `python-telegram-bot` güncellendi.
 
 ### 🎬 Video Pipeline Düzeltmeleri
 - **zoompan kaldırıldı** → `scale+crop` ile değiştirildi (`src/skills/video_skill.py`) — VPS'te sessiz hang yapıyordu
