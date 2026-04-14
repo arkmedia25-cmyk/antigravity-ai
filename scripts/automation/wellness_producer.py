@@ -13,10 +13,13 @@ import requests
 from dotenv import load_dotenv
 
 # --- Path Fix for src imports ---
-_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(_FILE_DIR))
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__)) # scripts/automation
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(PROJECT_ROOT)) # actual project root
+
 if _PROJECT_ROOT not in sys.path:
     sys.path.append(_PROJECT_ROOT)
+
+load_dotenv(os.path.join(_PROJECT_ROOT, ".env"))
 
 from src.skills.ai_client import ask_ai
 
