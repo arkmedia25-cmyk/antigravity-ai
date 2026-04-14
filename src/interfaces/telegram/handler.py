@@ -172,23 +172,20 @@ class TelegramHandler:
 
     def _generate_priya_sync(self, chat_id, topic, context):
         """Advanced Dr. Priya pipeline (HeyGen + ElevenLabs)"""
+        import os
+        _token = os.getenv("TELEGRAM_TOKEN", "")
+        _api = f"https://api.telegram.org/bot{_token}"
         try:
             import wellness_producer
-            # Parse topic, hook, baslik
             parts = topic.split("|")
             t = parts[0].strip() or "Wellness"
             h = parts[1].strip() if len(parts) > 1 else "Ontdek de kracht van holistische gezondheid."
             b = parts[2].strip() if len(parts) > 2 else t
-            
-            # This calls the full pipeline: Claude -> ElevenLabs -> HeyGen -> FFmpeg -> Telegram
-            # Note: wellness_producer.main already sends to telegram at the end
+            # Full pipeline: Claude -> ElevenLabs -> HeyGen -> FFmpeg -> Telegram
             wellness_producer.main(t, h, b)
-            
         except Exception as e:
-            import asyncio
-            loop = asyncio.new_event_loop()
-            loop.run_until_complete(context.bot.send_message(chat_id=chat_id, text=f"❌ Priya hatası: {e}"))
-            loop.close()
+            err = str(e).encode("utf-8", errors="ignore").decode("utf-8")
+            requests.post(f"{_api}/sendMessage", data={"chat_id": chat_id, "text": f"Priya fout: {err}"})
 
     def _generate_video_sync(self, chat_id, topic, brand, context):
         """Video üretim pipeline — thread içinde çalışır."""
@@ -241,22 +238,41 @@ class TelegramHandler:
                 tag = "hook" if i == 0 else ("cta" if i == len(sentences) - 1 else "content")
                 fragment_data.append({"sentence": sentence, "audio": fpath, "tag": tag})
 
+            # --- Fetch a Pexels background image for the topic ---
+            pexels_key = os.getenv("PEXELS_API_KEY", "")
+            image_path = None
+            if pexels_key:
+                try:
+                    query = re.sub(r'[^a-zA-Z\s]', '', topic).strip()[:40] or "wellness"
+                    px_resp = requests.get(
+                        f"https://api.pexels.com/v1/search?query={query}&per_page=1&orientation=portrait",
+                        headers={"Authorization": pexels_key}, timeout=10
+                    )
+                    if px_resp.ok:
+                        photos = px_resp.json().get("photos", [])
+                        if photos:
+                            img_url = photos[0]["src"]["large2x"]
+                            img_fname = f"bg_{ts}.jpg"
+                            os.makedirs("outputs", exist_ok=True)
+                            img_dest = os.path.join("outputs", img_fname)
+                            with requests.get(img_url, stream=True, timeout=15) as r:
+                                with open(img_dest, "wb") as f:
+                                    for chunk in r.iter_content(8192):
+                                        f.write(chunk)
+                            image_path = img_dest
+                except Exception as px_err:
+                    print(f"[handler] Pexels gorsel alinamadi: {px_err}")
+
             output_filename = f"reel_{brand}_{ts}.mp4"
             video_path = create_reel(
                 fragments=fragment_data,
-                image_path=None,
+                image_path=image_path,
                 brand=brand,
                 output_filename=output_filename,
             )
 
             # Use short video_id for callback_data (Telegram max 64 chars)
             video_id = f"{brand}_{ts}"
-            keyboard = [
-                [InlineKeyboardButton("📥 Download", callback_data=f"dl_{video_id}"),
-                 InlineKeyboardButton("✍️ Revise", callback_data=f"rev_{video_id}")],
-                [InlineKeyboardButton(f"🚀 Instagram ({brand_label})", callback_data=f"pub_{video_id}")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
 
             safe_title   = _safe(title.upper())
             safe_caption = _safe(caption)
@@ -266,9 +282,10 @@ class TelegramHandler:
             pkg = f"[TITEL]\n{safe_title}\n\n[CAPTION]\n{safe_caption}\n\n[TAGS]\n{safe_tags}"
 
             reply_markup_json = json.dumps({"inline_keyboard": [
-                [{"text": "Downloaden",  "callback_data": f"dl_{video_id}"},
-                 {"text": "Herzien",     "callback_data": f"rev_{video_id}"}],
-                [{"text": f"Publiceer op Instagram ({safe_brand})", "callback_data": f"pub_{video_id}"}]
+                [{"text": "Downloaden",              "callback_data": f"dl_{video_id}"},
+                 {"text": "Herzien",                 "callback_data": f"rev_{video_id}"}],
+                [{"text": f"Instagram ({safe_brand})",  "callback_data": f"ig_{video_id}"},
+                 {"text": f"TikTok ({safe_brand})",     "callback_data": f"tt_{video_id}"}]
             ]})
 
             if os.path.exists(video_path):
