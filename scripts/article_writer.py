@@ -8,9 +8,15 @@ import os
 import sys
 import base64
 import requests
-from dotenv import load_dotenv
-load_dotenv("/root/antigravity-ai/.env")
-from anthropic import Anthropic
+load_dotenv() # Load from current or parent dirs
+
+# --- Path Fix for src imports ---
+_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_ROOT = os.path.dirname(_FILE_DIR)
+if _PROJECT_ROOT not in sys.path:
+    sys.path.append(_PROJECT_ROOT)
+
+from src.skills.ai_client import ask_ai
 
 # ─── Config ────────────────────────────────────────────────────────────────────
 WP_URL      = "https://amarereview.nl/wp-json/wp/v2/posts"
@@ -355,13 +361,7 @@ REGELS:
 - Geef ALLEEN de HTML terug, geen inleiding of uitleg
 - VERBODEN: geen ```html of ``` blokken, geen markdown, alleen pure HTML"""
 
-    client = Anthropic(api_key=CLAUDE_API_KEY)
-    response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=2500,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    text = response.content[0].text.strip()
+    text = ask_ai(prompt, provider="anthropic")
     # Markdown code fences temizle
     import re
     text = re.sub(r'^```[a-z]*\n?', '', text, flags=re.MULTILINE)

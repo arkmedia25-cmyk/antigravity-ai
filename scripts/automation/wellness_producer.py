@@ -12,13 +12,13 @@ import re
 import requests
 from dotenv import load_dotenv
 
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-os.chdir(PROJECT_ROOT)
-sys.path.insert(0, PROJECT_ROOT)
+# --- Path Fix for src imports ---
+_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(_FILE_DIR))
+if _PROJECT_ROOT not in sys.path:
+    sys.path.append(_PROJECT_ROOT)
 
-load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
-
-from anthropic import Anthropic
+from src.skills.ai_client import ask_ai
 
 # ─── AYARLAR ──────────────────────────────────────────────────────────────────
 TELEGRAM_TOKEN   = os.getenv("TELEGRAM_TOKEN")
@@ -28,7 +28,8 @@ HEYGEN_AVATAR_ID = os.getenv("HEYGEN_AVATAR_ID", "b261b5094cb44fd28ab47db80e41a8
 EL_API_KEY       = os.getenv("ELEVENLABS_API_KEY")
 EL_VOICE_ID      = os.getenv("ELEVENLABS_VOICE_ID", "bH1SkJMbYirLovnne9JM")
 
-claude = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+# AI client is now centralized via ask_ai
+# claude = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 PEXELS_KEY = os.getenv("PEXELS_API_KEY")
 OPENAI_KEY = os.getenv("OPENAI_API_KEY")
@@ -53,12 +54,8 @@ REGELS:
 
 Geef ALLEEN de spreektekst terug, geen uitleg."""
 
-    resp = claude.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=600,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return resp.content[0].text.strip()
+    response_text = ask_ai(prompt, provider="anthropic")
+    return response_text.strip()
 
 
 def generate_visual_plan(topic: str, script: str) -> list:
@@ -79,13 +76,9 @@ ANTWOORD ALLEEN IN DIT JSON FORMAAT:
   ...
 ]}}"""
 
-    resp = claude.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=800,
-        messages=[{"role": "user", "content": prompt}]
-    )
+    response_text = ask_ai(prompt, provider="anthropic")
     try:
-        match = re.search(r'\{.*\}', resp.content[0].text, re.DOTALL)
+        match = re.search(r'\{.*\}', response_text, re.DOTALL)
         return json.loads(match.group(0)).get("scenes", [])
     except:
         return []
@@ -151,12 +144,7 @@ TAGS: [15-20 relevante hashtags, mix van groot en niche, geen #, komma-gescheide
 
 ⚠️ REGELS: Gebruik GEEN Engelse tijdsnotatie (3pm, 2pm, 5pm). Schrijf '15:00' of 'drie uur' etc."""
 
-    resp = claude.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=400,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    text = resp.content[0].text.strip()
+    text = ask_ai(prompt, provider="anthropic")
 
     meta = {"titel": "", "description": "", "tags": ""}
     for line in text.splitlines():
