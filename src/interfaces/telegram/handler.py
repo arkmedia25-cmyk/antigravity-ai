@@ -193,8 +193,18 @@ class TelegramHandler:
     def _generate_video_sync(self, chat_id, topic, brand, context):
         """Video üretim pipeline — thread içinde çalışır."""
         import datetime, re, os
+
+        def _safe(txt):
+            """Remove surrogate/non-encodable chars so Telegram API never crashes."""
+            if not txt:
+                return ""
+            return txt.encode("utf-8", errors="ignore").decode("utf-8")
+
+        _token = os.getenv("TELEGRAM_TOKEN", "")
+        _api = f"https://api.telegram.org/bot{_token}"
+
         if not _video_ok:
-            context.bot.send_message(chat_id=chat_id, text="❌ Video pipeline yüklenemedi.")
+            requests.post(f"{_api}/sendMessage", data={"chat_id": chat_id, "text": "Video pipeline yuklenemedi."})
             return
         try:
             ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -248,25 +258,33 @@ class TelegramHandler:
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
-            pkg = f"📝 {title.upper()}\n\n{caption}\n\n{tags}"
+            safe_title   = _safe(title.upper())
+            safe_caption = _safe(caption)
+            safe_tags    = _safe(tags)
+            safe_brand   = _safe(brand_label)
 
-            token = os.getenv("TELEGRAM_TOKEN", "")
-            api_base = f"https://api.telegram.org/bot{token}"
+            pkg = f"[TITEL]\n{safe_title}\n\n[CAPTION]\n{safe_caption}\n\n[TAGS]\n{safe_tags}"
+
+            reply_markup_json = json.dumps({"inline_keyboard": [
+                [{"text": "Downloaden",  "callback_data": f"dl_{video_id}"},
+                 {"text": "Herzien",     "callback_data": f"rev_{video_id}"}],
+                [{"text": f"Publiceer op Instagram ({safe_brand})", "callback_data": f"pub_{video_id}"}]
+            ]})
 
             if os.path.exists(video_path):
                 with open(video_path, "rb") as vf:
-                    requests.post(f"{api_base}/sendVideo", data={
+                    requests.post(f"{_api}/sendVideo", data={
                         "chat_id": chat_id,
-                        "caption": f"{brand_label} — Video Hazır!",
-                        "reply_markup": json.dumps({"inline_keyboard": [[{"text": "📥 Download", "callback_data": f"dl_{video_id}"}, {"text": "✍️ Revise", "callback_data": f"rev_{video_id}"}], [{"text": f"🚀 Instagram ({brand_label})", "callback_data": f"pub_{video_id}"}]]})
+                        "caption": f"{safe_brand} - Video Klaar!",
+                        "reply_markup": reply_markup_json
                     }, files={"video": vf})
-                requests.post(f"{api_base}/sendMessage", data={"chat_id": chat_id, "text": pkg})
+                requests.post(f"{_api}/sendMessage", data={"chat_id": chat_id, "text": pkg})
             else:
-                requests.post(f"{api_base}/sendMessage", data={"chat_id": chat_id, "text": f"❌ Video dosyası bulunamadı: {video_path}"})
+                requests.post(f"{_api}/sendMessage", data={"chat_id": chat_id, "text": f"Fout: Video niet gevonden: {video_path}"})
 
         except Exception as e:
-            token = os.getenv("TELEGRAM_TOKEN", "")
-            requests.post(f"https://api.telegram.org/bot{token}/sendMessage", data={"chat_id": chat_id, "text": f"❌ Video hatası: {e}"})
+            err = _safe(str(e))
+            requests.post(f"{_api}/sendMessage", data={"chat_id": chat_id, "text": f"Video fout: {err}"})
 
     async def _execute_task(self, update: Update, context: ContextTypes.DEFAULT_TYPE, agent: str, task: str):
         chat_id = update.effective_chat.id
