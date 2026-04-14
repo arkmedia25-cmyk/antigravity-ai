@@ -3,6 +3,7 @@ from src.agents.base_agent import BaseAgent
 from src.memory.memory_manager import MemoryManager
 from src.core.logging import get_logger
 from src.skills.ai_client import ask_ai
+from src.core.protocol import SwarmMessage
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -17,7 +18,7 @@ class CmoAgent(BaseAgent):
     def __init__(self):
         super().__init__(name="cmo")
 
-    def process(self, input_data: str, chat_id=None, brand: str = "glowup", context: dict = None) -> str:
+    def process(self, input_data: str, chat_id=None, brand: str = "glowup", context: dict = None) -> SwarmMessage:
         self.logger.debug(f"Processing task for @{brand}: {input_data[:100]}")
         
         # [MEMORY] Prepare history and profile context
@@ -30,10 +31,9 @@ class CmoAgent(BaseAgent):
             up = context["user_profile"]
             profile_str = f"User Status: Brand={brand}, Interactions={up.get('funnel:interaction_count', 0)}"
 
-        response = self._call_ai(input_data, history=history_str, profile=profile_str)
-        return response
+        return self._call_ai(input_data, history=history_str, profile=profile_str)
 
-    def _call_ai(self, task: str, history: str = "", profile: str = "") -> str:
+    def _call_ai(self, task: str, history: str = "", profile: str = "") -> SwarmMessage:
         try:
             system_prompt = (
                 "You are AntiGravity CMO AI - a marketing strategy assistant for Dutch health products. "
@@ -48,7 +48,16 @@ class CmoAgent(BaseAgent):
                 f"User Message: {task}\n"
                 "Respond in Dutch (or the user's language). Be conversational and strategic."
             )
-            return ask_ai(full_prompt)
+            response = ask_ai(full_prompt)
+            return SwarmMessage(
+                sender=self.name,
+                content=response,
+                status="success"
+            )
         except Exception as e:
             self.logger.error(f"AI call failed: {e}")
-            return f"CMO agent hatasi: {e}"
+            return SwarmMessage(
+                sender=self.name,
+                content=f"CMO agent hatasi: {e}",
+                status="error"
+            )

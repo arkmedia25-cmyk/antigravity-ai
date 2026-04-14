@@ -5,6 +5,7 @@ from src.agents.sales_agent import SalesAgent
 from src.agents.research_agent import ResearchAgent
 from src.agents.email_agent import EmailAgent
 from src.agents.linkedin_agent import LinkedInAgent
+from src.agents.video_producer_agent import VideoProducerAgent
 from src.core.brand_manager import BrandManager
 from src.memory.memory_manager import MemoryManager
 from src.core.logging import get_logger
@@ -18,7 +19,10 @@ _AGENTS = {
     "research": ResearchAgent,
     "email": EmailAgent,
     "linkedin": LinkedInAgent,
+    "video_producer": VideoProducerAgent,
 }
+
+from src.core.protocol import SwarmMessage
 
 class Orchestrator:
     def __init__(self):
@@ -32,42 +36,72 @@ class Orchestrator:
         match = re.search(r"@(\w+)", text)
         if match:
             brand_name = match.group(1).lower()
-            # Remove @brand from text
             cleaned_text = text.replace(match.group(0), "").strip()
             return brand_name, cleaned_text
         return "glowup", text # Default brand
 
     def handle_request(self, input_text: str, agent: str = "cmo", chat_id=None) -> str:
+        """
+        Main entry point for the Agency Swarm.
+        Handles both single agent requests and multi-agent chains.
+        """
         brand_name, clean_text = self._extract_brand(input_text)
-        brand_config = self.brand_manager.get_brand(brand_name)
         
-        if not brand_config:
-            logger.warning(f"Requested brand '{brand_name}' not found. Falling back to default.")
-            brand_name = "glowup"
-            brand_config = self.brand_manager.get_brand(brand_name)
-
         # [MEMORY] Load user context
         context = {}
         if chat_id:
-            # Load last 3 tasks
+            # Shared memory between agents for this interaction
+            interaction_data = {}
+            
             history = self.memory.load("last_3_tasks", chat_id=chat_id) or []
             context["history"] = history
+            context["user_profile"] = self.memory.get_user_profile(chat_id)
             
-            # Load funnel stage
-            profile = self.memory.get_user_profile(chat_id)
-            context["user_profile"] = profile
-            
-            # Track this interaction
             self.memory.track_interaction(chat_id, agent, clean_text)
             self.memory.track_last_tasks(chat_id, clean_text)
 
-        logger.debug(f"Routing request to [{agent}] for brand [@{brand_name}] (chat_id={chat_id})")
+        current_agent_name = agent
+        current_input = clean_text
+        final_response = ""
+        chain_depth = 0
+        max_depth = 5 # Prevent infinite loops
 
-        if not clean_text:
-            return "[Orchestrator] Empty input — nothing to process."
+        while current_agent_name and chain_depth < max_depth:
+            logger.info(f"[Orchestrator] Turn {chain_depth+1}: Sending to [{current_agent_name}]")
+            
+            selected_agent = self.agents.get(current_agent_name)
+            if not selected_agent:
+                final_response = f"Unknown agent: {current_agent_name}"
+                break
+            
+            # Agent processing
+            try:
+                message: SwarmMessage = selected_agent.process(
+                    current_input, 
+                    chat_id=chat_id, 
+                    brand=brand_name, 
+                    context=context
+                )
+                
+                # Update context with any data returned by the agent
+                if message.data:
+                    context.update(message.data)
+                
+                final_response = message.content
+                
+                # Check for delegation
+                if message.next_agent:
+                    current_agent_name = message.next_agent
+                    current_input = message.content # Use current output as next input
+                    chain_depth += 1
+                    logger.info(f"[Orchestrator] Delegating to next agent: {current_agent_name}")
+                else:
+                    # Final result reached
+                    break
+                    
+            except Exception as e:
+                logger.error(f"Error in agent chain [{current_agent_name}]: {e}")
+                final_response = f"Sistem hatası ({current_agent_name}): {str(e)}"
+                break
 
-        selected = self.agents.get(agent)
-        if selected is None:
-            return f"[Orchestrator] Unknown agent: '{agent}'."
-
-        return selected.process(clean_text, chat_id=chat_id, brand=brand_name, context=context)
+        return final_response

@@ -1,0 +1,328 @@
+:root {
+    --bg-dark: #050a18;
+    --bg-sidebar: #020611;
+    --bg-card: #0a0f1e;
+    --primary: #ff9f0a;
+    --text-main: #ffffff;
+    --text-dim: #71717a;
+    --accent-blue: #3b82f6;
+    --accent-green: #10b981;
+    --border: rgba(255, 255, 255, 0.05);
+    --glass: rgba(255, 255, 255, 0.03);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    overflow: hidden;
+}
+
+.app-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 280px;
+    background-color: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 32px;
+}
+
+.logo-box {
+    background-color: var(--primary);
+    color: black;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.2rem;
+    border-radius: 4px;
+}
+
+.header-text h1 {
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+}
+
+.header-text p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+}
+
+.switcher {
+    display: flex;
+    background-color: var(--bg-dark);
+    padding: 4px;
+    border-radius: 8px;
+    margin-bottom: 32px;
+}
+
+.switcher button {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    background: none;
+    color: var(--text-dim);
+    font-weight: 600;
+    font-size: 0.8rem;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.switcher button.active {
+    background-color: var(--bg-card);
+    color: var(--primary);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.sidebar-nav ul {
+    list-style: none;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.nav-item .code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    width: 24px;
+}
+
+.nav-item .label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.nav-item:hover, .nav-item.active {
+    color: var(--text-main);
+}
+
+.nav-item.active {
+    color: var(--primary);
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding-top: 24px;
+}
+
+.ui-mode p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+}
+
+.mode-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.mode-buttons button {
+    padding: 6px 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.mode-buttons button.active {
+    background-color: var(--primary);
+    color: black;
+    border-color: var(--primary);
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.content-header {
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+    border-bottom: 1px solid var(--border);
+}
+
+.breadcrumb {
+    color: var(--text-dim);
+    font-size: 1rem;
+    letter-spacing: 1px;
+}
+
+.breadcrumb span {
+    color: var(--text-main);
+    font-weight: 800;
+}
+
+.header-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    background-color: var(--glass);
+    padding: 6px 12px;
+    border-radius: 20px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--primary);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--primary);
+}
+
+.dashboard-section {
+    padding: 40px;
+}
+
+.section-title h2 {
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+}
+
+.section-title p {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 40px;
+}
+
+.stat-card {
+    background-color: var(--bg-card);
+    padding: 32px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.card-label {
+    font-size: 0.7rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+}
+
+.card-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+}
+
+.card-value.active { color: var(--accent-green); }
+.card-value.workflows { color: #a855f7; }
+
+.table-container {
+    margin-top: 40px;
+}
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.filters {
+    display: flex;
+    gap: 12px;
+}
+
+.filters button {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding-bottom: 4px;
+}
+
+.filters button.active {
+    color: var(--primary);
+    border-bottom: 2px solid var(--primary);
+}
+
+.new-project {
+    background-color: var(--primary);
+    color: black;
+    border: none;
+    padding: 10px 20px;
+    font-weight: 800;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.ai-orb {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    width: 80px;
+    height: 80px;
+    background: radial-gradient(circle, #4f46e5 0%, #050a18 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 20px rgba(79, 70, 229, 0.4);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.3s;
+}
+
+.ai-orb:hover {
+    transform: scale(1.1);
+}
+
+.orb-content {
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+}

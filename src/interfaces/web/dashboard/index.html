@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antigravity | Agency OS</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-box">A</div>
+                <div class="header-text">
+                    <h1>AGENCYOS</h1>
+                    <p>// COMMAND INTERFACE</p>
+                </div>
+            </div>
+            
+            <div class="switcher">
+                <button class="active">AGENCY</button>
+                <button>CLIENT</button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item">
+                        <span class="code">MC</span> <span class="label">MAP + JARVIS</span>
+                    </li>
+                    <li class="nav-item">
+                        <span class="code">PL</span> <span class="label">CRM PIPELINE</span>
+                    </li>
+                    <li class="nav-item">
+                        <span class="code">OP</span> <span class="label">DASHBOARD</span>
+                    </li>
+                    <li class="nav-item active">
+                        <span class="code">AI</span> <span class="label">AI ASSISTANT</span>
+                    </li>
+                    <li class="nav-item">
+                        <span class="code">JN</span> <span class="label">REVENUE JOURNEY</span>
+                    </li>
+                    <li class="nav-item">
+                        <span class="code">PJ</span> <span class="label">PROJECTS</span>
+                    </li>
+                    <li class="nav-item">
+                        <span class="code">??</span> <span class="label">SETTINGS</span>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="ui-mode">
+                    <p>// UI MODE</p>
+                    <div class="mode-buttons">
+                        <button>SIMPLE</button>
+                        <button class="active">ADVANCED</button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <div class="breadcrumb">
+                    REVENUE JOURNEY / <span>PROJECTS</span>
+                </div>
+                <div class="header-status">
+                    <span class="status-dot"></span> NBN: ONLINE
+                </div>
+                <div class="user-profile">
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=ff9f0a&color=fff" alt="Profile">
+                    <div class="profile-info">
+                        <p class="email">admin@antigravity.ai</p>
+                        <button class="sign-out">SIGN OUT</button>
+                    </div>
+                </div>
+            </header>
+
+            <section class="dashboard-section">
+                <div class="section-title">
+                    <h2>// [PROJ] REGISTRY</h2>
+                    <p>All client projects & autonomous agent tasks</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="card-label">TOTAL</div>
+                        <div class="card-value total">12</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="card-label">ACTIVE</div>
+                        <div class="card-value active">4</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="card-label">WORKFLOWS</div>
+                        <div class="card-value workflows">3</div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="filters">
+                            <button class="active">ALL (12)</button>
+                            <button>ACTIVE (4)</button>
+                            <button>LIVE</button>
+                        </div>
+                        <button class="new-project">+ NEW PROJECT</button>
+                    </div>
+
+                    <div class="project-list">
+                        <!-- Project rows will be rendered here -->
+                        <div class="empty-state">
+                            <p>Loading autonomous agency data...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- AI Assistant Floating Button -->
+        <div class="ai-orb">
+            <div class="orb-content">ASK AI</div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

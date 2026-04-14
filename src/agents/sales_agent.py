@@ -2,6 +2,7 @@ from src.agents.base_agent import BaseAgent
 from src.agents.agent_utils import load_memory_context, load_agent_prompt, build_funnel_context
 from src.memory.memory_manager import MemoryManager
 from src.skills.ai_client import ask_ai
+from src.core.protocol import SwarmMessage
 
 # Keyword → product mapping for personalization
 _INTEREST_MAP = {
@@ -21,11 +22,10 @@ class SalesAgent(BaseAgent):
         super().__init__(name="sales")
         self._system_prompt = load_agent_prompt("sales-agent", "sales_prompt.txt")
 
-    def process(self, input_data: str, chat_id=None, brand: str = "glowup", context: dict = None) -> str:
+    def process(self, input_data: str, chat_id=None, brand: str = "glowup", context: dict = None) -> SwarmMessage:
         self.logger.debug(f"Processing sales task for @{brand}: {input_data[:100]}")
         
-        response = self._call_ai(input_data, chat_id=chat_id, brand=brand, context=context)
-        return response
+        return self._call_ai(input_data, chat_id=chat_id, brand=brand, context=context)
 
     def _build_personalization_block(self, context: dict) -> str:
         """Build a personalization note based on the user's history from context."""
@@ -43,7 +43,7 @@ class SalesAgent(BaseAgent):
             block += f"\nAanbevolen producten: {', '.join(matched_products)}"
         return block
 
-    def _call_ai(self, task: str, chat_id=None, brand: str = "glowup", context: dict = None) -> str:
+    def _call_ai(self, task: str, chat_id=None, brand: str = "glowup", context: dict = None) -> SwarmMessage:
         try:
             memory_context = load_memory_context()
             funnel_context = build_funnel_context(chat_id)
@@ -61,8 +61,17 @@ class SalesAgent(BaseAgent):
                 f"=== TAAK ===\n{task}"
             )
 
-            return ask_ai(full_prompt)
+            response = ask_ai(full_prompt)
+            return SwarmMessage(
+                sender=self.name,
+                content=response,
+                status="success"
+            )
 
         except Exception as e:
             self.logger.error(f"SalesAgent AI call failed: {e}")
-            return f"Sales agent hatası: {e}"
+            return SwarmMessage(
+                sender=self.name,
+                content=f"Sales agent hatası: {e}",
+                status="error"
+            )

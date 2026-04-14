@@ -26,6 +26,7 @@ from src.orchestrator import Orchestrator
 from src.memory.memory_manager import MemoryManager
 from src.skills.uploader_skill import uploader
 from src.core.logging import get_logger
+from src.scheduler.content_scheduler import start_content_factory
 
 # Video pipeline
 try:
@@ -123,6 +124,18 @@ class TelegramHandler:
                 task = text[len(cmd):].strip()
                 await self._execute_task(update, context, agent, task)
                 return
+
+        # Manual Scheduler Trigger for Testing
+        if text.startswith("/trigger"):
+            await update.message.reply_text("⏳ Manüel içerik tetikleyicisi başlatılıyor... 🚀")
+            default_chat = os.getenv("TELEGRAM_CHAT_ID", "812914122")
+            # We trigger the morning glowup job as a test
+            threading.Thread(
+                target=self._generate_video_sync, 
+                args=(chat_id, "@glowup Manüel Test: Harika bir gün için enerji dolu bir wellness videosu hazırlayalım.", "glow", context), 
+                daemon=True
+            ).start()
+            return
 
         await self._execute_task(update, context, "cmo", text)
 
@@ -226,37 +239,34 @@ class TelegramHandler:
                 output_filename=output_filename,
             )
 
+            # Use short video_id for callback_data (Telegram max 64 chars)
+            video_id = f"{brand}_{ts}"
             keyboard = [
-                [InlineKeyboardButton("📥 Download", callback_data=f"dl_{video_path}"),
-                 InlineKeyboardButton("✍️ Revise", callback_data=f"rev_{video_path}_{brand}")],
-                [InlineKeyboardButton(f"🚀 Instagram (@{brand_label})", callback_data=f"pub_{video_path}_{brand}")]
+                [InlineKeyboardButton("\ud83d\udce5 Download", callback_data=f"dl_{video_id}"),
+                 InlineKeyboardButton("\u270d\ufe0f Revise", callback_data=f"rev_{video_id}")],
+                [InlineKeyboardButton(f"\ud83d\ude80 Instagram ({brand_label})", callback_data=f"pub_{video_id}")]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
-            pkg = f"📝 {title.upper()}\n\n{caption}\n\n{tags}"
+            pkg = f"\ud83d\udcdd {title.upper()}\n\n{caption}\n\n{tags}"
+
+            token = os.getenv("TELEGRAM_TOKEN", "")
+            api_base = f"https://api.telegram.org/bot{token}"
 
             if os.path.exists(video_path):
                 with open(video_path, "rb") as vf:
-                    import asyncio
-                    loop = asyncio.new_event_loop()
-                    loop.run_until_complete(context.bot.send_video(
-                        chat_id=chat_id, video=vf,
-                        caption=f"{brand_label} — Video Hazır!",
-                        reply_markup=reply_markup
-                    ))
-                    loop.run_until_complete(context.bot.send_message(chat_id=chat_id, text=pkg))
-                    loop.close()
+                    requests.post(f"{api_base}/sendVideo", data={
+                        "chat_id": chat_id,
+                        "caption": f"{brand_label} \u2014 Video Haz\u0131r!",
+                        "reply_markup": json.dumps({"inline_keyboard": [[{"text": "\ud83d\udce5 Download", "callback_data": f"dl_{video_id}"}, {"text": "\u270d\ufe0f Revise", "callback_data": f"rev_{video_id}"}], [{"text": f"\ud83d\ude80 Instagram ({brand_label})", "callback_data": f"pub_{video_id}"}]]})
+                    }, files={"video": vf})
+                requests.post(f"{api_base}/sendMessage", data={"chat_id": chat_id, "text": pkg})
             else:
-                import asyncio
-                loop = asyncio.new_event_loop()
-                loop.run_until_complete(context.bot.send_message(chat_id=chat_id, text=f"❌ Video dosyası bulunamadı: {video_path}"))
-                loop.close()
+                requests.post(f"{api_base}/sendMessage", data={"chat_id": chat_id, "text": f"\u274c Video dosyas\u0131 bulunamad\u0131: {video_path}"})
 
         except Exception as e:
-            import asyncio
-            loop = asyncio.new_event_loop()
-            loop.run_until_complete(context.bot.send_message(chat_id=chat_id, text=f"❌ Video hatası: {e}"))
-            loop.close()
+            token = os.getenv("TELEGRAM_TOKEN", "")
+            requests.post(f"https://api.telegram.org/bot{token}/sendMessage", data={"chat_id": chat_id, "text": f"\u274c Video hatas\u0131: {e}"})
 
     async def _execute_task(self, update: Update, context: ContextTypes.DEFAULT_TYPE, agent: str, task: str):
         chat_id = update.effective_chat.id
@@ -333,16 +343,16 @@ class TelegramHandler:
             path = "_".join(parts[1:-1]) # Handle path with underscores
             brand = parts[-1]
             
-            await context.bot.send_message(chat_id=chat_id, text="🚀 Videon internete yükleniyor (Public URL)...")
+            await context.bot.send_message(chat_id=chat_id, text="🚀 Videon internete yükleniyor (Halka açık URL)...")
             
-            # Step 1: Upload to Cloud
+            # Step 1: Upload to Cloud (Now prioritizes local server)
             public_url = uploader.upload_file(path)
             
             if not public_url:
-                await context.bot.send_message(chat_id=chat_id, text="❌ Yükleme hatası! Lütfen tekrar deneyin.")
+                await context.bot.send_message(chat_id=chat_id, text="❌ Yükleme hatası! Dosya paylaşılamadı. Lütfen tekrar deneyin.")
                 return
 
-            await context.bot.send_message(chat_id=chat_id, text=f"✅ Yükleme başarılı: {public_url}\nInstagram'a gönderiliyor...")
+            await context.bot.send_message(chat_id=chat_id, text=f"✅ Yükleme başarılı!\n🚀 Instagram'a gönderiliyor...")
             
             # Step 2: Trigger Make.com Webhook
             webhook_url = os.getenv("MAKE_WEBHOOK_URL")
@@ -378,6 +388,22 @@ class TelegramHandler:
         else:
             await update.message.reply_text(response)
 
+    async def handle_trigger(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Manual trigger for content production - for testing the scheduler pipeline."""
+        chat_id = update.effective_chat.id
+        await update.message.reply_text(
+            "🚀 *Manuel Tetikleme Başladı!*\n\n"
+            "📹 @HolistiGlow için sabah wellness videosu üretiliyor...\n"
+            "⏳ 1-2 dakika bekleyin.",
+            parse_mode="Markdown"
+        )
+        topic = "@holistiglow Hollanda'da sabah wellness rutinleri ve bütünsel sağlık için ipuçları."
+        threading.Thread(
+            target=self._generate_video_sync,
+            args=(chat_id, topic, "holisti", context),
+            daemon=True
+        ).start()
+
 def start_telegram_bot():
     token = os.getenv("TELEGRAM_TOKEN")
     if not token: 
@@ -392,10 +418,21 @@ def start_telegram_bot():
     application.add_handler(CommandHandler("zen", handler.handle_message))
     application.add_handler(CommandHandler("content", handler.handle_message))
     application.add_handler(CommandHandler("cmo", handler.handle_message))
+    application.add_handler(CommandHandler("trigger", handler.handle_trigger))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler.handle_message))
     application.add_handler(CallbackQueryHandler(handler.handle_callback))
     
     print("Antigravity Agency OS Botu Hazir!")
+    
+    # Start the automated content scheduler
+    try:
+        default_chat = os.getenv("TELEGRAM_CHAT_ID", "812914122")
+        logger.info(f"Initializing content scheduler for chat: {default_chat}")
+        start_content_factory(default_chat, bot=application.bot)
+        logger.info("✅ Content Scheduler started successfully in background thread.")
+    except Exception as e:
+        logger.error(f"❌ Failed to start scheduler: {e}", exc_info=True)
+
     application.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":

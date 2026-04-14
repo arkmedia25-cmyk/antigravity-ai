@@ -4,7 +4,27 @@
 
 ---
 
-En son **13 Nisan 2026** itibariyle aşağıdaki işlemler tamamlandı:
+En son **13-14 Nisan 2026** itibariyle aşağıdaki kritik "Gelecek Nesil" özellikler eklendi ve sistem "Agency Swarm OS" mimarisine taşındı:
+
+### 🤖 Agency Swarm OS (Ajan Sürüsü) - [YENİ]
+- **Swarm Protokolü** → Ajanların birbirine veri ve görev devretmesini sağlayan `SwarmMessage` protokolü kuruldu. ✅
+- **Akıllı Orkestratör** → Ardışık (sequential) ajan zincirleme özelliği eklendi. (Örn: Research -> Video Producer otonom akışı). ✅
+- **Video Producer Agent** → Wellness videolarını otonom üreten, ElevenLabs ve video skill'lerini yöneten uzman ajan eklendi. ✅
+- **Ajan Güncellemeleri** → CMO, Content, Sales, Email, LinkedIn ve Research ajanları Swarm yapısına (structured JSON) uyumlu hale getirildi.
+
+### 🎙️ Voice AI & Müşteri Destek Pipeline
+- **Pipeline Kurulumu** → Whisper (Yazıya dökme) + Claude (Akıllı Analiz) + ElevenLabs (Premium Ses) hattı kuruldu. ✅
+- **Hata Toleransı** → Anthropic kredisi bittiğinde otomatik olarak OpenAI'a (GPT-4o) geçiş yapan "Resilient Fallback" eklendi. ✅
+- **Dil Tespiti** → Kullanıcının konuştuğu dili otomatik tespit edip aynı dilde, vurgulu ve doğal cevap verme özelliği eklendi.
+
+### 🎬 Video Yükleme ve Altyazı Fix
+- **Catbox Kaldırıldı** → Catbox.moe'nun kapanması nedeniyle yükleme hattı yerel sunucuya (`arkmediaflow.com/outputs/`) ve yedek olarak `bashupload.com`'a taşındı. ✅
+- **URL Path Senkronizasyonu** → `/media/` yerine `/outputs/` yolu tüm sistemde (Telegram & Make.com) standartlaştırıldı. ✅
+
+### 🖥️ Agency OS Dashboard (Arayüz)
+- **Dashboard Prototipi** → Görseldeki premium tasarıma uygun, koyu tema ve turuncu vurgulu HTML/CSS/JS dashboard hazırlandı. ✅
+- **Dashboard API** → Arayüzü orkestratöre bağlayan **FastAPI (src/server.py)** sunucusu kuruldu. ✅
+- **Docker Ready** → Tüm sistemi DigitalOcean'a tek komutla taşımak için Dockerfile hazırlandı. ✅
 
 ### 🧹 Büyük Reorganizasyon ve Bot Onarımı
 - **Klasör Düzenlemesi** → Tüm scriptler `/scripts/automation/` ve `/scripts/wordpress/` altına taşındı.
@@ -57,20 +77,17 @@ En son **13 Nisan 2026** itibariyle aşağıdaki işlemler tamamlandı:
 
 ---
 
-## 🚀 Bekleyen Görevler ve Sonraki Adım
+## 🚀 Yarınki Görevler (14 Nisan)
 
-- **Server cron kurulumu:** `python3 /opt/n8n/daily_article_writer.py` günlük 09:00 UTC
-  ```bash
-  cat > /etc/cron.d/amare-articles << 'EOF'
-  0 9 * * * root /usr/bin/python3 /opt/n8n/daily_article_writer.py >> /root/antigravity-ai/logs/article_writer.log 2>&1
-  EOF
-  ```
-- **Server dosya kopyalama:**
-  ```bash
-  git pull && cp scripts/article_writer.py /opt/n8n/ && cp scripts/daily_article_writer.py /opt/n8n/
-  ```
-- **GlowUp video kalitesi** — word-wrap sonrası canlı test yapılmalı
-- **wellness_producer.py** — HeyGen pipeline test edilmeli
+1.  **DigitalOcean Canlı Yayını:**
+    - Docker container test edilecek.
+    - `arkmediaflow.com` DNS'i yeni sunucuya veya FastAPI portuna (8000) yönlendirilecek.
+2.  **Dashboard Canlı Veri Bağlantısı:**
+    - Prototip olan dashboard, FastAPI üzerinden gerçek ajan aktivitelerini gösterecek şekilde güncellenecek.
+3.  **Ajanlar Arası Otonom Test:**
+    - "Tek sesle video üretimi" (Sesli mesaj -> Araştırma -> Video) akışı canlıda test edilecek.
+4.  **Canva Token Yenileme:**
+    - Yarım kalan PKCE verifier temizliği ve Canva token akışı tamamlanacak.
 
 ---
 

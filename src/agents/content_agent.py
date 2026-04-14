@@ -6,6 +6,7 @@ from src.memory.memory_manager import MemoryManager
 from src.core.brand_manager import BrandManager
 from src.skills.ai_client import ask_ai
 from src.core.logging import get_logger
+from src.core.protocol import SwarmMessage
 
 logger = get_logger("agents.content")
 
@@ -15,7 +16,7 @@ class ContentAgent(BaseAgent):
         self.brand_manager = BrandManager()
         self._system_prompt = load_agent_prompt("content-agent", "content_prompt.txt")
 
-    def process(self, input_data: str, chat_id=None, brand: str = "glowup", context: dict = None) -> str:
+    def process(self, input_data: str, chat_id=None, brand: str = "glowup", context: dict = None) -> SwarmMessage:
         # Load brand-specific identity
         brand_config = self.brand_manager.get_brand(brand)
         if not brand_config:
@@ -38,17 +39,19 @@ class ContentAgent(BaseAgent):
             f"Marketing Angles: {', '.join(brand_config.get('marketing_angles', []))}"
         )
 
-        response = self._call_ai(input_data, personality_text, history=history_str, chat_id=chat_id, brand=brand)
+        message = self._call_ai(input_data, personality_text, history=history_str, chat_id=chat_id, brand=brand)
 
         # ✨ KESİN ÇÖZÜM: Metin Temizleme Filtresi
+        response = message.content
         cleaned_response = re.sub(r'\(.*?\)', '', response)
         cleaned_response = re.sub(r'(?i)(Tip \d+|Scene \d+|Hook|Call to action|Content|Caption|Video|Action):\s*', '', cleaned_response)
         cleaned_response = cleaned_response.replace('"', '').replace('\'', '')
         cleaned_response = cleaned_response.strip()
 
-        return cleaned_response
+        message.content = cleaned_response
+        return message
 
-    def _call_ai(self, task: str, personality_text: str, history: str = "", chat_id=None, brand: str = "glowup") -> str:
+    def _call_ai(self, task: str, personality_text: str, history: str = "", chat_id=None, brand: str = "glowup") -> SwarmMessage:
         try:
             memory_context = load_memory_context()
             funnel_context = build_funnel_context(chat_id)
@@ -63,8 +66,17 @@ class ContentAgent(BaseAgent):
                 f"=== TASK ===\n{task}"
             )
 
-            return ask_ai(full_prompt, provider="openai")
+            response = ask_ai(full_prompt, provider="openai")
+            return SwarmMessage(
+                sender=self.name,
+                content=response,
+                status="success"
+            )
 
         except Exception as e:
             logger.error(f"ContentAgent AI call failed: {e}")
-            return f"Content agent hatası: {e}"
+            return SwarmMessage(
+                sender=self.name,
+                content=f"Content agent hatası: {e}",
+                status="error"
+            )

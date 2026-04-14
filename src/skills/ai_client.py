@@ -1,4 +1,5 @@
 from openai import OpenAI
+from anthropic import Anthropic
 from src.config.settings import settings
 import json
 import os
@@ -7,6 +8,16 @@ import requests
 import re
 
 _openai_client = None
+_anthropic_client = None
+
+def _get_anthropic():
+    global _anthropic_client
+    if _anthropic_client is None:
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not api_key:
+            raise ValueError("ANTHROPIC_API_KEY is missing in .env file!")
+        _anthropic_client = Anthropic(api_key=api_key)
+    return _anthropic_client
 
 def _get_openai():
     global _openai_client
@@ -16,20 +27,53 @@ def _get_openai():
         _openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
     return _openai_client
 
-def ask_ai(prompt: str, provider: str = "openai", is_json: bool = False) -> str:
-    """Sends a prompt to AI. Forced to GPT-4o for consistency and reliability."""
+def ask_ai(messages: any, provider: str = "openai", is_json: bool = False, tools: list = None, tool_choice: str = None) -> any:
+    """Sends messages (list or str) to AI. Supports multi-turn tool use. Forced to GPT-4o."""
     try:
-        # We force OpenAI GPT-4o even if provider is 'claude' to avoid 401 errors
+        # If it's a string, convert to list of messages
+        if isinstance(messages, str):
+            msgs = [{"role": "user", "content": messages}]
+        else:
+            msgs = messages
+
         kwargs = {
             "model": "gpt-4o",
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": msgs,
         }
         if is_json:
             kwargs["response_format"] = {"type": "json_object"}
+        
+        if tools:
+            kwargs["tools"] = tools
+            if tool_choice:
+                 kwargs["tool_choice"] = tool_choice
+
+        if provider == "anthropic":
+            client = _get_anthropic()
+            # Convert OpenAI-style messages to Anthropic-style if needed
+            system_msg = ""
+            final_msgs = []
+            for m in msgs:
+                if m["role"] == "system":
+                    system_msg = m["content"]
+                else:
+                    final_msgs.append(m)
             
-        client = _get_openai()
-        response = client.chat.completions.create(**kwargs)
-        text = response.choices[0].message.content
+            response = client.messages.create(
+                model="claude-3-5-sonnet-20240620",
+                max_tokens=2048,
+                system=system_msg,
+                messages=final_msgs
+            )
+            text = response.content[0].text
+        else:
+            client = _get_openai()
+            response = client.chat.completions.create(**kwargs)
+            message = response.choices[0].message
+            # If the AI wants to use a tool
+            if hasattr(message, 'tool_calls') and message.tool_calls:
+                return message
+            text = message.content
         
         if is_json:
             # Clean up markdown markers if present
