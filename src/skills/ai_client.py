@@ -28,7 +28,7 @@ def _get_openai():
     return _openai_client
 
 def ask_ai(messages: any, provider: str = "openai", is_json: bool = False, tools: list = None, tool_choice: str = None) -> any:
-    """Sends messages (list or str) to AI. Supports multi-turn tool use. Forced to GPT-4o."""
+    """Sends messages (list or str) to AI. Auto-falls back to OpenAI if Anthropic fails."""
     try:
         # If it's a string, convert to list of messages
         if isinstance(messages, str):
@@ -36,91 +36,88 @@ def ask_ai(messages: any, provider: str = "openai", is_json: bool = False, tools
         else:
             msgs = messages
 
+        # Try Anthropic if explicitly requested
+        if provider == "anthropic":
+            try:
+                client = _get_anthropic()
+                system_msg = ""
+                final_msgs = []
+                for m in msgs:
+                    if m["role"] == "system":
+                        system_msg = m["content"]
+                    else:
+                        final_msgs.append(m)
+                response = client.messages.create(
+                    model="claude-3-5-sonnet-20240620",
+                    max_tokens=2048,
+                    system=system_msg,
+                    messages=final_msgs
+                )
+                text = response.content[0].text
+                if is_json:
+                    return _parse_json(text)
+                return text
+            except Exception as anthropic_err:
+                print(f"[ask_ai] Anthropic failed ({anthropic_err}), falling back to OpenAI gpt-4o...")
+                # Fall through to OpenAI below
+
+        # OpenAI (default + fallback)
+        client = _get_openai()
         kwargs = {
             "model": "gpt-4o",
             "messages": msgs,
         }
         if is_json:
             kwargs["response_format"] = {"type": "json_object"}
-        
         if tools:
             kwargs["tools"] = tools
             if tool_choice:
-                 kwargs["tool_choice"] = tool_choice
+                kwargs["tool_choice"] = tool_choice
 
-        if provider == "anthropic":
-            client = _get_anthropic()
-            # Convert OpenAI-style messages to Anthropic-style if needed
-            system_msg = ""
-            final_msgs = []
-            for m in msgs:
-                if m["role"] == "system":
-                    system_msg = m["content"]
-                else:
-                    final_msgs.append(m)
-            
-            response = client.messages.create(
-                model="claude-3-5-sonnet-20240620",
-                max_tokens=2048,
-                system=system_msg,
-                messages=final_msgs
-            )
-            text = response.content[0].text
-        else:
-            client = _get_openai()
-            response = client.chat.completions.create(**kwargs)
-            message = response.choices[0].message
-            # If the AI wants to use a tool
-            if hasattr(message, 'tool_calls') and message.tool_calls:
-                return message
-            text = message.content
-        
+        response = client.chat.completions.create(**kwargs)
+        message = response.choices[0].message
+        if hasattr(message, 'tool_calls') and message.tool_calls:
+            return message
+        text = message.content
+
         if is_json:
-            # Clean up markdown markers if present
-            clean_text = text.strip()
-            if clean_text.startswith("```json"):
-                clean_text = clean_text.split("```json", 1)[1]
-            if clean_text.endswith("```"):
-                clean_text = clean_text.rsplit("```", 1)[0]
-            clean_text = clean_text.strip()
-            
-            try:
-                return json.loads(clean_text)
-            except json.JSONDecodeError as e:
-                # If "Extra data", try to parse only the part before the extra data
-                if "Extra data" in str(e):
-                    try:
-                        # Extract the part that was successfully parsed (or looks like JSON)
-                        # Find the first { and the matching last }
-                        match = re.search(r"(\{.*\})", clean_text, re.DOTALL)
-                        if match:
-                             # We use a more careful approach to find the FIRST complete JSON object
-                             # if there are multiples.
-                             content = match.group(1)
-                             # Try to find the last '}' that actually completes the first object
-                             # Simple heuristic: try to parse prefixes of the content
-                             for i in range(len(content), 0, -1):
-                                 if content[i-1] == '}':
-                                     try:
-                                         return json.loads(content[:i])
-                                     except:
-                                         continue
-                    except:
-                        pass
-                
-                # Fallback: original regex-based extraction (legacy)
-                import re
-                match = re.search(r"(\{.*\})", clean_text, re.DOTALL)
-                if match:
-                    try:
-                        return json.loads(match.group(1))
-                    except:
-                        pass
-                raise
+            return _parse_json(text)
         return text
+
     except Exception as e:
         print(f"[ask_ai] Critical Error: {e}")
         return {} if is_json else f"HATA: {str(e)}"
+
+
+def _parse_json(text: str) -> any:
+    """Parse JSON from AI response, handling markdown code blocks."""
+    clean_text = text.strip()
+    if clean_text.startswith("```json"):
+        clean_text = clean_text.split("```json", 1)[1]
+    if clean_text.endswith("```"):
+        clean_text = clean_text.rsplit("```", 1)[0]
+    clean_text = clean_text.strip()
+    try:
+        return json.loads(clean_text)
+    except json.JSONDecodeError as e:
+        if "Extra data" in str(e):
+            match = re.search(r"(\{.*\})", clean_text, re.DOTALL)
+            if match:
+                content = match.group(1)
+                for i in range(len(content), 0, -1):
+                    if content[i-1] == '}':
+                        try:
+                            return json.loads(content[:i])
+                        except:
+                            continue
+        match = re.search(r"(\{.*\})", clean_text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(1))
+            except:
+                pass
+        raise
+
 
 def generate_image(prompt: str) -> str:
     """Generates a high-quality DALL-E 3 image."""
