@@ -182,10 +182,11 @@ class TelegramHandler:
             h = parts[1].strip() if len(parts) > 1 else "Ontdek de kracht van holistische gezondheid."
             b = parts[2].strip() if len(parts) > 2 else t
             # Full pipeline: Claude -> ElevenLabs -> HeyGen -> FFmpeg -> Telegram
-            wellness_producer.main(t, h, b)
+            wellness_producer.main(t, h, b, chat_id=chat_id)
         except Exception as e:
             err = str(e).encode("utf-8", errors="ignore").decode("utf-8")
-            requests.post(f"{_api}/sendMessage", data={"chat_id": chat_id, "text": f"Priya fout: {err}"})
+            logger.error(f"Priya pipeline error: {e}", exc_info=True)
+            requests.post(f"{_api}/sendMessage", data={"chat_id": chat_id, "text": f"❌ Priya hatası: {err}"})
 
     def _generate_video_sync(self, chat_id, topic, brand, context):
         """Video üretim pipeline — thread içinde çalışır."""

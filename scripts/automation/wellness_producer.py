@@ -302,7 +302,8 @@ def wait_for_video(video_id: str, timeout: int = 900) -> str:
     raise Exception(f"HeyGen timeout — {timeout // 60} dakika asildi")
 
 
-def download_video(video_url: str) -> str:
+def download_video(video_url: str, notify=None) -> str:
+    if notify: notify("📥 Video indiriliyor...")
     output_path = os.path.join(os.environ.get("TEMP", "/tmp"), f"drpriya_{int(time.time())}.mp4")
     resp = requests.get(video_url, timeout=120, stream=True)
     with open(output_path, "wb") as f:
@@ -361,7 +362,8 @@ def _wrap(text: str, max_chars: int = 38) -> list:
     return lines[:2]
 
 
-def send_to_telegram(video_path: str, baslik: str, gun_no: int, script: str, meta: dict = None):
+def send_to_telegram(video_path: str, baslik: str, gun_no: int, script: str, meta: dict = None, chat_id: str = None):
+    target_chat = chat_id or TELEGRAM_CHAT
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendVideo"
 
     if meta:
@@ -424,7 +426,7 @@ def send_to_telegram(video_path: str, baslik: str, gun_no: int, script: str, met
         resp = requests.post(
             url,
             data={
-                "chat_id":      TELEGRAM_CHAT,
+                "chat_id":      target_chat,
                 "caption":      caption,
                 "parse_mode":   "HTML",
                 "reply_markup": reply_markup
@@ -655,29 +657,42 @@ def compose_reel(avatar_path: str, scenes: list, baslik: str) -> str:
     return out_final
 
 
-def main(topic: str, hook: str, baslik: str, gun_no: int = 1):
+def main(topic: str, hook: str, baslik: str, gun_no: int = 1, chat_id: str = None):
+    def notify(msg):
+        if not chat_id: return
+        try:
+            url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+            requests.post(url, data={"chat_id": chat_id, "text": f"⏳ {msg}"}, timeout=10)
+        except: pass
+
     print(f"\n[1/6] Script uretiliyor...")
+    notify("1/6: Senaryo ve Meta detayları hazırlanıyor...")
     script = generate_script(topic, hook)
     meta = generate_metadata(topic, script)
     
     print("[2/6] Gorsel plan hazirlaniyor...")
+    notify("2/6: Görsel plan oluşturuluyor...")
     scenes = generate_visual_plan(topic, script)
     scenes = fetch_visuals(scenes)
     
     print("[3/6] Seslendirme...")
+    notify("3/6: AI Seslendirme yapılıyor (ElevenLabs)...")
     clean_text = clean_script_for_tts(script)
     audio_path = generate_voice(clean_text)
     
     print("[4/6] HeyGen Avatar Video...")
+    notify("4/6: HeyGen Avatar video üretimi başlatıldı. Bu işlem 2-3 dakika sürebilir, lütfen bekleyin...")
     video_id = create_heygen_video(script, audio_path)
     video_url = wait_for_video(video_id)
-    video_path = download_video(video_url)
+    video_path = download_video(video_url, notify=notify)
     
     print("[5/6] FFmpeg Compose...")
+    notify("5/6: FFmpeg ile sahneler birleştiriliyor ve efektler ekleniyor...")
     reel_path = compose_reel(video_path, scenes, baslik)
     
     print("[6/6] Telegrama gonderiliyor...")
-    send_to_telegram(reel_path, baslik, gun_no, script, meta)
+    notify("6/6: Video hazır! Dosya yükleniyor...")
+    send_to_telegram(reel_path, baslik, gun_no, script, meta, chat_id=chat_id)
     return reel_path
 
 
