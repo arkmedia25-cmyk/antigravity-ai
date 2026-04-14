@@ -22,6 +22,8 @@ if _PROJECT_ROOT not in sys.path:
 load_dotenv(os.path.join(_PROJECT_ROOT, ".env"))
 
 from src.skills.ai_client import ask_ai
+from src.skills.content_engine_utils import content_engine
+from src.skills.cache_service import cache_service
 
 # ─── AYARLAR ──────────────────────────────────────────────────────────────────
 TELEGRAM_TOKEN   = os.getenv("TELEGRAM_TOKEN")
@@ -40,24 +42,21 @@ OPENAI_KEY = os.getenv("OPENAI_API_KEY")
 # ─── SCRIPT ───────────────────────────────────────────────────────────────────
 
 def generate_script(topic: str, hook: str) -> str:
-    prompt = f"""Maak een krachtig Instagram Reels script van 60 seconden voor dit wellness onderwerp.
+    raw_prompt = f"""Maak een krachtig Instagram Reels script van 60 seconden voor dit wellness onderwerp.
 
 Onderwerp: "{topic}"
 Hook: "{hook}"
 
 REGELS:
-- Zin 1 (hook, eerste 3-4 seconden): Begin met een schokkend feit of statistiek. Niet met een vraag.
-  Voorbeelden: "8 van de 10 mensen doen dit fout..." / "Dit kost je her seferinde 2 uur slaap." / "Wetenschappers ontdekten dat 73% van de vrouwen..."
-- Daarna: vloeiende wetenschappelijke uitleg, geen opsommingen, geen bullets.
-- Ongeveer 130-150 woorden. Nederlands. Begrijpelijk maar onderbouwd.
-- Laatste zin (CTA): Eindig met één van deze varianten (wissel af):
-  "Sla dit op — je hebt het vanavond nodig."
-  "Stuur dit naar iemand die dit moet weten."
-  "Bewaar dit voor later en deel het met je vrienden."
+- Zin 1 (hook, eerste 3-4 seconden): Begin met een schokkend feit of statistiek.
+- Daarna: vloeiende wetenschappelijke uitleg, geen opsommingen.
+- Nederlands. Ongeveer 130-150 woorden.
+- Laatste zin (CTA): Een sterke afsluiting.
 
 Geef ALLEEN de spreektekst terug, geen uitleg."""
 
-    response_text = ask_ai(prompt, provider="anthropic")
+    full_prompt = content_engine.inject_rules(raw_prompt, "instagram")
+    response_text = ask_ai(full_prompt, provider="anthropic", use_cache=True)
     return response_text.strip()
 
 
@@ -79,7 +78,7 @@ ANTWOORD ALLEEN IN DIT JSON FORMAAT:
   ...
 ]}}"""
 
-    response_text = ask_ai(prompt, provider="anthropic")
+    response_text = ask_ai(prompt, provider="anthropic", use_cache=True)
     try:
         match = re.search(r'\{.*\}', response_text, re.DOTALL)
         return json.loads(match.group(0)).get("scenes", [])
@@ -147,7 +146,8 @@ TAGS: [15-20 relevante hashtags, mix van groot en niche, geen #, komma-gescheide
 
 ⚠️ REGELS: Gebruik GEEN Engelse tijdsnotatie (3pm, 2pm, 5pm). Schrijf '15:00' of 'drie uur' etc."""
 
-    text = ask_ai(prompt, provider="anthropic")
+    # Metadata is a simple task, we can use a cheaper model (auto-selected by ask_ai as gpt-4o-mini)
+    text = ask_ai(prompt, provider="openai", use_cache=True)
 
     meta = {"titel": "", "description": "", "tags": ""}
     for line in text.splitlines():
