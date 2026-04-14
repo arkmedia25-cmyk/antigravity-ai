@@ -242,13 +242,13 @@ class TelegramHandler:
             # Use short video_id for callback_data (Telegram max 64 chars)
             video_id = f"{brand}_{ts}"
             keyboard = [
-                [InlineKeyboardButton("\ud83d\udce5 Download", callback_data=f"dl_{video_id}"),
-                 InlineKeyboardButton("\u270d\ufe0f Revise", callback_data=f"rev_{video_id}")],
-                [InlineKeyboardButton(f"\ud83d\ude80 Instagram ({brand_label})", callback_data=f"pub_{video_id}")]
+                [InlineKeyboardButton("📥 Download", callback_data=f"dl_{video_id}"),
+                 InlineKeyboardButton("✍️ Revise", callback_data=f"rev_{video_id}")],
+                [InlineKeyboardButton(f"🚀 Instagram ({brand_label})", callback_data=f"pub_{video_id}")]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
-            pkg = f"\ud83d\udcdd {title.upper()}\n\n{caption}\n\n{tags}"
+            pkg = f"📝 {title.upper()}\n\n{caption}\n\n{tags}"
 
             token = os.getenv("TELEGRAM_TOKEN", "")
             api_base = f"https://api.telegram.org/bot{token}"
@@ -257,16 +257,16 @@ class TelegramHandler:
                 with open(video_path, "rb") as vf:
                     requests.post(f"{api_base}/sendVideo", data={
                         "chat_id": chat_id,
-                        "caption": f"{brand_label} \u2014 Video Haz\u0131r!",
-                        "reply_markup": json.dumps({"inline_keyboard": [[{"text": "\ud83d\udce5 Download", "callback_data": f"dl_{video_id}"}, {"text": "\u270d\ufe0f Revise", "callback_data": f"rev_{video_id}"}], [{"text": f"\ud83d\ude80 Instagram ({brand_label})", "callback_data": f"pub_{video_id}"}]]})
+                        "caption": f"{brand_label} — Video Hazır!",
+                        "reply_markup": json.dumps({"inline_keyboard": [[{"text": "📥 Download", "callback_data": f"dl_{video_id}"}, {"text": "✍️ Revise", "callback_data": f"rev_{video_id}"}], [{"text": f"🚀 Instagram ({brand_label})", "callback_data": f"pub_{video_id}"}]]})
                     }, files={"video": vf})
                 requests.post(f"{api_base}/sendMessage", data={"chat_id": chat_id, "text": pkg})
             else:
-                requests.post(f"{api_base}/sendMessage", data={"chat_id": chat_id, "text": f"\u274c Video dosyas\u0131 bulunamad\u0131: {video_path}"})
+                requests.post(f"{api_base}/sendMessage", data={"chat_id": chat_id, "text": f"❌ Video dosyası bulunamadı: {video_path}"})
 
         except Exception as e:
             token = os.getenv("TELEGRAM_TOKEN", "")
-            requests.post(f"https://api.telegram.org/bot{token}/sendMessage", data={"chat_id": chat_id, "text": f"\u274c Video hatas\u0131: {e}"})
+            requests.post(f"https://api.telegram.org/bot{token}/sendMessage", data={"chat_id": chat_id, "text": f"❌ Video hatası: {e}"})
 
     async def _execute_task(self, update: Update, context: ContextTypes.DEFAULT_TYPE, agent: str, task: str):
         chat_id = update.effective_chat.id
