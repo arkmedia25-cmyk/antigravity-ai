@@ -141,11 +141,11 @@ class VideoProducerAgent(BaseAgent):
             print(f"[VideoProducer] Uploading to public server...")
             public_url = uploader.upload_file(final_video_path)
             
-            # Prepend the original scripts so user sees everything
+            # Final Rich Response with Metadata
             combined_content = (
-                f"{input_data}\n\n"
-                f"🚀 *Video üretimi tamamlandı!* @{brand}\n"
-                f"📥 İzle/İndir: {public_url}"
+                f"🚀 *Video üretimi [@{brand}] tamamlandı!*\n\n"
+                f"📝 *İçerik Detayları:*\n{input_data}\n\n"
+                f"🔗 *Video Linki:* {public_url}"
             )
             
             return SwarmMessage(
