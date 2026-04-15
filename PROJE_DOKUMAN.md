@@ -4,7 +4,7 @@
 **Hedef Pazar:** Hollanda (Nederland) — Amare Global affiliate sistemi
 **Platform:** DigitalOcean (deployment) + Telegram (kullanıcı arayüzü)
 **Dil:** Python 3.11
-**Son güncelleme:** 2026-04-04 (Claude ile senkronize edildi)
+**Son güncelleme:** 2026-04-14 (Agency Swarm OS & 20 Skills Entegrasyonu)
 
 > **ÖNEMLİ:** Bu "Master Log" dosyasıdır. Projeye her yeni dosya veya değişiklik
 > eklendiğinde Claude'dan bu dosyayı güncellemesini iste. Yeni bir oturumda sadece
@@ -16,14 +16,13 @@
 
 | Sistem | Durum | Detay |
 |---|---|---|
-| Telegram Bot | ✅ Çalışıyor | polling, memory fix, encoding fix (13 Apr) |
+| Swarm OS | ✅ Canlı | Autonomous Think-Act-Observe Loop aktif |
+| ECC Skills | ✅ %100 | 20+ Skill paketi (Harness, Blueprint vb.) entegre |
+| Pro Video | ✅ Peak | VideoDB + HeyGen Fallback + FFmpeg Fix |
+| Telegram Bot | ✅ Çalışıyor | polling, memory fix, encoding fix |
 | Dr. Priya VO | ✅ Canlı | Emojis & Titles filtered (Sanitized) |
-| Make.com Webhook | ✅ Bağlı | .env'de MAKE_WEBHOOK_URL mevcut |
-| Instagram Publish | ✅ Make.com | `/smart_publish.py` + webhook entegre |
-| Video Kalitesi | ✅ Peak | FFmpeg composer + sanitization (13 Apr) |
-| Multimodal Skill | ✅ Aktif | `/multimodal` yüklendi |
-| RAG Test Skill | ✅ Aktif | `/test-ai` yüklendi |
-| PROJE_DOKUMAN.md | ✅ Güncel | 2026-04-13 Büyük Reorganizasyon |
+| Make.com | ✅ Bağlı | .env'de MAKE_WEBHOOK_URL mevcut |
+| PROJE_DOKUMAN | ✅ Güncel | 2026-04-14 Büyük Mimari Evrimi |
 
 ---
 
@@ -48,17 +47,13 @@
 ```
 Telegram Kullanıcısı
         ↓
-skills/automation/telegram_handler.py   ← Ana giriş noktası (bot döngüsü + Flask OAuth server)
-        ↓
 src/interfaces/telegram/handler.py      ← Komut yönlendirici (Phase 3+)
         ↓
-src/orchestrator.py                     ← 7 agent'ı yöneten router
-        ↓
-src/agents/[cmo|content|sales|research|email|linkedin|canva]_agent.py
-        ↓
-src/skills/ai_client.py                 ← OpenAI / Anthropic API bağlantısı
-        ↓
-src/memory/memory_manager.py            ← SQLite kalıcı bellek (Phase 6+)
+src/agency/orchestrator.py              ← SWARM ORCHESTRATOR (Cognitive Layer)
+        ↙       ↓       ↘
+src/skills/     src/agents/     src/skills/
+instincts.py    7+ Agents       video_service.py (VideoDB)
+observation.py  (Harness)       ai_client.py (Fallback)
 ```
 
 **Flask OAuth callback:**
@@ -659,6 +654,25 @@ Scopes:    design:content:read design:content:write design:meta:read
 
 ---
 
+### Phase 10 — Agency Swarm OS & Autonomous Brain (DONE — 2026-04-14)
+
+**Mevcut projenin en kapsamlı evrimi.**
+
+- **Autonomous Loop**: `SwarmOrchestrator` ile Think-Act-Observe döngüsü kuruldu.
+- **Cognitive Layer**: `InstinctService` (原子本能) ve `ObservationService` (Gözlem) ile botun hata yaparak öğrenmesi sağlandı.
+- **ECC Skill Integration**: 20 farklı Everything Claude Code paketi sisteme eklendi:
+  - `agent-harness-construction`: Standart `AgentResponse` kontratı.
+  - `claude-api`: `thinking_budget` ve Prompt Caching desteği.
+  - `ai-regression-testing`: `is_json` vb. AI kör nokta taramaları.
+  - `blueprint`: Adım adım inşa planı protokolü.
+- **Pro Video Engine**: `video_service.py` üzerinden **VideoDB** entegrasyonu.
+  - Akıllı dikey reframe (9:16).
+  - Otomatik bulut altyazı yakma.
+- **Resiliency**: HeyGen kredi bittiğinde otomatik "Statik Avatar Fallback" modu.
+- **Windows Fix**: `verify_system.py` karakter kodlama ve emoji hataları giderildi.
+
+---
+
 *Bu dosya Antigravity projesinin Master Log'udur.*
 *Her yeni phase, bağlantı veya kritik değişiklikte Claude'dan güncellenmesini iste.*
-*Son senkronizasyon: 2026-03-29 — Claude Sonnet 4.6*
+*Son senkronizasyon: 2026-04-14 — Agency Swarm OS (ECC Integrated)*

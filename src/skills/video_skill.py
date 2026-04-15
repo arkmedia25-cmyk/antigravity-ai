@@ -143,9 +143,10 @@ def _clean_text(text: str) -> str:
     text = re.sub(r'\[HOOK\]|\[CONTENT\]|\[CTA\]|\[TITLE\]', '', text, flags=re.IGNORECASE)
     # 2. Madde işaretlerini ve numaraları temizle
     text = re.sub(r'^\s*[•🌿✨\-1234567890\.\*\/]+\s*', '', text)
-    # 3. KESİN ÇÖZÜM: Emojileri ve garip kutu karakterlerini (non-latin/non-printable) tamamen sil
-    # Sadece standart Latin harfleri, sayılar ve noktalama işaretlerine izin ver
-    clean = re.sub(r'[^\x20-\x7E\xC1-\xFF\.,!?\'\":\* ]+', '', text)
+    # 3. KESİN ÇÖZÜM: Emojileri sil ama Latin-1 ve Latin Extended (Hollandaca + Türkçe) karakterlere izin ver
+    # Range \u00C0-\u017F covers Dutch (ë, ó, ij) and Turkish (İ, ğ, ş, ç, ö, ü)
+    import re
+    clean = re.sub(r'[^\x20-\x7E\u00C0-\u017F\.,!?\'\":\* ]+', '', text)
     return clean.strip()
 
 def _draw_rounded_rect(draw, coords, radius: int, fill):
@@ -180,7 +181,7 @@ def _center(draw, text: str, font, cy: int, color):
 
 # ── Main video assembly (The Fixed Part) ────────────────────────────────────
 
-def create_reel(fragments=None, image_path=None, output_filename=None, brand="glowup", watermark_icon=None, on_error=None):
+def create_reel(fragments=None, image_path=None, srt_path=None, output_filename=None, brand="glowup", word_timestamps=None, on_error=None):
     print("[ANTIGRAVITY_DEBUG_V4] Running Single-Command Rendering Pipeline...")
     theme = brand_manager.get_theme_for_video(brand)
     if not theme:
@@ -237,7 +238,8 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
                 left = (new_w - _W) // 2
                 top = (new_h - _H) // 2
                 bg_pic = bg_pic.crop((left, top, left + _W, top + _H))
-                dark_layer = Image.new("RGBA", (_W, _H), (0, 0, 0, 130))
+                # Lighter background overlay to keep visibility high
+                dark_layer = Image.new("RGBA", (_W, _H), (0, 0, 0, 90))
                 bg_pic = Image.alpha_composite(bg_pic, dark_layer)
                 img.paste(bg_pic, (0, 0), bg_pic)
             except Exception as e:
@@ -278,20 +280,34 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
         # ── CONTENT RENDERING ────────────────────────────────────────────────
         if tag == "hook":
             lines, f, total_h = _fit_lines(draw, text, "display", 820, 900)
-            bx0, bx1 = 60, _W - 60
-            by0 = bar_h + 80
-            by1 = by0 + total_h + padding * 2
-            glass = (255, 255, 255, 210) if not image_path else (50, 50, 50, 180)
+            bx0, bx1 = 80, _W - 80
+            # Center the card vertically
+            card_h = 420
+            by0 = (_H - card_h) // 2
+            by1 = by0 + card_h
+            
+            # Premium Glassmorphism (High blur + Soft white alpha)
+            # Lighter Premium Glassmorphism
+            glass = (255, 255, 255, 170) if not image_path else (10, 10, 10, 100)
             _draw_rounded_rect(overlay_draw2, [bx0, by0, bx1, by1], 50, glass)
+            
+            # Subtle outer glow/shadow for the card
+            shadow_mask = Image.new("RGBA", (_W, _H), (0, 0, 0, 0))
+            sm_draw = ImageDraw.Draw(shadow_mask)
+            _draw_rounded_rect(sm_draw, [bx0+4, by0+4, bx1+4, by1+4], 52, (0, 0, 0, 80))
+            img.paste(shadow_mask.filter(ImageFilter.GaussianBlur(12)), (0, 0), shadow_mask.filter(ImageFilter.GaussianBlur(12)))
+            
             img.paste(overlay_img2, (0, 0), overlay_img2)
-            draw = ImageDraw.Draw(img)
-            tc = tuple(theme["text"]) if not image_path else (255, 255, 255)
-            y = by0 + padding
-            for line in lines:
-                lw, lh = _sz(draw, line, f)
-                draw.text(((_W - lw) // 2 + 3, y + 3), line, font=f, fill=(0, 0, 0, 120))
-                draw.text(((_W - lw) // 2, y), line, font=f, fill=tc)
-                y += lh + 22
+            # Only draw static shadow/text if NOT using dynamic word timestamps or SRT
+            if not word_timestamps and not srt_path:
+                draw = ImageDraw.Draw(img)
+                tc = tuple(theme["text"]) if not image_path else (255, 255, 255)
+                y = by0 + padding
+                for line in lines:
+                    lw, lh = _sz(draw, line, f)
+                    draw.text(((_W - lw) // 2 + 3, y + 3), line, font=f, fill=(0, 0, 0, 120))
+                    draw.text(((_W - lw) // 2, y), line, font=f, fill=tc)
+                    y += lh + 22
 
         elif tag == "cta":
             # Full-width CTA block (Instagram stili)
@@ -325,20 +341,33 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
         else:
             # CONTENT frame
             lines, f, total_h = _fit_lines(draw, text, "body", 820, 1000)
-            bx0, bx1 = 60, _W - 60
-            by0 = bar_h + 120
-            by1 = by0 + total_h + padding * 2
-            glass = (255, 255, 255, 205) if not image_path else (0, 0, 0, 145)
+            bx0, bx1 = 0, _W
+            card_h = 420
+            by0 = (_H - card_h) // 2
+            by1 = by0 + card_h
+            
+            # Premium Glassmorphism
+            # Lighter Premium Glassmorphism
+            glass = (255, 255, 255, 160) if not image_path else (10, 10, 10, 90)
             _draw_rounded_rect(overlay_draw2, [bx0, by0, bx1, by1], 50, glass)
+            
+            # Subtle Shadow
+            shadow_mask = Image.new("RGBA", (_W, _H), (0, 0, 0, 0))
+            sm_draw = ImageDraw.Draw(shadow_mask)
+            _draw_rounded_rect(sm_draw, [bx0+3, by0+3, bx1+3, by1+3], 50, (0, 0, 0, 60))
+            img.paste(shadow_mask.filter(ImageFilter.GaussianBlur(10)), (0, 0), shadow_mask.filter(ImageFilter.GaussianBlur(10)))
+            
             img.paste(overlay_img2, (0, 0), overlay_img2)
-            draw = ImageDraw.Draw(img)
-            tc = tuple(theme["text"]) if not image_path else (255, 255, 255)
-            y = by0 + padding
-            for line in lines:
-                lw, lh = _sz(draw, line, f)
-                draw.text(((_W - lw) // 2 + 3, y + 3), line, font=f, fill=(0, 0, 0, 85))
-                draw.text(((_W - lw) // 2, y), line, font=f, fill=tc)
-                y += lh + 22
+            # Only draw static text if NOT using daktilo
+            if not word_timestamps and not srt_path:
+                draw = ImageDraw.Draw(img)
+                tc = tuple(theme["text"]) if not image_path else (255, 255, 255)
+                y = by0 + padding
+                for line in lines:
+                    lw, lh = _sz(draw, line, f)
+                    draw.text(((_W - lw) // 2 + 3, y + 3), line, font=f, fill=(0, 0, 0, 85))
+                    draw.text(((_W - lw) // 2, y), line, font=f, fill=tc)
+                    y += lh + 22
 
         # ── Save current frame base ──
         # Since we use filter_complex, we only need the base image if it changes per fragment.
@@ -372,65 +401,54 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
     # Inputs 1...N: Audio fragments
     for ap in valid_audios:
         cmd.extend(["-i", ap])
+    
+    # Input N+1: CTA Icons
+    icons_path = r"C:\Users\mus-1\.gemini\antigravity\brain\2a7d011c-bd9e-46df-b82a-a4962a455b8b\social_engagement_icons_1776263235062.png"
+    if os.path.exists(icons_path):
+        cmd.extend(["-i", icons_path])
+        icons_idx = len(valid_audios) + 1
+    else:
+        icons_idx = None
 
-    # Filter Complex — static scale+pad (zoompan removed: too slow for VPS, causes silent hang)
+    # Filter Complex
     filter_parts = [
         f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=30[vbg]"
     ]
     
-    # Audio Concat
+    # Audio Concat (Voiceover fragments)
     if valid_audios:
         a_inputs = "".join([f"[{i+1}:a]" for i in range(len(valid_audios))])
         filter_parts.append(f"{a_inputs}concat=n={len(valid_audios)}:v=0:a=1[vo]")
     else:
         filter_parts.append("anullsrc=r=44100:cl=stereo[vo]")
-
-    # Subtitles Overlay — word-wrapped, max 26 chars per line, max 3 lines, fontsize 42
-    def _ffmpeg_wrap(text: str, max_chars: int = 26) -> list:
-        words = text.split()
-        lines, cur = [], ""
-        for w in words:
-            test = (cur + " " + w).strip()
-            if len(test) <= max_chars:
-                cur = test
-            else:
-                if cur:
-                    lines.append(cur)
-                cur = w
-        if cur:
-            lines.append(cur)
-        return lines[:3]
-
+    
     v_stream = "[vbg]"
     curr = 0
-    font_path = f"{_get_project_root()}/assets/fonts/Montserrat-Medium.ttf"
     for i, frag in enumerate(fragments):
         txt = frag.get("sentence") or frag.get("text", "")
-        txt = _clean_text(txt).replace("'", "").replace(":", "\\:")
+        txt = _clean_text(txt).replace("'", "").replace(":", "\\:").replace("!", "")
         d = get_duration(frag.get("audio") or frag.get("path"))
         start, end = curr, curr + d
-        if txt:
-            lines = _ffmpeg_wrap(txt)
-            fontsize = 42
-            line_h = fontsize + 18   # satır yüksekliği + boşluk
-            total_h = len(lines) * line_h
-            base_y = int(_H * 0.72) - total_h // 2
-            tag_out = f"[v{i}]"
-            cur_v = v_stream
-            for li, line in enumerate(lines):
-                y = base_y + li * line_h
-                tag_in = cur_v
-                is_last = (li == len(lines) - 1)
-                out_tag = tag_out if is_last else f"[v{i}l{li}]"
-                filter_parts.append(
-                    f"{tag_in}drawtext=text='{line}':fontfile='{font_path}':"
-                    f"fontsize={fontsize}:fontcolor=white:x=(w-text_w)/2:y={y}:"
-                    f"box=1:boxcolor=black@0.5:boxborderw=14:"
-                    f"enable='between(t,{start},{end})'{out_tag}"
-                )
-                cur_v = out_tag
-            v_stream = tag_out
-        curr += d
+
+        if txt and srt_path and i == 0:
+            # PROFESSIONAL .ASS SUBTITLES (Typewriter)
+            safe_srt_path = srt_path.replace("\\", "/").replace(":", "\\:")
+            v_stream_in = v_stream
+            v_stream_out = f"[v_subs_{i}]"
+            filter_parts.append(f"{v_stream_in}subtitles='{safe_srt_path}'{v_stream_out}")
+            v_stream = v_stream_out
+        
+        curr = end
+
+    # --- FINAL CTA / SOCIAL OVERLAY (Like, Share, Save, Follow) ---
+    if icons_idx is not None:
+        v_final = "[v_with_cta]"
+        # Smooth fade-in of engagement icons over the glass card area
+        filter_parts.append(
+            f"[{icons_idx}:v]scale=800:-1,colorkey=black:0.1:0.1,format=yuva420p,fade=in:st={total_dur-4}:d=1:alpha=1[vcta];"
+            f"{v_stream}[vcta]overlay=x=(W-w)/2:y=H-h-180:enable='gt(t,{total_dur-4})'{v_final}"
+        )
+        v_stream = v_final
 
     # Optional Background Music
     music_path = os.path.join(_get_project_root(), "assets", "music", f"background_{brand}.mp3")
@@ -446,8 +464,13 @@ def create_reel(fragments=None, image_path=None, output_filename=None, brand="gl
     else:
         map_a = "[vo]"
 
+    # Final Single-Command Assembly with Filter Script (Windows-safe for long commands)
+    filter_script_path = os.path.abspath(os.path.join(_OUTPUT_DIR, f"filter_{session_id}.txt"))
+    with open(filter_script_path, "w", encoding="utf-8") as f:
+        f.write(";".join(filter_parts))
+
     cmd.extend([
-        "-filter_complex", ";".join(filter_parts),
+        "-filter_complex_script", filter_script_path,
         "-map", v_stream, "-map", map_a,
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast",
         "-c:a", "aac", "-b:a", "192k", "-shortest", os.path.abspath(output_path)

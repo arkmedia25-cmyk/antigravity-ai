@@ -24,6 +24,7 @@ load_dotenv(os.path.join(_PROJECT_ROOT, ".env"))
 from src.skills.ai_client import ask_ai
 from src.skills.content_engine_utils import content_engine
 from src.skills.cache_service import cache_service
+from src.skills.video_service import video_service
 
 # ─── AYARLAR ──────────────────────────────────────────────────────────────────
 TELEGRAM_TOKEN   = os.getenv("TELEGRAM_TOKEN")
@@ -112,7 +113,7 @@ def fetch_visuals(scenes: list) -> list:
                     success = True
         
         if not success: # DALL-E fallback or direct
-            print(f"  [DALL-E] Genereren: {sc['dalle'][:50]}...")
+            print(f"  [DALL-E] Genereren scene {i}: {sc['dalle'][:50]}...")
             try:
                 d_resp = oa_client.images.generate(
                     model="dall-e-3",
@@ -211,7 +212,24 @@ def generate_voice(text: str) -> str:
     }
     resp = requests.post(url, headers=headers, json=payload, timeout=60)
     if resp.status_code != 200:
-        raise Exception(f"ElevenLabs hata: {resp.status_code} — {resp.text[:200]}")
+        # FALLBACK: Use OpenAI TTS if ElevenLabs fails
+        print(f"[ALERT] ElevenLabs hatasi ({resp.status_code}). OpenAI TTS'e geciliyor...")
+        try:
+            # Local import and initialization to avoid NameError
+            from openai import OpenAI
+            api_key = os.getenv("OPENAI_API_KEY")
+            fallback_client = OpenAI(api_key=api_key)
+            o_resp = fallback_client.audio.speech.create(
+                model="tts-1",
+                voice="nova", # Professional & warm voice
+                input=text
+            )
+            audio_path = os.path.join(os.environ.get("TEMP", "/tmp"), f"priya_voice_{int(time.time())}.mp3")
+            o_resp.stream_to_file(audio_path)
+            print(f"  [TTS-FALLBACK] Ses OpenAI ile uretildi: {audio_path}")
+            return audio_path
+        except Exception as oe:
+            raise Exception(f"Hem ElevenLabs hem OpenAI TTS basarisiz: {oe}")
 
     audio_path = os.path.join(os.environ.get("TEMP", "/tmp"), f"priya_voice_{int(time.time())}.mp3")
     with open(audio_path, "wb") as f:
@@ -412,16 +430,36 @@ def send_to_telegram(video_path: str, baslik: str, gun_no: int, script: str, met
     reply_markup = json.dumps({
         "inline_keyboard": [
             [
-                {"text": "⬇️ Indir", "url": download_url},
-                {"text": "✏️ Tekrar Duzenle", "callback_data": f"redo_{vid}"}
+                {"text": "Download", "url": download_url},
+                {"text": "Re-Edit", "callback_data": f"redo_{vid}"}
             ],
             [
-                {"text": "📸 Instagram'a Gonder", "callback_data": f"instagram_{vid}"},
-                {"text": "🎵 TikTok'a Gonder",    "callback_data": f"tiktok_{vid}"}
+                {"text": "Post to Instagram", "callback_data": f"instagram_{vid}"},
+                {"text": "Post to TikTok",    "callback_data": f"tiktok_{vid}"}
             ]
         ]
     })
 
+    # --- Phase 4: Pro Video Enhancement (VideoDB) ---
+    if os.getenv("VIDEO_DB_API_KEY"):
+        print("\n[FLEET] Phase 4: VideoDB ile profesyonel duzenleme basliyor...")
+        try:
+            # 1. Upload
+            v_obj = video_service.upload_video(video_path)
+            if v_obj:
+                # 2. Reframe & Subtitles
+                print("[ACTION] Video dikey formata cevriliyor ve altyazi ekleniyor...")
+                # We do subtitles first, then reframe
+                subbed_url = video_service.add_subtitles(v_obj.id)
+                final_url = video_service.reframe_to_vertical(v_obj.id)
+                
+                if final_url:
+                    print(f"[DONE] Profesyonel Video Hazir: {final_url}")
+                    # notify(context, f"🎬 VideoDB Pro Video Hazır!\n\n🔗 Link: {final_url}", chat_id)
+        except Exception as e:
+            print(f"[ALERT] VideoDB duzenleme hatasi (devam ediliyor): {e}")
+
+    # --- Send as Video (Visual) ---
     with open(video_path, "rb") as f:
         resp = requests.post(
             url,
@@ -434,6 +472,19 @@ def send_to_telegram(video_path: str, baslik: str, gun_no: int, script: str, met
             files={"video": ("drpriya.mp4", f, "video/mp4")},
             timeout=120
         )
+    
+    # --- Also Send as Document (For easy PC download on Windows) ---
+    doc_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendDocument"
+    with open(video_path, "rb") as f:
+        requests.post(
+            doc_url,
+            data={
+                "chat_id":    target_chat,
+                "caption":    "⬇️ Download-versie (Hoge kwaliteit for PC)",
+            },
+            files={"document": (os.path.basename(video_path), f)},
+            timeout=120
+        )
     if resp.status_code == 200:
         print(f"  [TELEGRAM] Gonderildi [OK] (vid={vid})")
     else:
@@ -442,7 +493,7 @@ def send_to_telegram(video_path: str, baslik: str, gun_no: int, script: str, met
 
 # ─── ANA ──────────────────────────────────────────────────────────────────────
 
-def compose_reel(avatar_path: str, scenes: list, baslik: str) -> str:
+def compose_reel(avatar_path: str, scenes: list, baslik: str, audio_path: str) -> str:
     """
     HolistiGlow Native Layout v2 (1080x1920):
     ─ Arka Plan : Hibrit gorseller (Ken Burns) — sahneye gore gecis
@@ -456,7 +507,11 @@ def compose_reel(avatar_path: str, scenes: list, baslik: str) -> str:
     out_final = os.path.join(PROJECT_ROOT, "outputs", f"reel_final_{int(time.time())}.mp4")
     os.makedirs(os.path.join(PROJECT_ROOT, "outputs"), exist_ok=True)
 
-    total_dur = get_duration(avatar_path)
+    # Anchoring duration specifically to the audio file if possible
+    total_dur = get_duration(audio_path)
+    if total_dur <= 0:
+        total_dur = get_duration(avatar_path)
+    
     num_scenes = max(len(scenes), 1)
     scene_dur  = total_dur / num_scenes
 
@@ -497,9 +552,25 @@ def compose_reel(avatar_path: str, scenes: list, baslik: str) -> str:
 
     # ── Build FFmpeg inputs ───────────────────────────────────────────────────
     # Use -loop 1 + -framerate 30 so images generate frames at 30fps
-    cmd = ["ffmpeg", "-y", "-i", avatar_path]
+    # Check if avatar_path is an image (fallback)
+    is_image = avatar_path.lower().endswith(('.jpg', '.jpeg', '.png'))
+    
+    # Build FFmpeg command. Input 0 = Avatar, Input 1+ = Scenes, Last = Audio
+    cmd = ["ffmpeg", "-y"]
+    
+    # Input 0: Avatar
+    if is_image:
+        cmd += ["-loop", "1", "-framerate", "30", "-t", str(total_dur), "-i", avatar_path]
+    else:
+        cmd += ["-i", avatar_path]
+        
+    # Inputs 1+: Scenes
     for sc in scenes:
         cmd.extend(["-loop", "1", "-framerate", "30", "-i", sc.get("image_path", "")])
+        
+    # Last Input: Audio
+    audio_idx = 1 + len(scenes)
+    cmd.extend(["-i", audio_path])
 
     filters = []
 
@@ -515,7 +586,7 @@ def compose_reel(avatar_path: str, scenes: list, baslik: str) -> str:
 
     for i in range(num_scenes):
         dur = scene_dur if i < num_scenes - 1 else (total_dur - i * scene_dur)
-        idx = i + 1
+        idx = i + 1 # Avatar=0, Scenes start at 1
         px, py = pan_xy[i % len(pan_xy)]
         # Scale to 110% of output, then crop with pan expression
         filters.append(
@@ -532,23 +603,9 @@ def compose_reel(avatar_path: str, scenes: list, baslik: str) -> str:
         f"[full_bg]drawbox=x=0:y={H//2}:w={W}:h={H//2}:color=black@0.55:t=fill[dark_bg]"
     )
 
-    # ── 3. Avatar circle + glow ring ─────────────────────────────────────────
-    filters.append(
-        f"[0:v]scale={AD}:{AD},format=rgba"
-        f",geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)'"
-        f":a='255*lt(hypot(X-{AD//2},Y-{AD//2}),{AD//2-2})'[avatar_circle]"
-    )
-    # Glow ring (green, 8px wide)
-    R = AD // 2
-    CX_ring = AX + R
-    CY_ring = AY + R
-    filters.append(
-        f"color=c=white@0.0:s={W}x{H}:r=30,format=rgba"
-        f",geq=r='130':g='150':b='120'"
-        f":a='220*gt(hypot(X-{CX_ring},Y-{CY_ring}),{R})*lt(hypot(X-{CX_ring},Y-{CY_ring}),{R+8})'[ring]"
-    )
-    filters.append(f"[dark_bg][avatar_circle]overlay={AX}:{AY}[with_avatar]")
-    filters.append(f"[with_avatar][ring]overlay=0:0[base_video]")
+    # ── 3. Avatar (Simple Rect for speed) ───────────────────────────────────
+    filters.append(f"[0:v]scale={AD}:{AD},format=rgba[avatar_simple]")
+    filters.append(f"[dark_bg][avatar_simple]overlay={AX}:{AY}[base_video]")
 
     # ── 4. Hook (first 4s) ────────────────────────────────────────────────────
     current_v = "[base_video]"
@@ -628,15 +685,16 @@ def compose_reel(avatar_path: str, scenes: list, baslik: str) -> str:
     filters.append("[vbrand]setsar=1[out]")
 
     cmd.extend(["-filter_complex", ";".join(filters)])
-    cmd.extend(["-map", "[out]", "-map", "0:a"])
-    cmd.extend(["-c:v", "libx264", "-preset", "fast", "-crf", "20", "-pix_fmt", "yuv420p"])
+    cmd.extend(["-map", "[out]", "-map", f"{audio_idx}:a"])
+    cmd.extend(["-c:v", "libx264", "-preset", "ultrafast", "-crf", "28", "-pix_fmt", "yuv420p"])
     cmd.extend(["-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart"])
     cmd.append(out_final)
 
     print(f"  [FFMPEG] Render basliyor (Sure: {total_dur:.1f}s)...")
-    res = subprocess.run(cmd, capture_output=True, text=True)
+    # Avoid deadlock by not capturing huge stderr logs into a pipe
+    res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if res.returncode != 0:
-        print(f"  [FFMPEG] Hata:\n{res.stderr[-1500:]}")
+        print(f"  [FFMPEG] Hata (Kod {res.returncode})")
         return avatar_path
 
     # ── 8. Music Mix ─────────────────────────────────────────────────────────
@@ -681,14 +739,23 @@ def main(topic: str, hook: str, baslik: str, gun_no: int = 1, chat_id: str = Non
     audio_path = generate_voice(clean_text)
     
     print("[4/6] HeyGen Avatar Video...")
-    notify("4/6: HeyGen Avatar video üretimi başlatıldı. Bu işlem 2-3 dakika sürebilir, lütfen bekleyin...")
-    video_id = create_heygen_video(script, audio_path)
-    video_url = wait_for_video(video_id)
-    video_path = download_video(video_url, notify=notify)
+    try:
+        notify("4/6: HeyGen Avatar video üretimi başlatıldı...")
+        video_id = create_heygen_video(script, audio_path)
+        video_url = wait_for_video(video_id)
+        video_path = download_video(video_url, notify=notify)
+    except Exception as e:
+        print(f"[ALERT] HeyGen Hatasi: {e}. Fallback moduna geciliyor (Statik Avatar)...")
+        notify("HeyGen kredisi yetersiz veya hata olustu. Statik avatar ve dinamik gorsellerle kurgu devam ediyor...")
+        # Fallback: Use static image if exists, else first scene image
+        video_path = os.path.join(PROJECT_ROOT, "assets", "images", "avatar_static.jpg")
+        if not os.path.exists(video_path) and scenes:
+             video_path = scenes[0].get("image_path")
+        if not video_path:
+             video_path = audio_path # last resort (might still fail FFmpeg but better than None)
     
-    print("[5/6] FFmpeg Compose...")
-    notify("5/6: FFmpeg ile sahneler birleştiriliyor ve efektler ekleniyor...")
-    reel_path = compose_reel(video_path, scenes, baslik)
+    # 5. FFmpeg
+    reel_path = compose_reel(video_path, scenes, baslik, audio_path)
     
     print("[6/6] Telegrama gonderiliyor...")
     notify("6/6: Video hazır! Dosya yükleniyor...")

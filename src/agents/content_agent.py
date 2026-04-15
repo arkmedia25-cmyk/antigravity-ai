@@ -49,6 +49,22 @@ class ContentAgent(BaseAgent):
         cleaned_response = cleaned_response.strip()
 
         message.content = cleaned_response
+        
+        # 🔗 Otomatik Delegasyon: Eğer içerikte video/reels ile ilgili bir şey varsa VideoProducer'a devret
+        trigger_keywords = ["video", "reel", "reels", "hazırla", "üret", "anlat", "göster", "oluştur"]
+        has_video_kw = any(kw in input_data.lower() for kw in trigger_keywords)
+        
+        # Check both cleaned and original response for specific markers
+        reels_markers = [r"🎬\s*Reels-idee", r"Reels-idee", r"Video:", r"🎥\s*Video"]
+        has_reels_marker = any(re.search(pattern, response, re.I) for pattern in reels_markers) or \
+                           any(re.search(pattern, cleaned_response, re.I) for pattern in reels_markers)
+
+        if has_video_kw and has_reels_marker:
+            message.next_agent = "video_producer"
+            logger.info(f"[ContentAgent] ✅ Video üretimi tetiklendi. Delegating to {message.next_agent}.")
+        else:
+            logger.debug(f"[ContentAgent] ℹ️ Delegasyon şartları oluşmadı. KW: {has_video_kw}, Marker: {has_reels_marker}")
+        
         return message
 
     def _call_ai(self, task: str, personality_text: str, history: str = "", chat_id=None, brand: str = "glowup") -> SwarmMessage:
@@ -77,6 +93,6 @@ class ContentAgent(BaseAgent):
             logger.error(f"ContentAgent AI call failed: {e}")
             return SwarmMessage(
                 sender=self.name,
-                content=f"Content agent hatası: {e}",
+                content=f"Content agent error: {e}",
                 status="error"
             )

@@ -116,3 +116,34 @@ def load_memory_context() -> str:
         f"Afgewezen stijlen: {learned.get('rejected_styles', [])}\n"
         f"Goedgekeurde CTA's: {learned.get('approved_ctas', [])}\n"
     )
+
+class AgentResponse:
+    """Standardized response harness for Agency Swarm OS (Phase 6).
+    Enforces the 'status/summary/next_actions' contract from ECC Harness Construction.
+    """
+    @staticmethod
+    def success(summary: str, next_actions: str = "Proceed to next step", artifacts: dict = None) -> dict:
+        return {
+            "status": "success",
+            "summary": summary,
+            "next_actions": next_actions,
+            "artifacts": artifacts or {}
+        }
+
+    @staticmethod
+    def error(message: str, hint: str = "Check logs", retry: bool = True) -> dict:
+        return {
+            "status": "error",
+            "summary": message,
+            "next_actions": "Retry if autonomous" if retry else "Escalate to Human",
+            "hint": hint,
+            "auto_retry": retry
+        }
+
+    @staticmethod
+    def warning(message: str, next_actions: str) -> dict:
+        return {
+            "status": "warning",
+            "summary": message,
+            "next_actions": next_actions
+        }

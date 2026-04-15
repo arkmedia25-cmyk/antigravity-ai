@@ -59,6 +59,11 @@ def start_content_factory(chat_id, bot=None):
             "glow",
             "🌆 Akşam Paylaşımı (GlowUp)"
         ),
+        "15:53": (
+            "@glowup Maak een premium wellnessvideo met daktilo effect en een rustgevende achtergrond.",
+            "glow",
+            "🚀 Final Sync Test (Daktilo Fixed)"
+        ),
         "22:00": (
             "@holistiglow Gece huzuru, meditasyon ve uyku öncesi wellness ritüelleri üzerine sakinleştirici bir video üret.",
             "holisti",

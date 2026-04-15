@@ -10,6 +10,7 @@ from anthropic import Anthropic, APIConnectionError, RateLimitError, InternalSer
 
 from src.config.settings import settings
 from src.skills.cache_service import cache_service
+from src.skills.observation_service import observation_service
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +73,8 @@ def ask_ai(
     use_cache: bool = True,
     model: str = None,
     tools: list = None,
-    tool_choice: str = None
+    tool_choice: str = None,
+    thinking_budget: int = 0
 ) -> Any:
     """
     Enhanced AI Client with:
@@ -121,12 +123,17 @@ def ask_ai(
                         else:
                             final_msgs.append(m)
                     
-                    return client.messages.create(
-                        model=selected_model,
-                        max_tokens=4096,
-                        system=system_msg,
-                        messages=final_msgs
-                    )
+                    kwargs = {
+                        "model": selected_model,
+                        "max_tokens": 4096,
+                        "system": system_msg,
+                        "messages": final_msgs
+                    }
+                    if thinking_budget > 0:
+                        kwargs["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
+                        kwargs["max_tokens"] = max(kwargs["max_tokens"], thinking_budget + 2048)
+                    
+                    return client.messages.create(**kwargs)
 
                 response = call_with_retry(_call_anthropic)
                 result_text = response.content[0].text
@@ -161,6 +168,15 @@ def ask_ai(
         # 4. Save to Cache (only for text results, not tool calls)
         if result_text and use_cache and not tools:
             cache_service.set(cache_key, result_text)
+
+        # 5. Record Observation for Brain
+        observation_service.record(
+            provider=provider,
+            model=selected_model,
+            messages=msgs,
+            result=result_text,
+            metadata={"is_json": is_json, "cached": False}
+        )
 
         if is_json:
             return _parse_json(result_text)
