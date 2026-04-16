@@ -9,10 +9,13 @@ import sys
 import json
 from datetime import datetime
 from dotenv import load_dotenv
-load_dotenv("/root/antigravity-ai/.env")
+# Dynamically find the .env in project root
+_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_ROOT = os.path.dirname(_FILE_DIR)
+load_dotenv(os.path.join(_PROJECT_ROOT, ".env"))
 
 # State file bijhoudt voortgang
-STATE_FILE = "/root/antigravity-ai/article_writer_state.json"
+STATE_FILE = os.path.join(_PROJECT_ROOT, "article_writer_state.json")
 
 # Volgorde van te schrijven artikelen (nieuwe producten eerst, dan updates)
 ARTICLE_QUEUE = [
@@ -74,7 +77,10 @@ def main():
     print(f"[{datetime.now()}] 📝 Vandaag schrijven: {next_product}")
 
     # Importeer en voer article_writer uit
-    sys.path.insert(0, "/opt/n8n")
+    # Import from the scripts directory (same as this file)
+    if _FILE_DIR not in sys.path:
+        sys.path.insert(0, _FILE_DIR)
+        
     try:
         from article_writer import write_and_publish
         url = write_and_publish(next_product)

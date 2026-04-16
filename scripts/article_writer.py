@@ -8,7 +8,8 @@ import os
 import sys
 import base64
 import requests
-load_dotenv() # Load from current or parent dirs
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")) 
 
 # --- Path Fix for src imports ---
 _FILE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -361,7 +362,9 @@ REGELS:
 - Geef ALLEEN de HTML terug, geen inleiding of uitleg
 - VERBODEN: geen ```html of ``` blokken, geen markdown, alleen pure HTML"""
 
-    text = ask_ai(prompt, provider="anthropic")
+    # Let ask_ai handle provider (it defaults to openai with anthropic fallback)
+    # We remove explicit provider="anthropic" to enable auto-fallback
+    text = ask_ai(prompt)
     # Markdown code fences temizle
     import re
     text = re.sub(r'^```[a-z]*\n?', '', text, flags=re.MULTILINE)
