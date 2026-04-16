@@ -12,19 +12,13 @@ import re
 import requests
 from dotenv import load_dotenv
 
-# --- Path Fix for src imports ---
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__)) # scripts/automation
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(PROJECT_ROOT)) # actual project root
-
-if _PROJECT_ROOT not in sys.path:
-    sys.path.append(_PROJECT_ROOT)
-
-load_dotenv(os.path.join(_PROJECT_ROOT, ".env"))
-
+from src.core.logging import get_logger
 from src.skills.ai_client import ask_ai
 from src.skills.content_engine_utils import content_engine
 from src.skills.cache_service import cache_service
 from src.skills.video_service import video_service
+
+logger = get_logger("wellness_producer")
 
 # ─── AYARLAR ──────────────────────────────────────────────────────────────────
 TELEGRAM_TOKEN   = os.getenv("TELEGRAM_TOKEN")
@@ -101,7 +95,7 @@ def fetch_visuals(scenes: list) -> list:
         success = False
         
         if sc["source"] == "pexels":
-            print(f"  [PEXELS] Zoeken naar: {sc['query']}")
+            logger.info(f"Searching for Pexels visual: {sc['query']}")
             p_url = f"https://api.pexels.com/v1/search?query={requests.utils.quote(sc['query'])}&per_page=5&orientation=portrait"
             r = requests.get(p_url, headers={"Authorization": PEXELS_KEY}, timeout=15)
             if r.status_code == 200:
@@ -113,7 +107,7 @@ def fetch_visuals(scenes: list) -> list:
                     success = True
         
         if not success: # DALL-E fallback or direct
-            print(f"  [DALL-E] Genereren scene {i}: {sc['dalle'][:50]}...")
+            logger.info(f"Generating scene {i} via DALL-E: {sc['dalle'][:50]}...")
             try:
                 d_resp = oa_client.images.generate(
                     model="dall-e-3",
@@ -124,7 +118,7 @@ def fetch_visuals(scenes: list) -> list:
                 with open(v_path, "wb") as f: f.write(img_data)
                 success = True
             except Exception as e:
-                print(f"  [DALL-E] Fout: {e}")
+                logger.error(f"DALL-E generation error: {e}")
 
         if success:
             sc["image_path"] = v_path
@@ -213,12 +207,10 @@ def generate_voice(text: str) -> str:
     resp = requests.post(url, headers=headers, json=payload, timeout=60)
     if resp.status_code != 200:
         # FALLBACK: Use OpenAI TTS if ElevenLabs fails
-        print(f"[ALERT] ElevenLabs hatasi ({resp.status_code}). OpenAI TTS'e geciliyor...")
+        logger.warning(f"ElevenLabs error ({resp.status_code}). Switching to OpenAI TTS...")
         try:
-            # Local import and initialization to avoid NameError
-            from openai import OpenAI
-            api_key = os.getenv("OPENAI_API_KEY")
-            fallback_client = OpenAI(api_key=api_key)
+            from src.skills.ai_client import _get_openai
+            client = _get_openai()
             o_resp = fallback_client.audio.speech.create(
                 model="tts-1",
                 voice="nova", # Professional & warm voice
@@ -226,7 +218,7 @@ def generate_voice(text: str) -> str:
             )
             audio_path = os.path.join(os.environ.get("TEMP", "/tmp"), f"priya_voice_{int(time.time())}.mp3")
             o_resp.stream_to_file(audio_path)
-            print(f"  [TTS-FALLBACK] Ses OpenAI ile uretildi: {audio_path}")
+            logger.info(f"Audio generated via OpenAI: {audio_path}")
             return audio_path
         except Exception as oe:
             raise Exception(f"Hem ElevenLabs hem OpenAI TTS basarisiz: {oe}")
@@ -234,7 +226,7 @@ def generate_voice(text: str) -> str:
     audio_path = os.path.join(os.environ.get("TEMP", "/tmp"), f"priya_voice_{int(time.time())}.mp3")
     with open(audio_path, "wb") as f:
         f.write(resp.content)
-    print(f"  [TTS] Ses kaydedildi: {audio_path} ({len(resp.content)/1024:.1f} KB)")
+    logger.info(f"Audio saved: {audio_path} ({len(resp.content)/1024:.1f} KB)")
     return audio_path
 
 
@@ -258,7 +250,7 @@ def create_heygen_video(script: str, audio_path: str) -> str:
         raise Exception(f"HeyGen upload hata: {upload_resp.status_code} — {upload_resp.text[:200]}")
 
     asset_id = upload_resp.json().get("data", {}).get("id")
-    print(f"  [HEYGEN] Ses yuklendi, asset_id: {asset_id}")
+    logger.info(f"Audio uploaded to HeyGen, asset_id: {asset_id}")
 
     # Video olustur — kare format, deformasyon yok
     video_payload = {
@@ -295,7 +287,7 @@ def create_heygen_video(script: str, audio_path: str) -> str:
         raise Exception(f"HeyGen video hata: {create_resp.text[:200]}")
 
     video_id = create_resp.json().get("data", {}).get("video_id")
-    print(f"  [HEYGEN] Video olusturuluyor, video_id: {video_id}")
+    logger.info(f"HeyGen video generation started, video_id: {video_id}")
     return video_id
 
 
@@ -308,7 +300,7 @@ def wait_for_video(video_id: str, timeout: int = 900) -> str:
         resp = requests.get(url, headers=headers, timeout=30)
         data = resp.json().get("data", {})
         status = data.get("status")
-        print(f"  [HEYGEN] Durum: {status}")
+        logger.info(f"HeyGen Status: {status}")
 
         if status == "completed":
             return data.get("video_url")
@@ -328,7 +320,7 @@ def download_video(video_url: str, notify=None) -> str:
         for chunk in resp.iter_content(chunk_size=8192):
             f.write(chunk)
     size_mb = os.path.getsize(output_path) / 1024 / 1024
-    print(f"  [VIDEO] Indirildi: {output_path} ({size_mb:.1f} MB)")
+    logger.info(f"Video downloaded: {output_path} ({size_mb:.1f} MB)")
     return output_path
 
 
@@ -442,22 +434,22 @@ def send_to_telegram(video_path: str, baslik: str, gun_no: int, script: str, met
 
     # --- Phase 4: Pro Video Enhancement (VideoDB) ---
     if os.getenv("VIDEO_DB_API_KEY"):
-        print("\n[FLEET] Phase 4: VideoDB ile profesyonel duzenleme basliyor...")
+        logger.info("Phase 4: Starting VideoDB professional enhancement...")
         try:
             # 1. Upload
             v_obj = video_service.upload_video(video_path)
             if v_obj:
                 # 2. Reframe & Subtitles
-                print("[ACTION] Video dikey formata cevriliyor ve altyazi ekleniyor...")
+                logger.info("Reframing to vertical and burning subtitles via VideoDB...")
                 # We do subtitles first, then reframe
                 subbed_url = video_service.add_subtitles(v_obj.id)
                 final_url = video_service.reframe_to_vertical(v_obj.id)
                 
                 if final_url:
-                    print(f"[DONE] Profesyonel Video Hazir: {final_url}")
+                    logger.info(f"Professional Video Ready: {final_url}")
                     # notify(context, f"🎬 VideoDB Pro Video Hazır!\n\n🔗 Link: {final_url}", chat_id)
         except Exception as e:
-            print(f"[ALERT] VideoDB duzenleme hatasi (devam ediliyor): {e}")
+            logger.error(f"VideoDB enhancement error (skipping): {e}")
 
     # --- Send as Video (Visual) ---
     with open(video_path, "rb") as f:
@@ -486,9 +478,9 @@ def send_to_telegram(video_path: str, baslik: str, gun_no: int, script: str, met
             timeout=120
         )
     if resp.status_code == 200:
-        print(f"  [TELEGRAM] Gonderildi [OK] (vid={vid})")
+        logger.info(f"Video sent to Telegram successfully (vid={vid})")
     else:
-        print(f"  [TELEGRAM] Hata: {resp.status_code} — {resp.text[:200]}")
+        logger.error(f"Telegram error: {resp.status_code} - {resp.text[:200]}")
 
 
 # ─── ANA ──────────────────────────────────────────────────────────────────────
@@ -690,11 +682,10 @@ def compose_reel(avatar_path: str, scenes: list, baslik: str, audio_path: str) -
     cmd.extend(["-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart"])
     cmd.append(out_final)
 
-    print(f"  [FFMPEG] Render basliyor (Sure: {total_dur:.1f}s)...")
-    # Avoid deadlock by not capturing huge stderr logs into a pipe
+    logger.info(f"FFmpeg render started (Duration: {total_dur:.1f}s)...")
     res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if res.returncode != 0:
-        print(f"  [FFMPEG] Hata (Kod {res.returncode})")
+        logger.error(f"FFmpeg render failed (Code {res.returncode})")
         return avatar_path
 
     # ── 8. Music Mix ─────────────────────────────────────────────────────────
@@ -745,7 +736,7 @@ def main(topic: str, hook: str, baslik: str, gun_no: int = 1, chat_id: str = Non
         video_url = wait_for_video(video_id)
         video_path = download_video(video_url, notify=notify)
     except Exception as e:
-        print(f"[ALERT] HeyGen Hatasi: {e}. Fallback moduna geciliyor (Statik Avatar)...")
+        logger.error(f"HeyGen Error: {e}. Falling back to Static Avatar mode...")
         notify("HeyGen kredisi yetersiz veya hata olustu. Statik avatar ve dinamik gorsellerle kurgu devam ediyor...")
         # Fallback: Use static image if exists, else first scene image
         video_path = os.path.join(PROJECT_ROOT, "assets", "images", "avatar_static.jpg")
@@ -757,7 +748,7 @@ def main(topic: str, hook: str, baslik: str, gun_no: int = 1, chat_id: str = Non
     # 5. FFmpeg
     reel_path = compose_reel(video_path, scenes, baslik, audio_path)
     
-    print("[6/6] Telegrama gonderiliyor...")
+    logger.info("Processing complete. Sending to Telegram...")
     notify("6/6: Video hazır! Dosya yükleniyor...")
     send_to_telegram(reel_path, baslik, gun_no, script, meta, chat_id=chat_id)
     return reel_path

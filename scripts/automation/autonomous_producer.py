@@ -1,10 +1,22 @@
 import os
 import json
 import time
-from openai import OpenAI
+import sys
 from dotenv import load_dotenv
 
-load_dotenv()
+# --- Path Fix for src imports ---
+_FILE_DIR = os.path.dirname(os.path.abspath(__file__)) # scripts/automation
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(_FILE_DIR)) # actual project root
+
+if _PROJECT_ROOT not in sys.path:
+    sys.path.append(_PROJECT_ROOT)
+
+load_dotenv(os.path.join(_PROJECT_ROOT, ".env"))
+
+from src.core.logging import get_logger
+from src.skills.ai_client import ask_ai
+
+logger = get_logger("autonomous_producer")
 
 # SYSTEM_PROMPT - Dutch Language and Professional Tone
 SYSTEM_PROMPT = """
@@ -34,13 +46,12 @@ OUTPUT FORMAT MUST BE JSON:
 """
 
 def generate_autonomous_content(topic=None, brand="glow"):
-    print(f"🤖 Asking GPT-4o for '@{brand.capitalize()}NL' {topic or ''} content...")
+    logger.info(f"Generating content for @{brand.capitalize()}NL (Topic: {topic or 'Trending'})")
     try:
-        # Load Brand-Specific Trends
         trends_context = ""
-        trends_path = os.path.join(os.getcwd(), "memory", f"current_trends_{brand}.json")
+        trends_path = os.path.join(_PROJECT_ROOT, "memory", f"current_trends_{brand}.json")
         if not os.path.exists(trends_path):
-             trends_path = os.path.join(os.getcwd(), "memory", "current_trends.json")
+             trends_path = os.path.join(_PROJECT_ROOT, "memory", "current_trends.json")
              
         if os.path.exists(trends_path):
             with open(trends_path, "r", encoding="utf-8") as f:
@@ -49,45 +60,28 @@ def generate_autonomous_content(topic=None, brand="glow"):
                     if isinstance(trends_data, dict) and "trends" in trends_data:
                         trends_context = f"\nCURRENT BRAND-SPECIFIC TRENDS: {', '.join(trends_data['trends'])}\n"
                     else:
-                        print(f"⚠️ Warning: trends file at {trends_path} has no 'trends' key.")
+                        logger.warning(f"Trends file {trends_path} is missing 'trends' key")
                 except Exception as je:
-                    print(f"⚠️ Warning: Failed to parse trends file: {je}")
+                    logger.warning(f"Failed to parse trends file: {je}")
 
         brand_persona = "Energetic, coral/peach colors, fitness results" if brand == "glow" else "Calm, sage/beige colors, holistic health"
 
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         user_prompt = (
             f"Generate a Wellness tip for @{brand.capitalize()}NL. "
             f"Persona: {brand_persona}. Topic: {topic or 'Trending Wellness'}. {trends_context}"
         )
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT.replace("@GlowUpNL", f"@{brand.capitalize()}NL")},
-                {"role": "user", "content": user_prompt}
-            ],
-            response_format={"type": "json_object"}
-        )
-        raw_content = response.choices[0].message.content
         
-        # Robust JSON Parsing
-        clean_text = raw_content.strip()
-        if clean_text.startswith("```json"):
-            clean_text = clean_text.split("```json", 1)[1]
-        if clean_text.endswith("```"):
-            clean_text = clean_text.rsplit("```", 1)[0]
-        clean_text = clean_text.strip()
+        # Use centralized ask_ai with JSON support
+        system_msg = SYSTEM_PROMPT.replace("@GlowUpNL", f"@{brand.capitalize()}NL")
+        messages = [
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_prompt}
+        ]
         
-        try:
-            return json.loads(clean_text)
-        except json.JSONDecodeError:
-            import re
-            match = re.search(r"(\{.*\})", clean_text, re.DOTALL)
-            if match:
-                return json.loads(match.group(1))
-            raise
+        data = ask_ai(messages, provider="openai", is_json=True, model="gpt-4o")
+        return data
     except Exception as e:
-        print(f"❌ Content generation error: {e}")
+        logger.error(f"Content generation error: {e}")
         return None
 
 def run_production_line(topic=None, brand="glow"):
@@ -113,7 +107,7 @@ def run_production_line(topic=None, brand="glow"):
 
 if __name__ == "__main__":
     # Test run
-    print("🚀 Starting test production...")
+    logger.info("Starting test production run...")
     result = run_production_line()
     if result:
-        print(f"✅ Production Pack Ready: {result['gpt_data']['dutch_script']}")
+        logger.info(f"Production Pack Ready: {result['gpt_data']['dutch_script']}")
