@@ -4,7 +4,21 @@
 
 ---
 
-En son **14 Nisan 2026** itibariyle aşağıdaki kritik "Gelecek Nesil" özellikler eklendi ve sistem tam otonom **"Agency Swarm OS"** mimarisine taşındı:
+En son **16 Nisan 2026** itibariyle aşağıdaki kritik "Gelecek Nesil" özellikler eklendi ve sistem tam otonom **"Agency Swarm OS"** mimarisine taşındı:
+
+### 🎬 Video Üretim Hattı Robustluğu - [16 Nisan]
+- **Permissive Delegation** → `ContentAgent` artık çok daha geniş anahtar kelime (video, üret, maak vb.) ve marker setini tanıyor. AI formatı şaşırsa bile video tetikleniyor. ✅
+- **Extraction İyileştirmesi** → `VideoProducerAgent` seslendirme metni çıkarma mantığı esnetildi ve detaylı loglamaya geçildi. ✅
+- **Zamanlanmış Bot Düzeltmesi** → Gece/Sabah botunun video üretmeyi atlamasına neden olan katı kurallar esnetildi. ✅
+
+### 📝 Blog Otomasyon Onarımı (amarereview.nl) - [16 Nisan]
+- **OpenAI Fallback** → Anthropic kredisi bittiğinde bot artık durmuyor, otomatik olarak OpenAI (GPT-4o) üzerinden makale yazmaya devam ediyor. ✅
+- **Cron Kayması Giderildi** → Sunucudaki hatalı `/opt/n8n/` yolları ve yanlış dosya eşleşmeleri `/root/antigravity-ai/` altına çekilerek düzeltildi. ✅
+- **Manuel Doğrulama** → Amare Restore makalesi başarıyla yayınlandı ve doğrulandı. ✅
+
+---
+
+En son **14 Nisan 2026** itibariye:
 
 ### 🧠 Autonomous Brain (Cognitive Layer) - [YENİ]
 - **Think-Act-Observe Loop** → `SwarmOrchestrator` artık hedefleri küçük görevlere böler, sonuçları gözlemler ve kendi stratejisini dinamik olarak değiştirir. ✅

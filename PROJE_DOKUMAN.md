@@ -4,7 +4,7 @@
 **Hedef Pazar:** Hollanda (Nederland) — Amare Global affiliate sistemi
 **Platform:** DigitalOcean (deployment) + Telegram (kullanıcı arayüzü)
 **Dil:** Python 3.11
-**Son güncelleme:** 2026-04-14 (Agency Swarm OS & 20 Skills Entegrasyonu)
+**Son güncelleme:** 2026-04-16 (Video & Blog Robustness Update)
 
 > **ÖNEMLİ:** Bu "Master Log" dosyasıdır. Projeye her yeni dosya veya değişiklik
 > eklendiğinde Claude'dan bu dosyayı güncellemesini iste. Yeni bir oturumda sadece
@@ -22,7 +22,9 @@
 | Telegram Bot | ✅ Çalışıyor | polling, memory fix, encoding fix |
 | Dr. Priya VO | ✅ Canlı | Emojis & Titles filtered (Sanitized) |
 | Make.com | ✅ Bağlı | .env'de MAKE_WEBHOOK_URL mevcut |
-| PROJE_DOKUMAN | ✅ Güncel | 2026-04-14 Büyük Mimari Evrimi |
+| PROJE_DOKUMAN | ✅ Güncel | 2026-04-16 Video & Blog Fix |
+| Video Pipeline | ✅ Robust | Permissive delegation + Marker fix |
+| Blog Automation | ✅ Active | OpenAI Fallback + Cron Path Fix |
 
 ---
 
@@ -673,6 +675,19 @@ Scopes:    design:content:read design:content:write design:meta:read
 
 ---
 
+### Phase 11 — Video & Blog Robustness (DONE — 2026-04-16)
+
+**Otonom süreçlerin sürekliliği için yapılan kritik iyileştirmeler.**
+
+- **Video Delegation Fix**: `ContentAgent` içindeki tetikleme mantığı esnetildi. `trigger_keywords` ve `reels_markers` (🎬, Reels-idee vb.) artık daha kapsayıcı. AI tarafından üretilen içeriklerdeki format sapmaları otonom üretim hattını artık durduramıyor.
+- **Blog Automation Resiliency**: 
+  - `article_writer.py` dosyasına **OpenAI (GPT-4o) fallback** eklendi. Anthropic API hatası veya bakiye bitmesi durumunda sistem otomatik olarak OpenAI'a geçiyor.
+  - Sunucu üzerindeki yanlış crontab yolları (`/opt/n8n/`) güncel proje klasörüne (`/root/antigravity-ai/`) yönlendirildi.
+  - `daily_article_writer.py` içindeki hardcoded yollar dinamik hale getirildi.
+- **Server Sync**: Tüm değişiklikler `arkmediaflow.com` sunucusuna pushlandı/pull edildi ve PM2 botu (`my_ai_ark_agent_bot`) yeniden başlatıldı.
+
+---
+
 *Bu dosya Antigravity projesinin Master Log'udur.*
 *Her yeni phase, bağlantı veya kritik değişiklikte Claude'dan güncellenmesini iste.*
-*Son senkronizasyon: 2026-04-14 — Agency Swarm OS (ECC Integrated)*
+*Son senkronizasyon: 2026-04-16 — Video & Blog Robustness*
