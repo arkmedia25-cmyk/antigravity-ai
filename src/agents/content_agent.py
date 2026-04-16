@@ -51,19 +51,34 @@ class ContentAgent(BaseAgent):
         message.content = cleaned_response
         
         # 🔗 Otomatik Delegasyon: Eğer içerikte video/reels ile ilgili bir şey varsa VideoProducer'a devret
-        trigger_keywords = ["video", "reel", "reels", "hazırla", "üret", "anlat", "göster", "oluştur"]
-        has_video_kw = any(kw in input_data.lower() for kw in trigger_keywords)
+        trigger_keywords = [
+            "video", "reel", "reels", "hazırla", "üret", "anlat", "göster", "oluştur", 
+            "maak", "produceer", "videootje", "short", "reeltje", "film", "animasyon"
+        ]
+        input_lower = input_data.lower()
+        has_video_kw = any(kw in input_lower for kw in trigger_keywords)
         
         # Check both cleaned and original response for specific markers
-        reels_markers = [r"🎬\s*Reels-idee", r"Reels-idee", r"Video:", r"🎥\s*Video"]
+        # Added more markers and made them emoji-agnostic
+        reels_markers = [
+            r"🎬\s*Reels-idee", r"Reels-idee", r"Video:", r"🎥\s*Video", 
+            r"Reels idea", r"Reels script", r"Video script", r"Inhoud:", r"Script:"
+        ]
+        
         has_reels_marker = any(re.search(pattern, response, re.I) for pattern in reels_markers) or \
                            any(re.search(pattern, cleaned_response, re.I) for pattern in reels_markers)
 
-        if has_video_kw and has_reels_marker:
+        # ✨ PERMISIVE DELEGATION: If the prompt explicitly asked for a video, 
+        # and we see ANY indicator of a script, we delegate.
+        should_delegate = (has_video_kw and has_reels_marker) or \
+                          (has_video_kw and ("hook:" in cleaned_response.lower() or "inhoud:" in cleaned_response.lower()))
+
+        if should_delegate:
             message.next_agent = "video_producer"
-            logger.info(f"[ContentAgent] ✅ Video üretimi tetiklendi. Delegating to {message.next_agent}.")
+            logger.info(f"[ContentAgent] ✅ Video üretimi tetiklendi. (KW: {has_video_kw}, Marker: {has_reels_marker}). Delegating to {message.next_agent}.")
         else:
-            logger.debug(f"[ContentAgent] ℹ️ Delegasyon şartları oluşmadı. KW: {has_video_kw}, Marker: {has_reels_marker}")
+            logger.info(f"[ContentAgent] ℹ️ Delegasyon atlandı. KW: {has_video_kw}, Marker: {has_reels_marker}")
+            logger.debug(f"[ContentAgent] Input was: {input_data[:100]}...")
         
         return message
 

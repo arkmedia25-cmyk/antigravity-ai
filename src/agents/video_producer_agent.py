@@ -49,17 +49,19 @@ class VideoProducerAgent(BaseAgent):
                 match = re.search(pattern, input_data, re.I)
                 if match:
                     vo_text = match.group(2).strip()
+                    self.logger.info(f"[VideoProducer] Extracted VO text via pattern: {pattern}")
                     break
             
             if not vo_text:
                 # Fallback: if no specific block found, take the whole input but try to strip the Instagram caption part
+                self.logger.warning("[VideoProducer] Specific marker not found in input, using fallback extraction.")
                 vo_text = input_data.split("📸")[0].split("Instagram post")[0].strip() or input_data
             
             # Final VO cleanup: remove labels like "Hook:", "Inhoud:", "CTA:"
-            vo_text = re.sub(r'(?i)(Hook|Inhoud|CTA|Scene|Beeld):\s*', '', vo_text)
+            vo_text = re.sub(r'(?i)(Hook|Inhoud|CTA|Scene|Beeld|Afsluiting|Intro|Hookzin):\s*', '', vo_text)
             vo_text = vo_text.strip()
             
-            print(f"[VideoProducer] Final VO Text (length {len(vo_text)}): {vo_text[:50]}...")
+            self.logger.info(f"[VideoProducer] Final VO Text (length {len(vo_text)}): {vo_text[:100]}...")
             
             # 3. Fetch Background Image from Pexels
             print(f"[VideoProducer] Searching for 100% relevant visual...")
