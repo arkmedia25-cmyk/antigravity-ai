@@ -10,6 +10,11 @@ class BrandManager:
     def __init__(self, brands_dir="brands"):
         self.brands_dir = brands_dir
         self.brands = {}
+        self.aliases = {
+            "holistiglow": "holisti",
+            "glowupnl": "glowup",
+            "glowup_nl": "glowup"
+        }
         self.load_all_brands()
 
     def load_all_brands(self):
@@ -34,6 +39,11 @@ class BrandManager:
         """Returns the identity configuration for a specific brand."""
         # Clean '@' prefix if present
         name = brand_name.lower().replace("@", "")
+        
+        # Resolve aliases
+        if name in self.aliases:
+            name = self.aliases[name]
+            
         return self.brands.get(name)
 
     def list_brands(self):

@@ -168,7 +168,8 @@ class TelegramHandler:
             clean_text = text[6:].strip()
 
         # Route to orchestrator (synchronous call for the bridge)
-        return self.orchestrator.handle_request(clean_text, agent=agent, chat_id=chat_id)
+        msg = self.orchestrator.handle_request(clean_text, agent=agent, chat_id=chat_id)
+        return msg.content if hasattr(msg, 'content') else str(msg)
 
     def _generate_priya_sync(self, chat_id, topic, context):
         """Advanced Dr. Priya pipeline (HeyGen + ElevenLabs)"""
@@ -314,15 +315,20 @@ class TelegramHandler:
         elif "@glow" in task.lower():
             persona_msg = "⏳ Luna mesajı aldı, çalışmaya başladı... ✍️"
             
-        msg = await update.message.reply_text(persona_msg)
+        msg_status = await update.message.reply_text(persona_msg)
         
-        response = self.orchestrator.handle_request(task, agent=agent, chat_id=chat_id)
+        swarm_msg = self.orchestrator.handle_request(task, agent=agent, chat_id=chat_id)
+        response = swarm_msg.content if hasattr(swarm_msg, 'content') else str(swarm_msg)
         
-        if ".mp4" in response.lower() or "outputs/" in response:
+        # Check if video data is attached to the SwarmMessage
+        if swarm_msg.data and swarm_msg.data.get("video_path"):
+            await self._send_video_with_controls(update, context, swarm_msg.data.get("video_path"))
+            await msg_status.delete() 
+        elif ".mp4" in response.lower() or "outputs/" in response:
             await self._send_video_with_controls(update, context, response)
-            await msg.delete() # 'Çalışıyor' mesajını sil
+            await msg_status.delete() 
         else:
-            await msg.edit_text(response)
+            await msg_status.edit_text(response)
 
     async def _send_video_with_controls(self, update: Update, context: ContextTypes.DEFAULT_TYPE, video_path: str):
         # Extract clean path from potential text wrapper
@@ -424,9 +430,12 @@ class TelegramHandler:
         await update.message.reply_text(f"🔄 @{brand} için revize isteği işleniyor: '{revision_text}'")
         
         # Send brand-tagged request to orchestrator
-        response = self.orchestrator.handle_request(f"@{brand} REVISE VIDEO: {revision_text}", agent="content", chat_id=chat_id)
+        msg = self.orchestrator.handle_request(f"@{brand} REVISE VIDEO: {revision_text}", agent="content", chat_id=chat_id)
+        response = msg.content if hasattr(msg, 'content') else str(msg)
         
-        if ".mp4" in response.lower() or "outputs/" in response:
+        if msg.data and msg.data.get("video_path"):
+             await self._send_video_with_controls(update, context, msg.data.get("video_path"))
+        elif ".mp4" in response.lower() or "outputs/" in response:
             await self._send_video_with_controls(update, context, response)
         else:
             await update.message.reply_text(response)

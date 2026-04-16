@@ -14,20 +14,39 @@ logger = get_logger("scheduler.content_scheduler")
 _STOP_SCHEDULER = False
 
 
-def _send_telegram_message(chat_id: str, text: str):
-    """Send a message via Telegram HTTP API directly (thread-safe, no asyncio)."""
+def _send_telegram_message(chat_id: str, text: str, reply_markup=None, video_path=None, caption=None):
+    """Send a message (text or video) via Telegram HTTP API with markup support."""
     token = os.getenv("TELEGRAM_TOKEN", "")
     if not token:
-        logger.error("[Scheduler] TELEGRAM_TOKEN not set, cannot send message.")
+        logger.error("[Scheduler] TELEGRAM_TOKEN not set.")
         return
+        
     try:
-        requests.post(
-            f"https://api.telegram.org/bot{token}/sendMessage",
-            data={"chat_id": chat_id, "text": text, "parse_mode": "Markdown"},
-            timeout=10
-        )
+        # 1. If video_path is provided, send as video
+        if video_path and os.path.exists(video_path):
+            url = f"https://api.telegram.org/bot{token}/sendVideo"
+            with open(video_path, "rb") as vf:
+                payload = {
+                    "chat_id": chat_id,
+                    "caption": caption or text,
+                    "parse_mode": "Markdown"
+                }
+                if reply_markup:
+                    payload["reply_markup"] = json.dumps(reply_markup)
+                
+                requests.post(url, data=payload, files={"video": vf}, timeout=60)
+                return
+
+        # 2. Otherwise send as text
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        payload = {"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}
+        if reply_markup:
+            payload["reply_markup"] = json.dumps(reply_markup)
+            
+        requests.post(url, data=payload, timeout=10)
+        
     except Exception as e:
-        logger.error(f"[Scheduler] Failed to send Telegram message: {e}")
+        logger.error(f"[Scheduler] Telegram send error: {e}")
 
 
 def start_content_factory(chat_id, bot=None):
@@ -100,11 +119,48 @@ def start_content_factory(chat_id, bot=None):
                                 chat_id,
                                 f"🤖 *{lbl} başladı...*\n⏳ İçerik üretimi devam ediyor, lütfen bekleyin."
                             )
-                            response = orchestrator.handle_request(p, agent="content", chat_id=chat_id)
-                            _send_telegram_message(
-                                chat_id,
-                                f"✅ *{lbl} tamamlandı!*\n\n{response}"
-                            )
+                            # Get rich SwarmMessage from orchestrator
+                            msg = orchestrator.handle_request(p, agent="content", chat_id=chat_id)
+                            response_text = msg.content
+                            
+                            # Prepare interactive buttons if video was produced
+                            reply_markup = None
+                            video_path = None
+                            
+                            if msg.data and msg.data.get("video_path"):
+                                video_path = msg.data.get("video_path")
+                                public_url = msg.data.get("public_url", "#")
+                                
+                                # Standard Interactive Buttons
+                                reply_markup = {
+                                    "inline_keyboard": [
+                                        [
+                                            {"text": "📥 İndir", "url": public_url},
+                                            {"text": "📸 Instagram", "callback_data": f"pub_{video_path}_{b}_ig"}
+                                        ],
+                                        [
+                                            {"text": "📱 TikTok", "callback_data": f"pub_{video_path}_{b}_tt"},
+                                            {"text": "🎥 YouTube", "callback_data": f"pub_{video_path}_{b}_yt"}
+                                        ]
+                                    ]
+                                }
+                                
+                                # For video messages, we use a separate success notification or just send the video
+                                _send_telegram_message(
+                                    chat_id,
+                                    f"✅ *{lbl} tamamlandı!*",
+                                    video_path=video_path,
+                                    reply_markup=reply_markup,
+                                    caption=f"✅ *{lbl} hazır!*\n\n{response_text}"
+                                )
+                            else:
+                                # Standard text response
+                                _send_telegram_message(
+                                    chat_id,
+                                    f"✅ *{lbl} tamamlandı!*\n\n{response_text}",
+                                    reply_markup=reply_markup
+                                )
+                                
                         except Exception as e:
                             logger.error(f"[Scheduler] Production error: {e}", exc_info=True)
                             _send_telegram_message(chat_id, f"❌ *{lbl} hatası:* {e}")

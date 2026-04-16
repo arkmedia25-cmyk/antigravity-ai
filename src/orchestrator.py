@@ -104,4 +104,4 @@ class Orchestrator:
                 final_response = f"Sistem hatası ({current_agent_name}): {str(e)}"
                 break
 
-        return final_response
+        return message
