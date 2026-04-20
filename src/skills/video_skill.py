@@ -486,7 +486,14 @@ def create_reel(fragments=None, image_path=None, srt_path=None, output_filename=
     ])
 
     print(f"[video_skill] Running deployment-safe assembly for @{brand}...")
-    final_res = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    
+    # Run FFmpeg in its own process group so a bot restart (SIGINT) won't kill the render
+    import signal, platform
+    kwargs = {"capture_output": True, "text": True, "timeout": 300}
+    if platform.system() == "Linux":
+        kwargs["start_new_session"] = True  # Detach from parent's signal group
+    
+    final_res = subprocess.run(cmd, **kwargs)
     if final_res.returncode != 0:
         err_tail = final_res.stderr[-600:]
         print(f"[video_skill] Final Assembly Error: {err_tail}")
