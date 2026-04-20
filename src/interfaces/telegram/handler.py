@@ -263,7 +263,7 @@ class TelegramHandler:
             if context and context.bot:
                 await context.bot.send_message(chat_id, f"❌ Görev #{task_id} başarısız oldu: {str(e)[:100]}")
 
-    async def _generate_video_async(self, chat_id, user_topic, brand, context, task_id=None):
+    async def _generate_video_async(self, chat_id, topic, brand, context, task_id=None):
         """Asynchronous video production flow."""
         # Use existing logic but ensure bot instance is available
         bot = context.bot if context else None
