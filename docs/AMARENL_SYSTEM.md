@@ -169,10 +169,39 @@ Excel bron: `amare_bridge_site/astra_integration/products/AmareNL product lijst.
 
 ---
 
+## SEO/GEO Trafik Stratejisi
+
+**Funnel:**
+```
+Google Arama → Blog Makalesi (/blog)
+    → İlgili ürün sayfasına iç link
+    → Satın al (affiliate) VEYA email bırak (€8 korting)
+```
+
+**Lokasyon sinyalleri:** "Nederland", "Amsterdam", "Utrecht" gibi geo terimler makalelere eklenmeli.
+
+**Schema:** Article + FAQ JSON-LD her blog makalesine eklenmeli.
+
+**Site Kit:** Google Analytics + Search Console bağlantısı — WP Admin → Site Kit kontrol et.
+
+---
+
+## Footer
+
+- Homepage'e eklenmiş (ID: 36)
+- Tasarım: mor (#3a1f50) + altın (#f5c048)
+- İçerik: Snelle links / €8 korting form / Disclaimer
+- MailerLite bağlı — footer formdan da lead toplanıyor
+
+---
+
 ## Todo / Verbeterpunten
 
-- [ ] MailerLite welkomstmail flow aanmaken (automatisch na inschrijving)
+- [ ] Google Search Console + Analytics — Site Kit üzerinden kontrol
+- [ ] Blog makaleleri → ürün sayfası iç linkler
+- [ ] Article + FAQ schema makalelere ekle
+- [ ] MailerLite welkomstmail flow aanmaken
 - [ ] Yoast SEO meta handmatig invullen nieuwe pagina's (free plan)
 - [ ] Featured images toevoegen aan blog artikelen
-- [ ] Google Analytics koppelen via Site Kit
 - [ ] A/B test modal: €8 korting vs gratis gids
+- [ ] Fase 2: AI trend-based artikel generatie (na voltooiing vaste lijst)
