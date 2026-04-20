@@ -1,6 +1,7 @@
 import sys
 import os
 import random
+from typing import Optional, List, Dict, Any
 
 # --- Path Fix for Server/Local Consistency ---
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
