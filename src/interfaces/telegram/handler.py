@@ -205,10 +205,6 @@ class TelegramHandler:
             video_data = message.data if hasattr(message, 'data') else {}
             
             if video_data.get("video_path"):
-                # Send content kit (Instagram post + email sequence) as a separate message first
-                content_kit = video_data.get("content_kit", "")
-                if content_kit:
-                    await context.bot.send_message(chat_id, content_kit[:4000])
                 await self._send_video_message(chat_id, response_text, video_data, context, task_id=task_id)
             else:
                 await context.bot.send_message(chat_id, f"✅ Görev tamamlandı!\n\n{response_text[:3500]}")

@@ -295,11 +295,6 @@ def start_content_factory(chat_id, bot=None):
                                 video_path = msg.data.get("video_path")
                                 public_url = msg.data.get("public_url", "#")
 
-                                # Send content kit separately first
-                                content_kit = msg.data.get("content_kit", "")
-                                if content_kit:
-                                    _send_telegram_message(chat_id, content_kit[:4000])
-
                                 reply_markup = {
                                     "inline_keyboard": [
                                         [
