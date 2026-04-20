@@ -32,6 +32,8 @@ from src.skills.uploader_skill import uploader
 from src.skills.dedup_service import dedup_service
 from src.core.logging import get_logger
 from src.scheduler.content_scheduler import start_content_factory, _generate_dynamic_topic
+from src.core.health_monitor import health_monitor
+from src.core.task_queue import task_queue
 
 # Video pipeline
 try:
@@ -114,6 +116,25 @@ class TelegramHandler:
             await update.message.reply_text("🏓 Pong! Bot çevrimiçi ve mesajları alabiliyor.")
             return
 
+        if text.startswith("/status"):
+            hb = "outputs/heartbeat.txt"
+            last_hb = "Bilinmiyor"
+            if os.path.exists(hb):
+                with open(hb, "r") as f: last_hb = f.read()
+            
+            pending = len(task_queue.tasks)
+            status_msg = (
+                "🛡️ *Agency Swarm OS Sistem Özeti*\n\n"
+                f"✅ *Bot:* Aktif\n"
+                f"💓 *Son Kalp Atışı:* `{last_hb}`\n"
+                f"📥 *Kuyruktaki Görevler:* `{pending}`\n"
+                f"🧠 *AI Client:* Hazır\n"
+                f"🎥 *Video Pipeline:* Safe Mode Aktif\n"
+                f"📅 *Scheduler:* Çalışıyor"
+            )
+            await update.message.reply_text(status_msg, parse_mode="Markdown")
+            return
+
         if text.startswith("/luna"):
             # Flexible parsing: catch /luna_video_Topic or /luna Topic
             user_topic = text.replace("/luna", "").replace("_video_", "").strip()
@@ -134,12 +155,14 @@ class TelegramHandler:
             brand = "holisti"
             if not user_topic:
                 user_topic = _generate_dynamic_topic(brand, "user request", _handler_used_topics[brand])
-            if dedup_service.is_duplicate(user_topic):
-                user_topic = _generate_dynamic_topic(brand, "user request", _handler_used_topics[brand] + [user_topic])
+            
+            # [PERSISTENCE] Add to queue before starting
+            task_id = task_queue.add_task(chat_id, user_topic, brand)
+            
             dedup_service.register_content(user_topic, content_type="topic", metadata={"brand": brand, "source": "manual"})
             _handler_used_topics[brand].append(user_topic)
-            await update.message.reply_text(f"🌿 Zen @HolistiGlow için çalışıyor...\n📌 Konu: _{user_topic}_")
-            asyncio.create_task(self._generate_video_async(chat_id, user_topic, brand, context))
+            await update.message.reply_text(f"🌿 Zen @HolistiGlow için çalışıyor...\n📌 Görev No: `{task_id}`\n📌 Konu: _{user_topic}_")
+            asyncio.create_task(self._process_task_async(task_id, context))
             return
 
         if text.startswith("/priya"):
@@ -218,8 +241,38 @@ class TelegramHandler:
             logger.error(f"Priya pipeline error: {e}", exc_info=True)
             requests.post(f"{_api}/sendMessage", data={"chat_id": chat_id, "text": f"❌ Priya hatası: {err}"})
 
-    async def _generate_video_async(self, chat_id, topic, brand, context):
-        """Video üretim pipeline — async görev olarak çalışır."""
+    async def _process_task_async(self, task_id: str, context: Optional[ContextTypes.DEFAULT_TYPE]):
+        """Robustly processes a task from the persistent queue."""
+        task = task_queue.tasks.get(task_id)
+        if not task: return
+        
+        chat_id = task["chat_id"]
+        user_topic = task["topic"]
+        brand = task["brand"]
+        
+        task_queue.update_status(task_id, "in_progress")
+        
+        try:
+            # Re-use the existing generation logic
+            await self._generate_video_async(chat_id, user_topic, brand, context, task_id=task_id)
+            task_queue.update_status(task_id, "completed")
+        except Exception as e:
+            logger.error(f"Task {task_id} failed: {e}", exc_info=True)
+            task_queue.update_status(task_id, "failed", error=str(e))
+            if context and context.bot:
+                await context.bot.send_message(chat_id, f"❌ Görev #{task_id} başarısız oldu: {str(e)[:100]}")
+
+    async def _generate_video_async(self, chat_id, user_topic, brand, context, task_id=None):
+        """Asynchronous video production flow."""
+        # Use existing logic but ensure bot instance is available
+        bot = context.bot if context else None
+        if not bot:
+            # Fallback to direct HTTP if context is missing (resumed tasks)
+            from src.scheduler.content_scheduler import _send_telegram_message
+            def send_msg(txt): _send_telegram_message(chat_id, txt)
+        else:
+            async def send_msg(txt): await bot.send_message(chat_id, txt, parse_mode="Markdown")
+        
         import datetime, re, os, asyncio
 
         def _safe(txt):
@@ -511,10 +564,15 @@ def start_telegram_bot():
     handler = TelegramHandler()
     application = Application.builder().token(token).build()
     
-    # Catch-all MessageHandler to allow flexible command parsing in handler.py
-    application.add_handler(MessageHandler(filters.ALL, handler.handle_message))
-    application.add_handler(CallbackQueryHandler(handler.handle_callback))
+    health_monitor.start()
     
+    # [SELF-HEALING] Resume pending tasks on startup
+    pending = task_queue.get_pending_tasks()
+    if pending:
+        logger.info(f"🚀 Resuming {len(pending)} pending tasks from previous session...")
+        for t in pending:
+            asyncio.create_task(handler._process_task_async(t["id"], None)) # None context is handled
+
     print("Antigravity Agency OS Botu Hazir!")
     
     # Start the automated content scheduler

@@ -223,10 +223,11 @@ def create_reel(fragments=None, image_path=None, srt_path=None, output_filename=
         tag = frag.get("tag", "content")
         text = frag.get("sentence") or frag.get("text", "")
 
-        # ── Background ──────────────────────────────────────────────────────
-        color1 = tuple(theme["bg"]) if isinstance(theme["bg"], (list, tuple)) else (254, 245, 238)
-        color2 = tuple(theme["accent"]) if isinstance(theme["accent"], (list, tuple)) else (255, 112, 86)
-        img = _create_gradient_bg(_W, _H, color1, color2)
+        try:
+            # ── Background ──────────────────────────────────────────────────────
+            color1 = tuple(theme["bg"]) if isinstance(theme["bg"], (list, tuple)) else (254, 245, 238)
+            color2 = tuple(theme["accent"]) if isinstance(theme["accent"], (list, tuple)) else (255, 112, 86)
+            img = _create_gradient_bg(_W, _H, color1, color2)
 
         if image_path and os.path.exists(image_path):
             try:
@@ -367,6 +368,15 @@ def create_reel(fragments=None, image_path=None, srt_path=None, output_filename=
                     draw.text(((_W - lw) // 2 + 3, y + 3), line, font=f, fill=(0, 0, 0, 85))
                     draw.text(((_W - lw) // 2, y), line, font=f, fill=tc)
                     y += lh + 22
+            
+            # --- Try-Except End ---
+        except Exception as re:
+            print(f"[video_skill] Fragment {i} render error: {re}. Falling back to Safe Mode...")
+            render_errors.append(str(re))
+            img = Image.new("RGB", (_W, _H), (30, 30, 30))
+            draw = ImageDraw.Draw(img)
+            f_safe = _font(50, "title")
+            _multiline(draw, _wrap(draw, text, f_safe, 800), f_safe, _H//2, (255, 255, 255))
 
         # ── Save current frame base ──
         # Since we use filter_complex, we only need the base image if it changes per fragment.
