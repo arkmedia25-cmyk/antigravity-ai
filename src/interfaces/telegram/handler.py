@@ -585,6 +585,11 @@ def start_telegram_bot():
     except Exception as e:
         logger.error(f"❌ Failed to start scheduler: {e}", exc_info=True)
 
+    # Register message handlers (CRITICAL - must be before run_polling)
+    application.add_handler(MessageHandler(filters.ALL, handler.handle_message))
+    application.add_handler(CallbackQueryHandler(handler.handle_callback))
+    logger.info("✅ Telegram message handlers registered.")
+
     application.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
