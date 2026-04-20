@@ -30,7 +30,7 @@ class VideoProducerAgent(BaseAgent):
                 "---CAPTION---\n[Dutch Instagram caption with hooks]\n"
                 "---TAGS---\n[Relevant Dutch/Global hashtags]\n"
             )
-            meta_resp = ask_ai(meta_prompt)
+            meta_resp = ask_ai(meta_prompt, use_mcp=False)
             
             title = meta_resp.split("---TITLE---")[-1].split("---CAPTION---")[0].strip() or "Wellness Tip"
             caption = meta_resp.split("---CAPTION---")[-1].split("---TAGS---")[0].strip()
@@ -69,11 +69,20 @@ class VideoProducerAgent(BaseAgent):
                 f"Topic: {vo_text[:120]}\n"
                 f"Brand: {brand}\n"
                 "Action: Suggest a 3-word English search query for a HIGH-QUALITY Pinterest-style vertical photo. "
-                "CRITICAL: Focus ONLY on wellness, healthy lifestyle, peaceful home, or sports. "
-                "Avoid technical, industrial or generic symbols (no wind turbines, no generic icons).\n"
+                "CRITICAL: Focus ONLY on wellness, healthy lifestyle, peaceful morning, or fitness. "
+                "The image must feature a person or a serene nature scene (no machines, no industry).\n"
                 "Return ONLY the 3 words."
             )
-            search_query = ask_ai(search_query_prompt).strip().replace("'", "").replace('"', '')
+            raw_query = ask_ai(search_query_prompt, use_mcp=False).strip().replace("'", "").replace('"', '')
+            
+            # ✨ HARD-CODED ANCHORING (Pillar 25): Force wellness niche
+            forbidden = ["wind", "turbine", "mill", "industry", "factory", "solar", "engine"]
+            safe_query = raw_query.lower()
+            for f in forbidden:
+                safe_query = safe_query.replace(f, "wellness")
+            
+            # Combine with niche anchors
+            final_search_query = f"wellness healthy lifestyle {safe_query}"
             
             image_path = None
             try:
@@ -81,7 +90,8 @@ class VideoProducerAgent(BaseAgent):
                 pexels_key = os.getenv("PEXELS_API_KEY")
                 if pexels_key:
                     headers = {"Authorization": pexels_key}
-                    params = {"query": search_query, "per_page": 1, "orientation": "portrait"}
+                    # Higher per_page to have variety if 1st one is bad? No, Pexels usually good.
+                    params = {"query": final_search_query, "per_page": 1, "orientation": "portrait"}
                     p_resp = requests.get("https://api.pexels.com/v1/search", headers=headers, params=params, timeout=15)
                     if p_resp.status_code == 200:
                         p_data = p_resp.json()
@@ -92,7 +102,7 @@ class VideoProducerAgent(BaseAgent):
                             with open(img_dest, "wb") as f:
                                 f.write(img_data)
                             image_path = os.path.abspath(img_dest)
-                            print(f"[VideoProducer] ✅ Relevant Image Found: {search_query}")
+                            print(f"[VideoProducer] ✅ Relevant Image Found: {final_search_query}")
             except Exception as e:
                 self.logger.warning(f"Pexels fetch failed: {e}")
 
@@ -158,6 +168,7 @@ class VideoProducerAgent(BaseAgent):
                 data={
                     "video_path": final_video_path,
                     "public_url": public_url,
+                    "brand": brand,
                     "status": "published"
                 },
                 status="success"

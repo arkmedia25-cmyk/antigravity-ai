@@ -178,7 +178,7 @@ def _generate_dynamic_topic(brand: str, time_of_day: str, used_topics: list) -> 
     return random.choice(available_themes)
 
 
-def _send_telegram_message(chat_id: str, text: str, reply_markup=None, video_path=None, caption=None):
+def _send_telegram_message(chat_id: str, text: str, reply_markup=None, video_path=None, caption=None, parse_mode=None):
     """Send a message (text or video) via Telegram HTTP API with markup support."""
     token = os.getenv("TELEGRAM_TOKEN", "")
     if not token:
@@ -191,16 +191,19 @@ def _send_telegram_message(chat_id: str, text: str, reply_markup=None, video_pat
             with open(video_path, "rb") as vf:
                 payload = {
                     "chat_id": chat_id,
-                    "caption": caption or text,
-                    "parse_mode": "Markdown"
+                    "caption": (caption or text)[:1024],
                 }
+                if parse_mode:
+                    payload["parse_mode"] = parse_mode
                 if reply_markup:
                     payload["reply_markup"] = json.dumps(reply_markup)
                 requests.post(url, data=payload, files={"video": vf}, timeout=60)
                 return
 
         url = f"https://api.telegram.org/bot{token}/sendMessage"
-        payload = {"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}
+        payload = {"chat_id": chat_id, "text": text[:4096]}
+        if parse_mode:
+            payload["parse_mode"] = parse_mode
         if reply_markup:
             payload["reply_markup"] = json.dumps(reply_markup)
         requests.post(url, data=payload, timeout=10)
@@ -274,11 +277,12 @@ def start_content_factory(chat_id, bot=None):
                                 _used_topics[b] = _used_topics[b][-30:]
 
                             brand_tag = "@holistiglow" if b == "holisti" else "@glowup"
-                            full_prompt = f"{brand_tag} {topic}"
+                            # Include "reel" keyword so ContentAgent triggers delegation to VideoProducer
+                            full_prompt = f"{brand_tag} maak een reel over: {topic}"
 
                             _send_telegram_message(
                                 chat_id,
-                                f"🤖 *{lbl} başladı...*\n📌 Konu: _{topic}_\n⏳ Üretim devam ediyor, lütfen bekleyin."
+                                f"🤖 {lbl} başladı...\n📌 Konu: {topic}\n⏳ Üretim devam ediyor, lütfen bekleyin."
                             )
 
                             msg = orchestrator.handle_request(full_prompt, agent="content", chat_id=chat_id)
@@ -290,26 +294,29 @@ def start_content_factory(chat_id, bot=None):
                             if hasattr(msg, "data") and msg.data and msg.data.get("video_path"):
                                 video_path = msg.data.get("video_path")
                                 public_url = msg.data.get("public_url", "#")
+
+                                # Send content kit separately first
+                                content_kit = msg.data.get("content_kit", "")
+                                if content_kit:
+                                    _send_telegram_message(chat_id, content_kit[:4000])
+
                                 reply_markup = {
                                     "inline_keyboard": [
                                         [
                                             {"text": "📥 İndir", "url": public_url},
-                                            {"text": "📸 Instagram", "callback_data": f"pub_{video_path}_{b}_ig"}
+                                            {"text": "📸 Instagram", "callback_data": f"pub_{os.path.basename(video_path)}_{b}_ig"}
                                         ],
                                         [
-                                            {"text": "📱 TikTok", "callback_data": f"pub_{video_path}_{b}_tt"},
-                                            {"text": "🎥 YouTube", "callback_data": f"pub_{video_path}_{b}_yt"}
+                                            {"text": "📱 TikTok", "callback_data": f"pub_{os.path.basename(video_path)}_{b}_tt"},
+                                            {"text": "🎥 YouTube", "callback_data": f"pub_{os.path.basename(video_path)}_{b}_yt"}
                                         ]
                                     ]
                                 }
-                                # Truncate caption for Telegram limits (max 1024)
-                                caption_text = f"✅ *{lbl} hazır!*\n\n{response_text}"
-                                if len(caption_text) > 1000:
-                                    caption_text = caption_text[:997] + "..."
+                                caption_text = f"{lbl} hazir!\n\n{response_text}"
 
                                 _send_telegram_message(
                                     chat_id,
-                                    f"✅ *{lbl} tamamlandı!*",
+                                    f"{lbl} tamamlandi!",
                                     video_path=video_path,
                                     reply_markup=reply_markup,
                                     caption=caption_text
@@ -317,13 +324,12 @@ def start_content_factory(chat_id, bot=None):
                             else:
                                 _send_telegram_message(
                                     chat_id,
-                                    f"✅ *{lbl} tamamlandı!*\n\n{response_text}",
-                                    reply_markup=reply_markup
+                                    f"{lbl} tamamlandi!\n\n{response_text}"
                                 )
 
                         except Exception as e:
                             logger.error(f"[Scheduler] Production error: {e}", exc_info=True)
-                            _send_telegram_message(chat_id, f"❌ *{lbl} hatası:* {e}")
+                            _send_telegram_message(chat_id, f"Hata ({lbl}): {str(e)[:200]}")
 
                     threading.Thread(target=execute_production, daemon=True).start()
 

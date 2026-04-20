@@ -118,17 +118,18 @@ class TelegramHandler:
             await update.message.reply_text(status_msg, parse_mode="Markdown")
             return
 
-        # --- Uniform Routing (Pillar 26) ---
+        # --- Enhanced Parsing (Pillar 26) ---
         if text.startswith("/luna"):
+            # Strip command and any legacy formatting
             user_topic = text.replace("/luna", "").replace("_video_", "").strip()
             brand = "glow"
             if not user_topic:
                 user_topic = _generate_dynamic_topic(brand, "user request", _handler_used_topics[brand])
             
             task_id = task_queue.add_task(chat_id, user_topic, brand)
-            dedup_service.register_content(user_topic, content_type="topic", metadata={"brand": brand, "source": "manual"})
+            dedup_service.register_content(user_topic, "topic", metadata={"brand": brand, "source": "manual"})
             _handler_used_topics[brand].append(user_topic)
-            await update.message.reply_text(f"🔥 Luna @GlowUpNL için çalışıyor...\n📌 Görev: `{task_id}`\n📌 Konu: _{user_topic}_")
+            await update.message.reply_text(f"🔥 Luna @GlowUpNL için çalışıyor...\n📌 Görev: {task_id}\n📌 Konu: {user_topic}")
             asyncio.create_task(self._process_task_async(task_id, context))
             return
 
@@ -141,7 +142,7 @@ class TelegramHandler:
             task_id = task_queue.add_task(chat_id, user_topic, brand)
             dedup_service.register_content(user_topic, "topic", metadata={"brand": brand, "source": "manual"})
             _handler_used_topics[brand].append(user_topic)
-            await update.message.reply_text(f"🌿 Zen @HolistiGlow için çalışıyor...\n📌 Görev: `{task_id}`\n📌 Konu: _{user_topic}_")
+            await update.message.reply_text(f"🌿 Zen @HolistiGlow için çalışıyor...\n📌 Görev: {task_id}\n📌 Konu: {user_topic}")
             asyncio.create_task(self._process_task_async(task_id, context))
             return
 
@@ -152,7 +153,7 @@ class TelegramHandler:
                 user_topic = "Bütünsel sağlık ve zihin-beden dengesi"
             
             task_id = task_queue.add_task(chat_id, user_topic, brand, metadata={"type": "heygen"})
-            await update.message.reply_text(f"👤 Dr. Priya @Wellness için hazırlanıyor...\n📌 Görev: `{task_id}`\n📌 Konu: _{user_topic}_")
+            await update.message.reply_text(f"👤 Dr. Priya @Wellness için hazırlanıyor...\n📌 Görev: {task_id}\n📌 Konu: {user_topic}")
             asyncio.create_task(self._process_task_async(task_id, context))
             return
 
@@ -168,14 +169,18 @@ class TelegramHandler:
         chat_id = update.effective_chat.id
         msg_status = await update.message.reply_text("⏳ Ajan yanıtı hazırlanıyor...")
         
-        swarm_msg = self.orchestrator.handle_request(task, agent=agent, chat_id=chat_id)
-        response = swarm_msg.content if hasattr(swarm_msg, 'content') else str(swarm_msg)
-        
-        if swarm_msg.data and swarm_msg.data.get("video_path"):
-            await self._send_video_message(chat_id, response, swarm_msg.data, context)
-            await msg_status.delete() 
-        else:
-            await msg_status.edit_text(response, parse_mode="Markdown")
+        try:
+            swarm_msg = self.orchestrator.handle_request(task, agent=agent, chat_id=chat_id)
+            response = swarm_msg.content if hasattr(swarm_msg, 'content') else str(swarm_msg)
+            
+            if swarm_msg.data and swarm_msg.data.get("video_path"):
+                await self._send_video_message(chat_id, response, swarm_msg.data, context)
+                await msg_status.delete() 
+            else:
+                await msg_status.edit_text(response, parse_mode="Markdown")
+        except Exception as e:
+            logger.error(f"Task execution failed: {e}")
+            await msg_status.edit_text(f"❌ İşlem sırasında hata oluştu: {str(e)[:100]}")
 
     async def _process_task_async(self, task_id, context):
         """Unified Task Processor using the Agent Orchestrator."""
@@ -190,19 +195,25 @@ class TelegramHandler:
         
         try:
             brand_tag = "@holistiglow" if brand == "holisti" else "@glowup"
-            full_prompt = f"{brand_tag} {topic}"
-            
+            # Include "reel" keyword so ContentAgent triggers delegation to VideoProducer
+            full_prompt = f"{brand_tag} maak een reel over: {topic}"
+
+            # Use to_thread for agent processing
             message = await asyncio.to_thread(self.orchestrator.handle_request, full_prompt, agent="content", chat_id=chat_id)
             
             response_text = message.content if hasattr(message, 'content') else str(message)
             video_data = message.data if hasattr(message, 'data') else {}
             
             if video_data.get("video_path"):
+                # Send content kit (Instagram post + email sequence) as a separate message first
+                content_kit = video_data.get("content_kit", "")
+                if content_kit:
+                    await context.bot.send_message(chat_id, content_kit[:4000])
                 await self._send_video_message(chat_id, response_text, video_data, context, task_id=task_id)
-                task_queue.update_status(task_id, "completed")
             else:
-                await context.bot.send_message(chat_id, f"✅ Görev #{task_id} tamamlandı!\n\n{response_text}", parse_mode="Markdown")
-                task_queue.update_status(task_id, "completed")
+                await context.bot.send_message(chat_id, f"✅ Görev tamamlandı!\n\n{response_text[:3500]}")
+            
+            task_queue.complete_task(task_id)
 
         except Exception as e:
             logger.error(f"❌ _process_task_async failed: {e}", exc_info=True)
@@ -243,6 +254,7 @@ class TelegramHandler:
 
         if data.startswith("dl_"):
             path = data.replace("dl_", "")
+            path = os.path.join("outputs", os.path.basename(path))
             if os.path.exists(path):
                 with open(path, "rb") as f:
                     await context.bot.send_document(chat_id=chat_id, document=f, filename=os.path.basename(path))
@@ -286,8 +298,6 @@ def start_telegram_bot():
     handler = TelegramHandler()
     application = Application.builder().token(token).build()
     
-    health_monitor.start()
-    
     # Register message handlers
     application.add_handler(MessageHandler(filters.ALL, handler.handle_message))
     application.add_handler(CallbackQueryHandler(handler.handle_callback))
@@ -296,6 +306,7 @@ def start_telegram_bot():
     default_chat = os.getenv("TELEGRAM_CHAT_ID", "812914122")
     start_content_factory(default_chat, bot=application.bot)
 
+    print("Antigravity Agency OS Botu Hazir!")
     application.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":

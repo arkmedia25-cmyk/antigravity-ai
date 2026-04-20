@@ -2,8 +2,9 @@ module.exports = {
   apps: [
     {
       name: "my_ai_ark_agent_bot",
-      script: "src/interfaces/telegram/handler.py",
-      interpreter: "python3",
+      script: "/root/antigravity-ai/venv/bin/python",
+      args: "-u src/interfaces/telegram/handler.py",
+      interpreter: "none",
       cwd: "/root/antigravity-ai",
       env: {
         PYTHONPATH: "/root/antigravity-ai",

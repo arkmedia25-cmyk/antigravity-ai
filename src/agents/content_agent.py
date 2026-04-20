@@ -98,7 +98,7 @@ class ContentAgent(BaseAgent):
                 f"=== TASK ===\n{task}"
             )
 
-            response = ask_ai(full_prompt, provider="openai")
+            response = ask_ai(full_prompt, provider="openai", use_mcp=False)
             return SwarmMessage(
                 sender=self.name,
                 content=response,

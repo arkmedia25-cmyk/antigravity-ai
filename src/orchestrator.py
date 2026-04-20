@@ -65,31 +65,34 @@ class Orchestrator:
         accumulated_content = []
         final_data = {}
         chain_depth = 0
-        max_depth = 5 
+        max_depth = 5
 
         final_message = None
 
         while current_agent_name and chain_depth < max_depth:
-            logger.info(f"[Orchestrator] Turn {chain_depth+1}: Sending to [{current_agent_name}]")
-            
+            logger.info(f"[Orchestrator] Turn {chain_depth+1}: Sending to [{current_agent_name}] (brand={brand_name})")
+
             selected_agent = self.agents.get(current_agent_name)
             if not selected_agent:
                 final_message = SwarmMessage(sender="system", content=f"Unknown agent: {current_agent_name}", status="error")
                 break
-            
+
             try:
                 message = selected_agent.process(
-                    current_input, 
-                    chat_id=chat_id
+                    current_input,
+                    chat_id=chat_id,
+                    brand=brand_name,
                 )
-                
-                # Accummulate content only if it's not a duplication of input
+
+                # Only accumulate non-video agent content (video producer returns a short summary)
                 if message.content and message.content not in accumulated_content:
                     accumulated_content.append(message.content)
-                
+
                 # Merge data payloads
                 if hasattr(message, 'data') and message.data:
                     final_data.update(message.data)
+                    # Ensure brand is always propagated in data
+                    final_data.setdefault("brand", brand_name)
 
                 final_message = message
 
@@ -97,20 +100,26 @@ class Orchestrator:
                 if hasattr(message, 'next_agent') and message.next_agent:
                     current_agent_name = message.next_agent
                     # Next agent only gets the LATEST content as input to stay focused
-                    current_input = message.content 
+                    current_input = message.content
                     chain_depth += 1
                     logger.info(f"[Orchestrator] Delegating to next agent: {current_agent_name}")
                 else:
                     break
-                    
+
             except Exception as e:
                 logger.error(f"Error in agent chain [{current_agent_name}]: {e}", exc_info=True)
                 final_message = SwarmMessage(sender="system", content=f"Sistem hatası ({current_agent_name}): {str(e)}", status="error")
                 break
 
         if final_message:
-            # JOIN all unique contents from the chain
-            final_message.content = "\n\n---\n\n".join(accumulated_content)
+            if final_data.get("video_path"):
+                # Video produced: final content = video summary only (to stay within Telegram caption limit)
+                # Store the full content kit separately so the handler can send it as a preceding message
+                final_message.content = accumulated_content[-1] if accumulated_content else ""
+                if len(accumulated_content) > 1:
+                    final_data["content_kit"] = accumulated_content[0]
+            else:
+                final_message.content = "\n\n---\n\n".join(accumulated_content)
             final_message.data = final_data
-            
+
         return final_message

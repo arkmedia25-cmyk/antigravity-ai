@@ -34,9 +34,9 @@ class MCPBridge:
     def _run_async(self, coro):
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
         try:
-            return future.result(timeout=60)
+            return future.result(timeout=8)
         except Exception as e:
-            logger.error(f"Async transition error: {e}")
+            logger.warning(f"MCP timeout/error (skipping): {e}")
             return None
 
     async def _call_tool_async(self, tool_name: str, arguments: Dict[str, Any]) -> Any:
