@@ -93,6 +93,7 @@ class TelegramHandler:
             
         chat_id = update.effective_chat.id
         text = update.message.text
+        logger.info(f"📥 [Telegram] New message from {chat_id}: {text}")
         
         # Load conversation context (prevents context-related errors)
         prev_context = self.memory.load(f"chat_{chat_id}_context") or ""
@@ -107,6 +108,10 @@ class TelegramHandler:
 
         if text.startswith("/start"):
             await update.message.reply_text(_START_MESSAGE, parse_mode="Markdown")
+            return
+
+        if text.startswith("/ping"):
+            await update.message.reply_text("🏓 Pong! Bot çevrimiçi ve mesajları alabiliyor.")
             return
 
         if text.startswith("/luna"):
@@ -505,6 +510,7 @@ def start_telegram_bot():
     application = Application.builder().token(token).build()
     
     application.add_handler(CommandHandler("start",   handler.handle_message))
+    application.add_handler(CommandHandler("ping",    handler.handle_message))
     application.add_handler(CommandHandler("luna",    handler.handle_message))
     application.add_handler(CommandHandler("zen",     handler.handle_message))
     application.add_handler(CommandHandler("priya",   handler.handle_message))
