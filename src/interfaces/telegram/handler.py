@@ -1,5 +1,6 @@
 import sys
 import os
+import random
 
 # --- Path Fix for Server/Local Consistency ---
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -25,8 +26,9 @@ from telegram.ext import Application, MessageHandler, CallbackQueryHandler, Comm
 from src.orchestrator import Orchestrator
 from src.memory.memory_manager import MemoryManager
 from src.skills.uploader_skill import uploader
+from src.skills.dedup_service import dedup_service
 from src.core.logging import get_logger
-from src.scheduler.content_scheduler import start_content_factory
+from src.scheduler.content_scheduler import start_content_factory, _generate_dynamic_topic
 
 # Video pipeline
 try:
@@ -37,6 +39,9 @@ try:
 except Exception as _ve:
     _video_ok = False
     print(f"[Video] Pipeline niet beschikbaar: {_ve}")
+
+# Per-brand in-memory topic history to prevent /zen and /luna from repeating
+_handler_used_topics: dict = {"glow": [], "holisti": []}
 
 _RATE_LIMIT_MAX = 10
 _RATE_LIMIT_WINDOW = 30
@@ -102,15 +107,29 @@ class TelegramHandler:
             return
 
         if text.startswith("/luna"):
-            topic = text[5:].strip() or "Energie en gezondheid"
-            await update.message.reply_text(f"🔥 Luna @GlowUpNL için çalışıyor...\nKonu: {topic}")
-            threading.Thread(target=self._generate_video_sync, args=(chat_id, topic, "glow", context), daemon=True).start()
+            user_topic = text[5:].strip()
+            brand = "glow"
+            if not user_topic:
+                user_topic = _generate_dynamic_topic(brand, "user request", _handler_used_topics[brand])
+            if dedup_service.is_duplicate(user_topic):
+                user_topic = _generate_dynamic_topic(brand, "user request", _handler_used_topics[brand] + [user_topic])
+            dedup_service.register_content(user_topic, content_type="topic", metadata={"brand": brand, "source": "manual"})
+            _handler_used_topics[brand].append(user_topic)
+            await update.message.reply_text(f"🔥 Luna @GlowUpNL için çalışıyor...\n📌 Konu: _{user_topic}_")
+            threading.Thread(target=self._generate_video_sync, args=(chat_id, user_topic, brand, context), daemon=True).start()
             return
 
         if text.startswith("/zen"):
-            topic = text[4:].strip() or "Holistische wellness"
-            await update.message.reply_text(f"🌿 Zen @HolistiGlow için çalışıyor...\nKonu: {topic}")
-            threading.Thread(target=self._generate_video_sync, args=(chat_id, topic, "holisti", context), daemon=True).start()
+            user_topic = text[4:].strip()
+            brand = "holisti"
+            if not user_topic:
+                user_topic = _generate_dynamic_topic(brand, "user request", _handler_used_topics[brand])
+            if dedup_service.is_duplicate(user_topic):
+                user_topic = _generate_dynamic_topic(brand, "user request", _handler_used_topics[brand] + [user_topic])
+            dedup_service.register_content(user_topic, content_type="topic", metadata={"brand": brand, "source": "manual"})
+            _handler_used_topics[brand].append(user_topic)
+            await update.message.reply_text(f"🌿 Zen @HolistiGlow için çalışıyor...\n📌 Konu: _{user_topic}_")
+            threading.Thread(target=self._generate_video_sync, args=(chat_id, user_topic, brand, context), daemon=True).start()
             return
 
         if text.startswith("/priya"):
