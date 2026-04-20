@@ -82,29 +82,29 @@ def select_model(messages: Union[str, List[dict]], provider: str = "openai") -> 
         model = MODEL_GPT4O if text_len > _COMPLEXITY_THRESHOLD else MODEL_GPT4O_MINI
         return {"provider": "openai", "model": model}
 
-def ask_ai(
-    messages: Any, 
-    provider: str = "openai", 
-    is_json: bool = False, 
-    use_cache: bool = True,
-    model: str = None,
-    tools: list = None,
-    tool_choice: str = None,
-    thinking_budget: int = 0
+    thinking_budget: int = 0,
+    use_mcp: bool = True
 ) -> Any:
     """
     Enhanced AI Client with:
-    - Cost-aware model routing
+    - Cost-aware model routing (if use_mcp=True)
     - Content-hash caching
     - Smart retries
-    - Anthropic prompt caching
-    - OpenAI tool-use support (backward compatible)
+    - Strict Dutch language enforcement
+    - Recursion protection (Pillar 18)
     """
-    # 1. Prepare messages
+    # 1. Prepare messages and Enforce Dutch Language
     if isinstance(messages, str):
         msgs = [{"role": "user", "content": messages}]
     else:
         msgs = messages
+        
+    # Inject Dutch Language Enforcement
+    dutch_enforcement = "IMPORTANT: ALWAYS output in Dutch (Nederlands). NEVER use English unless specifically asked for a translation."
+    if msgs[0]["role"] == "system":
+        msgs[0]["content"] += f"\n\n{dutch_enforcement}"
+    else:
+        msgs.insert(0, {"role": "system", "content": dutch_enforcement})
 
     # Normalize provider alias ("claude" → "anthropic")
     if provider == "claude":
@@ -118,15 +118,15 @@ def ask_ai(
             return _parse_json(cached_result) if is_json else cached_result
 
     # 3. Model Selection & Routing
-    if not model or model == "auto":
+    if (not model or model == "auto") and use_mcp:
         routing = select_model(msgs, provider)
         provider = routing.get("provider", provider)
         selected_model = routing.get("model", MODEL_GPT4O)
     else:
-        selected_model = model
+        selected_model = model or MODEL_GPT4O_MINI
 
-    # 4. Governance & Safety Check
-    if mcp_bridge:
+    # 4. Governance & Safety Check (Skip if use_mcp=False to avoid deadlock)
+    if mcp_bridge and use_mcp:
         # Estimate tokens (simple heuristic: 4 chars = 1 token)
         est_tokens = len(str(msgs)) // 4
         safety_resp = mcp_bridge.call_tool("check_safety_limits", {
@@ -136,16 +136,16 @@ def ask_ai(
         # Check if bridge returned a response with content
         if hasattr(safety_resp, 'content') and safety_resp.content:
             try:
-                safety_data = json.loads(safety_resp.content[0].text)
-                if safety_data.get("status") == "blocked":
-                    logger.error(f"🚨 Governance Block: {safety_data.get('reason')}")
-                    return f"Hata: {safety_data.get('reason')}"
+                 safety_data = json.loads(safety_resp.content[0].text)
+                 if safety_data.get("status") == "blocked":
+                     logger.error(f"🚨 Governance Block: {safety_data.get('reason')}")
+                     return f"Hata: {safety_data.get('reason')}"
             except (json.JSONDecodeError, AttributeError, IndexError) as e:
                 logger.warning(f"MCP Safety JSON parse failed (bypassing): {e}")
     
-    # 5. Integrate MCP Tools
+    # 5. Integrate MCP Tools (Skip if use_mcp=False)
     all_tools = tools or []
-    if mcp_bridge:
+    if mcp_bridge and use_mcp:
         mcp_tools = mcp_bridge.get_tools()
         if mcp_tools:
             tool_names = [t["function"]["name"] for t in all_tools]

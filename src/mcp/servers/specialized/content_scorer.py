@@ -13,7 +13,7 @@ def register(mcp: FastMCP):
         """
         eval_prompt = f"Rate the neuro-linguistic impact of this text out of 10. Output only the number.\n\n{content}"
         msgs = [{"role": "system", "content": "You are a stringent content evaluator."}, {"role": "user", "content": eval_prompt}]
-        score_resp = str(ask_ai(msgs)).strip()
+        score_resp = str(ask_ai(msgs, use_mcp=False)).strip()
         try:
             score = float(score_resp)
         except ValueError:

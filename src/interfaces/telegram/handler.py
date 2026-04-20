@@ -116,7 +116,7 @@ class TelegramHandler:
             dedup_service.register_content(user_topic, content_type="topic", metadata={"brand": brand, "source": "manual"})
             _handler_used_topics[brand].append(user_topic)
             await update.message.reply_text(f"🔥 Luna @GlowUpNL için çalışıyor...\n📌 Konu: _{user_topic}_")
-            threading.Thread(target=self._generate_video_sync, args=(chat_id, user_topic, brand, context), daemon=True).start()
+            asyncio.create_task(self._generate_video_async(chat_id, user_topic, brand, context))
             return
 
         if text.startswith("/zen"):
@@ -129,7 +129,7 @@ class TelegramHandler:
             dedup_service.register_content(user_topic, content_type="topic", metadata={"brand": brand, "source": "manual"})
             _handler_used_topics[brand].append(user_topic)
             await update.message.reply_text(f"🌿 Zen @HolistiGlow için çalışıyor...\n📌 Konu: _{user_topic}_")
-            threading.Thread(target=self._generate_video_sync, args=(chat_id, user_topic, brand, context), daemon=True).start()
+            asyncio.create_task(self._generate_video_async(chat_id, user_topic, brand, context))
             return
 
         if text.startswith("/priya"):
@@ -208,9 +208,9 @@ class TelegramHandler:
             logger.error(f"Priya pipeline error: {e}", exc_info=True)
             requests.post(f"{_api}/sendMessage", data={"chat_id": chat_id, "text": f"❌ Priya hatası: {err}"})
 
-    def _generate_video_sync(self, chat_id, topic, brand, context):
-        """Video üretim pipeline — thread içinde çalışır."""
-        import datetime, re, os
+    async def _generate_video_async(self, chat_id, topic, brand, context):
+        """Video üretim pipeline — async görev olarak çalışır."""
+        import datetime, re, os, asyncio
 
         def _safe(txt):
             """Remove surrogate/non-encodable chars so Telegram API never crashes."""
@@ -247,25 +247,21 @@ class TelegramHandler:
             caption = ""
             tags = ""
             for _attempt in range(2):
-                response = ask_ai(prompt)
+                # Use to_thread to keep event loop free
+                response = await asyncio.to_thread(ask_ai, prompt)
                 title   = response.split("---TITLE---")[-1].split("---SCRIPT---")[0].strip() or topic
                 script  = response.split("---SCRIPT---")[-1].split("---CAPTION---")[0].strip()
                 caption = response.split("---CAPTION---")[-1].split("---TAGS---")[0].strip()
                 tags    = response.split("---TAGS---")[-1].strip()
 
-                # Score the script (import scorer logic)
+                # Score the script (Pillar 18)
                 try:
-                    import re as _re
-                    _eval = ask_ai(f"Rate the Dutch wellness script below out of 10. Output ONLY a number.\n\n{script}")
-                    _m = _re.search(r'\d+(?:\.\d+)?', _eval.strip().replace(",", "."))
+                    _eval = await asyncio.to_thread(ask_ai, f"Rate script quality 1-10 (number only): {script}", use_mcp=False)
+                    _m = re.search(r'\d+(?:\.\d+)?', _eval.strip().replace(",", "."))
                     _score = float(_m.group()) if _m else 5.0
-                    if _score >= 6.5:
-                        logger.info(f"[VideoSync] ✅ Script quality score: {_score}/10")
-                        break
-                    else:
-                        logger.warning(f"[VideoSync] ⚠️ Script scored {_score}/10 — regenerating (attempt {_attempt+1})")
+                    if _score >= 6.5: break
                 except Exception:
-                    break  # If scorer fails, proceed with what we have
+                    break
 
 
             # TTS per zin

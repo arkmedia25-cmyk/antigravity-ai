@@ -143,39 +143,35 @@ def _generate_dynamic_topic(brand: str, time_of_day: str, used_topics: list) -> 
     prompt = (
         f"You are a creative director for {brand_label}, a Dutch wellness brand.\n"
         f"Brand personality: {brand_desc}\n\n"
+        f"LANGUAGE: STRICTLY DUTCH (NEDERLANDS).\n"
         f"Time of post: {time_of_day}\n"
-        f"Anchor topic ideas (pick one or combine): {', '.join(available_themes[:6])}\n"
+        f"Anchor topic ideas: {', '.join(available_themes[:6])}\n"
         f"{live_trend_block}\n\n"
-        f"RECENT TOPICS ALREADY USED (DO NOT REPEAT THESE):\n{recent_used_str}\n\n"
-        "Generate ONE specific, unique, and highly engaging Dutch wellness video topic.\n"
-        "The topic must:\n"
-        "1. Be different from all recent topics above\n"
-        "2. Be specific and surprising (not vague like 'wellness tips')\n"
-        "3. Have a strong emotional hook or counterintuitive angle\n"
-        "4. Be relevant to Dutch women's daily life\n"
-        "5. Be suitable for the time of day\n"
-        "6. Leverage any trending angles above if they fit the brand\n\n"
-        "Return ONLY the topic as a short sentence (max 15 words). No explanation, no hashtags."
+        f"RECENT TOPICS (DO NOT REPEAT): {recent_used_str}\n\n"
+        "Generate ONE unique, viral Dutch wellness video topic.\n"
+        "Return ONLY the topic in Dutch. No hashtags, no English."
     )
 
-    max_attempts = 2
+    max_attempts = 3
     for attempt in range(max_attempts):
         try:
-            topic = ask_ai(prompt).strip().strip('"').strip("'")
+            topic = ask_ai(prompt, use_mcp=(attempt == 0)).strip().strip('"').strip("'")
+            
+            # Dutch language sanity check (if it looks like English, retry)
+            english_indicators = [" the ", " is ", " for ", " and ", " with ", " how to "]
+            if any(ind in topic.lower() for ind in english_indicators) and not any(ind in topic.lower() for ind in [" de ", " het ", " een "]):
+                logger.warning(f"[Scheduler] 🚩 English detected in topic: '{topic}'. Retrying in Dutch...")
+                continue
+
             logger.info(f"[Scheduler] 🧠 AI topic [{brand_label}]: {topic}")
-
-            # 2. Quality gate via content_scorer (Pillar 18)
             score = _score_content(topic)
-            logger.info(f"[Scheduler] 📊 Topic score: {score}/10 — '{topic}'")
-
             if score >= 6.5:
                 return topic
             else:
-                logger.warning(f"[Scheduler] ⚠️ Low score ({score}), retrying topic generation...")
-                used_topics = used_topics + [topic]  # Exclude low-scoring topic too
-
+                logger.warning(f"[Scheduler] ⚠️ Low score ({score}), retrying...")
+                used_topics = used_topics + [topic]
         except Exception as e:
-            logger.warning(f"[Scheduler] Topic generation attempt {attempt+1} failed: {e}")
+            logger.warning(f"[Scheduler] Topic attempt {attempt+1} failed: {e}")
 
     # Final fallback: random from static bank
     import random

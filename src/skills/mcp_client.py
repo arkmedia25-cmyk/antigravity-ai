@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class MCPBridge:
-    """A synchronous bridge to the asynchronous MCP SDK."""
+    """A synchronous bridge to the asynchronous MCP SDK with a persistent session."""
     
     def __init__(self):
         # Point to the server.py inside src/mcp/
@@ -26,6 +26,14 @@ class MCPBridge:
         self._loop = asyncio.new_event_loop()
         self._thread = threading.Thread(target=self._run_event_loop, daemon=True)
         self._thread.start()
+        
+        # Session state
+        self._session: Optional[ClientSession] = None
+        self._exit_stack = None
+        self._connection_lock = threading.Lock()
+        
+        # Ensure connection is established early
+        self._run_async(self._ensure_connected())
 
     def _run_event_loop(self):
         asyncio.set_event_loop(self._loop)
@@ -39,37 +47,63 @@ class MCPBridge:
             logger.error(f"Async transition error: {e}")
             return None
 
+    async def _ensure_connected(self):
+        """Initializes the persistent MCP session if not already connected."""
+        if self._session:
+            return
+        
+        try:
+            # We use a manual context manager entry here for persistence
+            logger.info("Initializing persistent MCP session...")
+            from contextlib import AsyncExitStack
+            self._exit_stack = AsyncExitStack()
+            
+            read, write = await self._exit_stack.enter_async_context(stdio_client(self._server_params))
+            session = await self._exit_stack.enter_async_context(ClientSession(read, write))
+            
+            await session.initialize()
+            self._session = session
+            logger.info("✅ Persistent MCP session established.")
+        except Exception as e:
+            logger.error(f"Failed to establish persistent MCP session: {e}")
+            self._session = None
+
     async def _call_tool_async(self, tool_name: str, arguments: Dict[str, Any]) -> Any:
         try:
-            async with stdio_client(self._server_params) as (read, write):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    result = await session.call_tool(tool_name, arguments)
-                    return result
+            await self._ensure_connected()
+            if not self._session:
+                return {"error": "MCP Session not available."}
+            
+            result = await self._session.call_tool(tool_name, arguments)
+            return result
         except Exception as e:
             logger.error(f"MCP Tool Execution Error ({tool_name}): {e}")
+            # If session is dead, clear it for next retry
+            self._session = None
             return {"error": str(e)}
 
     async def _get_tools_async(self) -> List[Dict]:
         try:
-            async with stdio_client(self._server_params) as (read, write):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    mcp_tools = await session.list_tools()
-                    
-                    formatted_tools = []
-                    for tool in mcp_tools.tools:
-                         formatted_tools.append({
-                            "type": "function",
-                            "function": {
-                                "name": tool.name,
-                                "description": tool.description,
-                                "parameters": tool.inputSchema
-                            }
-                        })
-                    return formatted_tools
+            await self._ensure_connected()
+            if not self._session:
+                return []
+            
+            mcp_tools = await self._session.list_tools()
+            
+            formatted_tools = []
+            for tool in mcp_tools.tools:
+                 formatted_tools.append({
+                    "type": "function",
+                    "function": {
+                        "name": tool.name,
+                        "description": tool.description,
+                        "parameters": tool.inputSchema
+                    }
+                })
+            return formatted_tools
         except Exception as e:
             logger.error(f"MCP Discovery Error: {e}")
+            self._session = None
             return []
 
     def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Any:
