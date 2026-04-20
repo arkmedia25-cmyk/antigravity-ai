@@ -71,26 +71,18 @@ class Orchestrator:
             
             selected_agent = self.agents.get(current_agent_name)
             if not selected_agent:
-                final_response = f"Unknown agent: {current_agent_name}"
+                selected_message = SwarmMessage(sender="system", content=f"Unknown agent: {current_agent_name}", status="error")
                 break
             
             # Agent processing
             try:
-                message: SwarmMessage = selected_agent.process(
+                message = selected_agent.process(
                     current_input, 
-                    chat_id=chat_id, 
-                    brand=brand_name, 
-                    context=context
+                    chat_id=chat_id
                 )
                 
-                # Update context with any data returned by the agent
-                if message.data:
-                    context.update(message.data)
-                
-                final_response = message.content
-                
                 # Check for delegation
-                if message.next_agent:
+                if hasattr(message, 'next_agent') and message.next_agent:
                     current_agent_name = message.next_agent
                     current_input = message.content # Use current output as next input
                     chain_depth += 1
@@ -100,8 +92,8 @@ class Orchestrator:
                     break
                     
             except Exception as e:
-                logger.error(f"Error in agent chain [{current_agent_name}]: {e}")
-                final_response = f"Sistem hatası ({current_agent_name}): {str(e)}"
+                logger.error(f"Error in agent chain [{current_agent_name}]: {e}", exc_info=True)
+                message = SwarmMessage(sender="system", content=f"Sistem hatası ({current_agent_name}): {str(e)}", status="error")
                 break
 
         return message

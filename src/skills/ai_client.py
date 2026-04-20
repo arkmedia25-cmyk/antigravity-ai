@@ -11,6 +11,7 @@ from anthropic import Anthropic, APIConnectionError, RateLimitError, InternalSer
 from src.config.settings import settings
 from src.skills.cache_service import cache_service
 from src.skills.observation_service import observation_service
+from src.skills.mcp_client import mcp_bridge
 
 logger = logging.getLogger(__name__)
 
@@ -57,14 +58,27 @@ def call_with_retry(func, max_retries: int = 3):
             logger.warning(f"Transient error: {e}. Retrying in {wait}s...")
             time.sleep(wait)
 
-def select_model(messages: Union[str, List[dict]], provider: str = "openai") -> str:
-    """Selects the best model based on task complexity (input length)."""
+def select_model(messages: Union[str, List[dict]], provider: str = "openai") -> dict:
+    """Uses the MCP Model Router to select the best provider and model."""
+    if mcp_bridge:
+        try:
+            task_text = str(messages)
+            decision_json = mcp_bridge.call_tool("route_model", {"task_description": task_text})
+            # Safe access to response content
+            if hasattr(decision_json, 'content') and decision_json.content:
+                text_content = decision_json.content[0].text
+                return json.loads(text_content)
+        except Exception as e:
+            logger.warning(f"MCP Routing failed, using fallback: {e}")
+            
+    # Fallback legacy logic
     text_len = len(str(messages))
-    
     if provider == "anthropic":
-        return MODEL_SONNET if text_len > _COMPLEXITY_THRESHOLD else MODEL_HAIKU
+        model = MODEL_SONNET if text_len > _COMPLEXITY_THRESHOLD else MODEL_HAIKU
+        return {"provider": "anthropic", "model": model}
     else:
-        return MODEL_GPT4O if text_len > _COMPLEXITY_THRESHOLD else MODEL_GPT4O_MINI
+        model = MODEL_GPT4O if text_len > _COMPLEXITY_THRESHOLD else MODEL_GPT4O_MINI
+        return {"provider": "openai", "model": model}
 
 def ask_ai(
     messages: Any, 
@@ -101,11 +115,42 @@ def ask_ai(
         if cached_result:
             return _parse_json(cached_result) if is_json else cached_result
 
-    # 3. Model Selection
-    selected_model = model or select_model(msgs, provider)
+    # 3. Model Selection & Routing
+    if not model or model == "auto":
+        routing = select_model(msgs, provider)
+        provider = routing.get("provider", provider)
+        selected_model = routing.get("model", MODEL_GPT4O)
+    else:
+        selected_model = model
+
+    # 4. Governance & Safety Check
+    if mcp_bridge:
+        # Estimate tokens (simple heuristic: 4 chars = 1 token)
+        est_tokens = len(str(msgs)) // 4
+        safety_resp = mcp_bridge.call_tool("check_safety_limits", {
+            "model": selected_model, 
+            "estimated_tokens": est_tokens
+        })
+        # Check if bridge returned a response with content
+        if hasattr(safety_resp, 'content') and safety_resp.content:
+            safety_data = json.loads(safety_resp.content[0].text)
+            if safety_data.get("status") == "blocked":
+                logger.error(f"🚨 Governance Block: {safety_data.get('reason')}")
+                return f"Hata: {safety_data.get('reason')}"
+    
+    # 5. Integrate MCP Tools
+    all_tools = tools or []
+    if mcp_bridge:
+        mcp_tools = mcp_bridge.get_tools()
+        if mcp_tools:
+            tool_names = [t["function"]["name"] for t in all_tools]
+            for mt in mcp_tools:
+                if mt["function"]["name"] not in tool_names:
+                    all_tools.append(mt)
     
     try:
         result_text = ""
+        # ... (rest of the calling logic)
         
         if provider == "anthropic":
             try:
@@ -116,6 +161,7 @@ def ask_ai(
                     for m in msgs:
                         if m["role"] == "system":
                             content = m["content"]
+                            # Modern Prompt Caching for blocks over 1024 tokens
                             if len(content) > 1024:
                                 system_msg = [{"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}]
                             else:
@@ -129,6 +175,9 @@ def ask_ai(
                         "system": system_msg,
                         "messages": final_msgs
                     }
+                    if tools:
+                        kwargs["tools"] = tools # Note: Native Anthropic tool format mapping might be needed
+                    
                     if thinking_budget > 0:
                         kwargs["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
                         kwargs["max_tokens"] = max(kwargs["max_tokens"], thinking_budget + 2048)
@@ -177,6 +226,21 @@ def ask_ai(
             result=result_text,
             metadata={"is_json": is_json, "cached": False}
         )
+
+        # --- 11. Final Cost Tracking (Antigravity OS Pillar 2/3) ---
+        try:
+            from src.skills.governance_service import governance_service
+            # Simplified Cost Calculation: Prices per 1M tokens
+            prices = {"gpt-4o": 10.0, "gpt-4o-mini": 0.30, "claude-3-5-sonnet-20240620": 10.0}
+            p = prices.get(selected_model, 0.30)
+            in_tokens = len(str(msgs)) // 4
+            out_tokens = len(result_text) // 4
+            total_cost = (in_tokens + out_tokens) / 1_000_000 * p
+            
+            governance_service.track_spend(total_cost)
+            logger.info(f"💰 Cost tracked: ${total_cost:.6f} for model {selected_model}")
+        except Exception as te:
+            logger.debug(f"Spend tracking failed (non-critical): {te}")
 
         if is_json:
             return _parse_json(result_text)
