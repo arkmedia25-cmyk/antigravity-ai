@@ -302,12 +302,17 @@ def start_content_factory(chat_id, bot=None):
                                         ]
                                     ]
                                 }
+                                # Truncate caption for Telegram limits (max 1024)
+                                caption_text = f"✅ *{lbl} hazır!*\n\n{response_text}"
+                                if len(caption_text) > 1000:
+                                    caption_text = caption_text[:997] + "..."
+
                                 _send_telegram_message(
                                     chat_id,
                                     f"✅ *{lbl} tamamlandı!*",
                                     video_path=video_path,
                                     reply_markup=reply_markup,
-                                    caption=f"✅ *{lbl} hazır!*\n\n{response_text}"
+                                    caption=caption_text
                                 )
                             else:
                                 _send_telegram_message(

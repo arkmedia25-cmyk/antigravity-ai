@@ -62,38 +62,55 @@ class Orchestrator:
 
         current_agent_name = agent
         current_input = clean_text
-        final_response = ""
+        accumulated_content = []
+        final_data = {}
         chain_depth = 0
-        max_depth = 5 # Prevent infinite loops
+        max_depth = 5 
+
+        final_message = None
 
         while current_agent_name and chain_depth < max_depth:
             logger.info(f"[Orchestrator] Turn {chain_depth+1}: Sending to [{current_agent_name}]")
             
             selected_agent = self.agents.get(current_agent_name)
             if not selected_agent:
-                selected_message = SwarmMessage(sender="system", content=f"Unknown agent: {current_agent_name}", status="error")
+                final_message = SwarmMessage(sender="system", content=f"Unknown agent: {current_agent_name}", status="error")
                 break
             
-            # Agent processing
             try:
                 message = selected_agent.process(
                     current_input, 
                     chat_id=chat_id
                 )
                 
+                # Accummulate content only if it's not a duplication of input
+                if message.content and message.content not in accumulated_content:
+                    accumulated_content.append(message.content)
+                
+                # Merge data payloads
+                if hasattr(message, 'data') and message.data:
+                    final_data.update(message.data)
+
+                final_message = message
+
                 # Check for delegation
                 if hasattr(message, 'next_agent') and message.next_agent:
                     current_agent_name = message.next_agent
-                    current_input = message.content # Use current output as next input
+                    # Next agent only gets the LATEST content as input to stay focused
+                    current_input = message.content 
                     chain_depth += 1
                     logger.info(f"[Orchestrator] Delegating to next agent: {current_agent_name}")
                 else:
-                    # Final result reached
                     break
                     
             except Exception as e:
                 logger.error(f"Error in agent chain [{current_agent_name}]: {e}", exc_info=True)
-                message = SwarmMessage(sender="system", content=f"Sistem hatası ({current_agent_name}): {str(e)}", status="error")
+                final_message = SwarmMessage(sender="system", content=f"Sistem hatası ({current_agent_name}): {str(e)}", status="error")
                 break
 
-        return message
+        if final_message:
+            # JOIN all unique contents from the chain
+            final_message.content = "\n\n---\n\n".join(accumulated_content)
+            final_message.data = final_data
+            
+        return final_message

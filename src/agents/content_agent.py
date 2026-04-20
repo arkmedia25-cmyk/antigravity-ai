@@ -41,10 +41,11 @@ class ContentAgent(BaseAgent):
 
         message = self._call_ai(input_data, personality_text, history=history_str, chat_id=chat_id, brand=brand)
 
-        # ✨ KESİN ÇÖZÜM: Metin Temizleme Filtresi
+        # ✨ KESİN ÇÖZÜM: Metin Temizleme Filtresi (Gevşetildi)
         response = message.content
         cleaned_response = re.sub(r'\(.*?\)', '', response)
-        cleaned_response = re.sub(r'(?i)(Tip \d+|Scene \d+|Hook|Call to action|Content|Caption|Video|Action):\s*', '', cleaned_response)
+        # Keep 'Video', 'Hook', 'Action' for next agents to parse
+        cleaned_response = re.sub(r'(?i)(Tip \d+|Scene \d+|Content|Caption):\s*', '', cleaned_response)
         cleaned_response = cleaned_response.replace('"', '').replace('\'', '')
         cleaned_response = cleaned_response.strip()
 

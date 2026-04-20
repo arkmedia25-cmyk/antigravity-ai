@@ -69,7 +69,8 @@ class VideoProducerAgent(BaseAgent):
                 f"Topic: {vo_text[:120]}\n"
                 f"Brand: {brand}\n"
                 "Action: Suggest a 3-word English search query for a HIGH-QUALITY Pinterest-style vertical photo. "
-                "Think about the emotional vibe (e.g., 'tired mother wellness', 'peaceful morning yoga', 'vibrant healthy juice'). "
+                "CRITICAL: Focus ONLY on wellness, healthy lifestyle, peaceful home, or sports. "
+                "Avoid technical, industrial or generic symbols (no wind turbines, no generic icons).\n"
                 "Return ONLY the 3 words."
             )
             search_query = ask_ai(search_query_prompt).strip().replace("'", "").replace('"', '')
@@ -144,11 +145,11 @@ class VideoProducerAgent(BaseAgent):
             public_url = uploader.upload_file(final_video_path)
             
             # Final Rich Response with Metadata
-            content_summary = input_data[:300] + "..." if len(input_data) > 300 else input_data
+            # Simplifed Response (Orchestrator will now join this with the original post text)
             combined_content = (
-                f"🚀 *Video üretimi [@{brand}] tamamlandı!*\n\n"
-                f"📝 *İçerik Özeti:*\n{content_summary}\n\n"
-                f"🔗 *Video Linki:* {public_url or '⚠️ Upload hatası (Lütfen tekrar deneyin)'}"
+                f"🎥 *VIDEO HAZIR!* (@{brand})\n\n"
+                f"🔗 *Video Linki:* {public_url or '⚠️ Upload hatası'}\n"
+                f"💡 [Video Dosyası: {os.path.basename(final_video_path) if final_video_path else 'N/A'}]"
             )
             
             return SwarmMessage(
