@@ -64,12 +64,14 @@ def select_model(messages: Union[str, List[dict]], provider: str = "openai") -> 
         try:
             task_text = str(messages)
             decision_json = mcp_bridge.call_tool("route_model", {"task_description": task_text})
-            # Safe access to response content
             if hasattr(decision_json, 'content') and decision_json.content:
-                text_content = decision_json.content[0].text
-                return json.loads(text_content)
+                try:
+                    text_content = decision_json.content[0].text
+                    return json.loads(text_content)
+                except (json.JSONDecodeError, AttributeError, IndexError) as e:
+                    logger.warning(f"MCP Routing JSON parse failed: {e}")
         except Exception as e:
-            logger.warning(f"MCP Routing failed, using fallback: {e}")
+            logger.warning(f"MCP Routing tool call failed, using fallback: {e}")
             
     # Fallback legacy logic
     text_len = len(str(messages))
@@ -133,10 +135,13 @@ def ask_ai(
         })
         # Check if bridge returned a response with content
         if hasattr(safety_resp, 'content') and safety_resp.content:
-            safety_data = json.loads(safety_resp.content[0].text)
-            if safety_data.get("status") == "blocked":
-                logger.error(f"🚨 Governance Block: {safety_data.get('reason')}")
-                return f"Hata: {safety_data.get('reason')}"
+            try:
+                safety_data = json.loads(safety_resp.content[0].text)
+                if safety_data.get("status") == "blocked":
+                    logger.error(f"🚨 Governance Block: {safety_data.get('reason')}")
+                    return f"Hata: {safety_data.get('reason')}"
+            except (json.JSONDecodeError, AttributeError, IndexError) as e:
+                logger.warning(f"MCP Safety JSON parse failed (bypassing): {e}")
     
     # 5. Integrate MCP Tools
     all_tools = tools or []

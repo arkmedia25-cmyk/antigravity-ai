@@ -48,8 +48,11 @@ for file_path in glob.glob(os.path.join(specialized_dir, "*.py")):
         module = importlib.import_module(f"src.mcp.servers.specialized.{module_name}")
         if hasattr(module, "register"):
             module.register(mcp)
+            logger.info(f"✅ Registered specialized expert: {module_name}")
+        else:
+            logger.warning(f"⚠️ Expert {module_name} missing 'register' function.")
     except Exception as e:
-        logger.error(f"Failed to load specialized expert {module_name}: {e}")
+        logger.error(f"❌ Failed to load specialized expert {module_name}: {e}")
 
 @mcp.resource("system://health")
 def get_health() -> str:
