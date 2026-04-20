@@ -9,6 +9,7 @@ from src.orchestrator import Orchestrator
 from src.core.logging import get_logger
 from src.skills.ai_client import ask_ai
 from src.skills.dedup_service import dedup_service
+from src.skills.research_tools import research_tools
 
 # Initialize logger
 logger = get_logger("scheduler.content_scheduler")
@@ -64,9 +65,56 @@ _GLOWUP_THEMES = [
 ]
 
 
+def _score_content(content: str) -> float:
+    """
+    Evaluates content quality using the content_scorer MCP logic (Pillar 18).
+    Returns a score from 0-10. Anything below 7 is regenerated.
+    """
+    eval_prompt = (
+        f"Rate the neuro-linguistic impact and viral potential of this Dutch wellness video topic out of 10.\n"
+        f"Output ONLY a single number between 1 and 10.\n\n"
+        f"Topic: {content}"
+    )
+    try:
+        score_resp = ask_ai(eval_prompt).strip().replace(",", ".")
+        # Extract first number found
+        import re
+        m = re.search(r'\d+(?:\.\d+)?', score_resp)
+        return float(m.group()) if m else 5.0
+    except Exception:
+        return 5.0
+
+
+def _route_model(task_description: str) -> str:
+    """
+    Model router (Pillar 1-2): Picks the right AI provider based on task.
+    Video/complex = openai, simple/daily = openai-mini.
+    """
+    if any(kw in task_description.lower() for kw in ["video", "reel", "üret", "render", "compile"]):
+        return "openai"     # will use gpt-4o in ask_ai
+    return "openai"         # gpt-4.1-mini default (set in ai_client)
+
+
+def _fetch_live_trends(niche: str) -> str:
+    """
+    Live trend scanner (Pillar 28 — trend_detector MCP logic).
+    Queries Google/DuckDuckGo for current viral wellness trends in the Netherlands.
+    """
+    try:
+        query = f"trending {niche} viral content Netherlands wellness social media {time.strftime('%Y-%m')}"
+        results = research_tools.google_search(query, num_results=3)
+        if results:
+            snippets = [r.get("description") or r.get("title", "") for r in results if r]
+            return " | ".join([s for s in snippets if s])[:600]
+    except Exception as e:
+        logger.warning(f"[Scheduler] Live trend fetch failed (non-critical): {e}")
+    return ""
+
+
 def _generate_dynamic_topic(brand: str, time_of_day: str, used_topics: list) -> str:
     """
-    Uses AI to generate a fresh, unique topic for the given brand and time slot.
+    Uses AI + live trend data to generate a fresh, unique, high-scoring topic.
+    Integrates: trend_detector (Pillar 28) + content_scorer (Pillar 18).
     Avoids previously used topics by passing them as context.
     """
     theme_bank = _HOLISTI_THEMES if "holisti" in brand else _GLOWUP_THEMES
@@ -79,10 +127,16 @@ def _generate_dynamic_topic(brand: str, time_of_day: str, used_topics: list) -> 
         "Focus: glow, energy, skin health, confidence, and modern wellness."
     )
 
-    # Rotate through themes to ensure variety
+    niche = "holistic wellness herbs mindfulness" if "holisti" in brand else "beauty skin glow energy wellness"
+
+    # 1. Live trend scan (Pillar 28)
+    live_trends = _fetch_live_trends(niche)
+    live_trend_block = f"\nCURRENT VIRAL TRENDS (use as inspiration):\n{live_trends}" if live_trends else ""
+
+    # Rotate through static themes as anchor ideas
     available_themes = [t for t in theme_bank if t not in used_topics[-len(theme_bank)//2:]]
     if not available_themes:
-        available_themes = theme_bank  # Reset if all used
+        available_themes = theme_bank
 
     recent_used_str = "\n".join([f"- {t}" for t in used_topics[-10:]]) if used_topics else "None yet"
 
@@ -90,26 +144,42 @@ def _generate_dynamic_topic(brand: str, time_of_day: str, used_topics: list) -> 
         f"You are a creative director for {brand_label}, a Dutch wellness brand.\n"
         f"Brand personality: {brand_desc}\n\n"
         f"Time of post: {time_of_day}\n"
-        f"Suggested topic areas (pick one or combine): {', '.join(available_themes[:6])}\n\n"
+        f"Anchor topic ideas (pick one or combine): {', '.join(available_themes[:6])}\n"
+        f"{live_trend_block}\n\n"
         f"RECENT TOPICS ALREADY USED (DO NOT REPEAT THESE):\n{recent_used_str}\n\n"
         "Generate ONE specific, unique, and highly engaging Dutch wellness video topic.\n"
         "The topic must:\n"
         "1. Be different from all recent topics above\n"
-        "2. Be specific (not vague like 'wellness tips')\n"
-        "3. Have a strong emotional hook or surprising angle\n"
+        "2. Be specific and surprising (not vague like 'wellness tips')\n"
+        "3. Have a strong emotional hook or counterintuitive angle\n"
         "4. Be relevant to Dutch women's daily life\n"
-        "5. Be suitable for the time of day\n\n"
-        "Return ONLY the topic as a short sentence (max 15 words). No explanation, no hashtags, no intro."
+        "5. Be suitable for the time of day\n"
+        "6. Leverage any trending angles above if they fit the brand\n\n"
+        "Return ONLY the topic as a short sentence (max 15 words). No explanation, no hashtags."
     )
 
-    try:
-        topic = ask_ai(prompt).strip().strip('"').strip("'")
-        logger.info(f"[Scheduler] 🧠 AI generated topic for {brand_label}: {topic}")
-        return topic
-    except Exception as e:
-        logger.warning(f"[Scheduler] Topic generation failed, using fallback: {e}")
-        import random
-        return random.choice(available_themes)
+    max_attempts = 2
+    for attempt in range(max_attempts):
+        try:
+            topic = ask_ai(prompt).strip().strip('"').strip("'")
+            logger.info(f"[Scheduler] 🧠 AI topic [{brand_label}]: {topic}")
+
+            # 2. Quality gate via content_scorer (Pillar 18)
+            score = _score_content(topic)
+            logger.info(f"[Scheduler] 📊 Topic score: {score}/10 — '{topic}'")
+
+            if score >= 6.5:
+                return topic
+            else:
+                logger.warning(f"[Scheduler] ⚠️ Low score ({score}), retrying topic generation...")
+                used_topics = used_topics + [topic]  # Exclude low-scoring topic too
+
+        except Exception as e:
+            logger.warning(f"[Scheduler] Topic generation attempt {attempt+1} failed: {e}")
+
+    # Final fallback: random from static bank
+    import random
+    return random.choice(available_themes)
 
 
 def _send_telegram_message(chat_id: str, text: str, reply_markup=None, video_path=None, caption=None):

@@ -236,16 +236,37 @@ class TelegramHandler:
                 "CRITICAL: TITLE max 40 characters, fully Dutch, no English time notations.\n"
                 "STRUCTURE:\n"
                 "---TITLE---\n[Short Dutch title, max 40 chars]\n"
-                "---SCRIPT---\n[Dutch voiceover, 3-4 sentences]\n"
-                "---CAPTION---\n[Dutch Instagram caption]\n"
+                "---SCRIPT---\n[Dutch voiceover, 3-4 sentences, conversational and emotional]\n"
+                "---CAPTION---\n[Dutch Instagram caption with strong hook]\n"
                 "---TAGS---\n[Hashtags]\n"
             )
-            response = ask_ai(prompt)
 
-            title = response.split("---TITLE---")[-1].split("---SCRIPT---")[0].strip() or topic
-            script = response.split("---SCRIPT---")[-1].split("---CAPTION---")[0].strip()
-            caption = response.split("---CAPTION---")[-1].split("---TAGS---")[0].strip()
-            tags = response.split("---TAGS---")[-1].strip()
+            # Content Scorer quality gate (Pillar 18) — regenerate if script score < 6.5
+            script = ""
+            title = topic
+            caption = ""
+            tags = ""
+            for _attempt in range(2):
+                response = ask_ai(prompt)
+                title   = response.split("---TITLE---")[-1].split("---SCRIPT---")[0].strip() or topic
+                script  = response.split("---SCRIPT---")[-1].split("---CAPTION---")[0].strip()
+                caption = response.split("---CAPTION---")[-1].split("---TAGS---")[0].strip()
+                tags    = response.split("---TAGS---")[-1].strip()
+
+                # Score the script (import scorer logic)
+                try:
+                    import re as _re
+                    _eval = ask_ai(f"Rate the Dutch wellness script below out of 10. Output ONLY a number.\n\n{script}")
+                    _m = _re.search(r'\d+(?:\.\d+)?', _eval.strip().replace(",", "."))
+                    _score = float(_m.group()) if _m else 5.0
+                    if _score >= 6.5:
+                        logger.info(f"[VideoSync] ✅ Script quality score: {_score}/10")
+                        break
+                    else:
+                        logger.warning(f"[VideoSync] ⚠️ Script scored {_score}/10 — regenerating (attempt {_attempt+1})")
+                except Exception:
+                    break  # If scorer fails, proceed with what we have
+
 
             # TTS per zin
             sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script.strip()) if s.strip()]
