@@ -11,7 +11,7 @@ from anthropic import Anthropic, APIConnectionError, RateLimitError, InternalSer
 from src.config.settings import settings
 from src.skills.cache_service import cache_service
 from src.skills.observation_service import observation_service
-from src.skills.mcp_client import mcp_bridge
+# Removed mcp_bridge import from top-level to avoid circular dependency
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +60,7 @@ def call_with_retry(func, max_retries: int = 3):
 
 def select_model(messages: Union[str, List[dict]], provider: str = "openai") -> dict:
     """Uses the MCP Model Router to select the best provider and model."""
+    from src.skills.mcp_client import mcp_bridge
     if mcp_bridge:
         try:
             task_text = str(messages)
@@ -104,14 +105,16 @@ def ask_ai(
     # 1. Prepare messages and Enforce Dutch Language
     if isinstance(messages, str):
         msgs = [{"role": "user", "content": messages}]
+    elif not messages:
+        msgs = [{"role": "user", "content": "..."}]
     else:
         msgs = messages
         
-    # Inject Dutch Language Enforcement
+    # Inject Dutch Language Enforcement (Strictly for Wellness contents)
     dutch_enforcement = "IMPORTANT: ALWAYS output in Dutch (Nederlands). NEVER use English unless specifically asked for a translation."
-    if msgs[0]["role"] == "system":
+    if msgs and msgs[0]["role"] == "system":
         msgs[0]["content"] += f"\n\n{dutch_enforcement}"
-    else:
+    elif msgs:
         msgs.insert(0, {"role": "system", "content": dutch_enforcement})
 
     # Normalize provider alias ("claude" → "anthropic")
@@ -134,6 +137,7 @@ def ask_ai(
         selected_model = model or MODEL_GPT4O_MINI
 
     # 4. Governance & Safety Check (Skip if use_mcp=False to avoid deadlock)
+    from src.skills.mcp_client import mcp_bridge
     if mcp_bridge and use_mcp:
         # Estimate tokens (simple heuristic: 4 chars = 1 token)
         est_tokens = len(str(msgs)) // 4
@@ -153,6 +157,7 @@ def ask_ai(
     
     # 5. Integrate MCP Tools (Skip if use_mcp=False)
     all_tools = tools or []
+    from src.skills.mcp_client import mcp_bridge
     if mcp_bridge and use_mcp:
         mcp_tools = mcp_bridge.get_tools()
         if mcp_tools:
