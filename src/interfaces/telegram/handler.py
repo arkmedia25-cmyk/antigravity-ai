@@ -225,11 +225,22 @@ class TelegramHandler:
         video_path = data.get("video_path")
         public_url = data.get("public_url")
         brand = data.get("brand", "glowup")
-        
+        title = data.get("title", "")
+        description = data.get("caption", "")
+        tags = data.get("tags", "")
+
         from src.scheduler.content_scheduler import _send_telegram_message
-        
-        caption = f"✅ Görev {'#'+str(task_id) if task_id else ''} Hazır!\n\n{text}"
-        if len(caption) > 1000: caption = caption[:997] + "..."
+
+        parts = ["✅ Video hazir!"]
+        if title:
+            parts.append(f"\nTITLE: {title}")
+        if description:
+            parts.append(f"\nDESCRIPTION:\n{description}")
+        if tags:
+            parts.append(f"\nTAGS:\n{tags}")
+
+        caption = "\n".join(parts)
+        if len(caption) > 1024: caption = caption[:1021] + "..."
         
         reply_markup = {
             "inline_keyboard": [

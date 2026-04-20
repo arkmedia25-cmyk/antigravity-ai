@@ -312,7 +312,17 @@ def start_content_factory(chat_id, bot=None):
                                         ]
                                     ]
                                 }
-                                caption_text = f"{lbl} hazir!\n\n{response_text}"
+                                v_title = msg.data.get("title", "")
+                                v_desc = msg.data.get("caption", "")
+                                v_tags = msg.data.get("tags", "")
+                                caption_parts = [f"{lbl} hazir!"]
+                                if v_title:
+                                    caption_parts.append(f"\nTITLE: {v_title}")
+                                if v_desc:
+                                    caption_parts.append(f"\nDESCRIPTION:\n{v_desc}")
+                                if v_tags:
+                                    caption_parts.append(f"\nTAGS:\n{v_tags}")
+                                caption_text = "\n".join(caption_parts)
 
                                 _send_telegram_message(
                                     chat_id,

@@ -169,6 +169,9 @@ class VideoProducerAgent(BaseAgent):
                     "video_path": final_video_path,
                     "public_url": public_url,
                     "brand": brand,
+                    "title": title,
+                    "caption": caption,
+                    "tags": tags,
                     "status": "published"
                 },
                 status="success"
