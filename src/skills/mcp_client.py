@@ -5,8 +5,13 @@ import json
 import logging
 import threading
 from typing import Dict, Any, List, Optional
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
+
+try:
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+    _MCP_AVAILABLE = True
+except ImportError:
+    _MCP_AVAILABLE = False
 
 # Basic Logging
 logging.basicConfig(level=logging.INFO)
@@ -81,8 +86,12 @@ class MCPBridge:
         return self._run_async(self._get_tools_async())
 
 # Global Instance for easier access
-try:
-    mcp_bridge = MCPBridge()
-except Exception as e:
-    logger.error(f"Failed to initialize MCP Bridge: {e}")
+if not _MCP_AVAILABLE:
+    logger.warning("MCP module not installed — mcp_bridge disabled. AI calls will use direct API.")
     mcp_bridge = None
+else:
+    try:
+        mcp_bridge = MCPBridge()
+    except Exception as e:
+        logger.error(f"Failed to initialize MCP Bridge: {e}")
+        mcp_bridge = None

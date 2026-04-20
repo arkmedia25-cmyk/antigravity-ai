@@ -213,7 +213,7 @@ class TelegramHandler:
             else:
                 await context.bot.send_message(chat_id, f"✅ Görev tamamlandı!\n\n{response_text[:3500]}")
             
-            task_queue.complete_task(task_id)
+            task_queue.update_status(task_id, "completed")
 
         except Exception as e:
             logger.error(f"❌ _process_task_async failed: {e}", exc_info=True)
