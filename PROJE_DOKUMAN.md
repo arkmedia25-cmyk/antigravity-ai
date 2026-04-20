@@ -4,7 +4,7 @@
 **Hedef Pazar:** Hollanda (Nederland) — Amare Global affiliate sistemi
 **Platform:** DigitalOcean (deployment) + Telegram (kullanıcı arayüzü)
 **Dil:** Python 3.11
-**Son güncelleme:** 2026-04-16 (Video & Blog Robustness Update)
+**Son güncelleme:** 2026-04-20 (Video Pipeline Kritik Düzeltmeler + Kalite Artışı)
 
 > **ÖNEMLİ:** Bu "Master Log" dosyasıdır. Projeye her yeni dosya veya değişiklik
 > eklendiğinde Claude'dan bu dosyayı güncellemesini iste. Yeni bir oturumda sadece
@@ -18,13 +18,14 @@
 |---|---|---|
 | Swarm OS | ✅ Canlı | Autonomous Think-Act-Observe Loop aktif |
 | ECC Skills | ✅ %100 | 20+ Skill paketi (Harness, Blueprint vb.) entegre |
-| Pro Video | ✅ Peak | VideoDB + HeyGen Fallback + FFmpeg Fix |
-| Telegram Bot | ✅ Çalışıyor | polling, memory fix, encoding fix |
+| Pro Video | ✅ Çalışıyor | Brand routing + MCP fix + kalite artışı (20 Nisan) |
+| Telegram Bot | ✅ Çalışıyor | Markdown fix, complete_task fix, mcp optional |
 | Dr. Priya VO | ✅ Canlı | Emojis & Titles filtered (Sanitized) |
 | Make.com | ✅ Bağlı | .env'de MAKE_WEBHOOK_URL mevcut |
-| PROJE_DOKUMAN | ✅ Güncel | 2026-04-16 Video & Blog Fix |
-| Video Pipeline | ✅ Robust | Permissive delegation + Marker fix |
+| PROJE_DOKUMAN | ✅ Güncel | 2026-04-20 Video Pipeline Fix |
+| Video Pipeline | ✅ Tam Çalışır | Brand + delegation + MCP + Markdown + swap fix |
 | Blog Automation | ✅ Active | OpenAI Fallback + Cron Path Fix |
+| Sunucu (VPS) | ✅ Stabil | 2GB swap eklendi, OOM kill çözüldü |
 
 ---
 

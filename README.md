@@ -4,6 +4,59 @@
 
 ---
 
+## 🔧 Video Pipeline Kritik Düzeltmeleri — [20 Nisan 2026]
+
+### Tespit Edilen ve Çözülen Bug'lar
+
+**Bug 1 — Brand hiç iletilmiyordu (`src/orchestrator.py`)**
+- `_extract_brand()` ile marka çıkarılıyordu ama agent'lara `brand` parametresi **hiç gönderilmiyordu**
+- `/zen` komutu bile olsa tüm ajanlar default `"glowup"` ile çalışıyordu
+- **Düzeltme:** `selected_agent.process(input, chat_id=chat_id, brand=brand_name)` — brand chain boyunca iletiliyor ✅
+
+**Bug 2 — Video üretimi hiç tetiklenmiyordu (`src/agents/content_agent.py`)**
+- ContentAgent delegasyonu için `has_video_kw AND has_reels_marker` gerekiyordu
+- `/zen magnesium` → prompt `"@holistiglow magnesium"` — içinde video keyword yok → video hiç üretilmiyordu
+- **Düzeltme:** Prompt'a `"maak een reel over:"` eklendi (handler + scheduler) ✅
+
+**Bug 3 — MCP bridge her AI çağrısında 60s timeout yapıyordu (`src/skills/mcp_client.py`)**
+- Her `ask_ai()` çağrısı 3 ayrı MCP subprocess spawn ediyordu (route_model + check_safety + get_tools)
+- Bir video = 5-6 `ask_ai` çağrısı × 3 MCP çağrısı = 18 subprocess → **pipeline kilitleniyor**
+- **Düzeltme:** MCP timeout 60s → 8s, ContentAgent ve VideoProducer'da `use_mcp=False` ✅
+
+**Bug 4 — Telegram Markdown parse hatası (tüm mesajlar)**
+- `task_id` formatı `1776689681_5f61` — içindeki `_` Markdown italik başlatıcı olarak yorumlanıyordu
+- Tüm dinamik mesajlarda `parse_mode="Markdown"` kaldırıldı ✅
+
+**Bug 5 — `complete_task` methodu yoktu (`src/core/task_queue.py`)**
+- Handler `task_queue.complete_task()` çağırıyordu, doğrusu `update_status("completed")`
+- **Düzeltme:** `task_queue.update_status(task_id, "completed")` ✅
+
+**Bug 6 — `mcp` modülü sunucuda kurulu değildi**
+- `from mcp import ...` import hatası tüm AI çağrılarını çökertiyordu
+- **Düzeltme:** `try/except ImportError` ile opsiyonel import, `mcp_bridge = None` fallback ✅
+
+**Bug 7 — Brand VideoProducer data dict'ine eklenmemişti**
+- `_send_video_message` de `data.get("brand", "glowup")` yazıyordu ama VideoProducer brand döndürmüyordu
+- **Düzeltme:** `data={"brand": brand, ...}` eklendi ✅
+
+**Bug 8 — Icons path Windows'a hardcoded (`src/skills/video_skill.py`)**
+- `C:\Users\mus-1\.gemini\...` — Linux sunucuda çalışmıyordu
+- **Düzeltme:** `os.path.join(_get_project_root(), "assets", "icons", ...)` ✅
+
+### Yeni Özellikler
+
+- **Video altında Title / Description / Tags** — VideoProducer'ın ürettiği metadata Telegram caption'ına eklendi ✅
+- **Uzun içerik metni kaldırıldı** — Instagram post + email listesi artık video ile birlikte gönderilmiyor ✅
+- **Video kalitesi artırıldı** — Pexels overlay alpha 65→35, `preset fast`, `crf 20` ✅
+- **`ecosystem.config.js` düzeltildi** — `interpreter: "python3"` → `interpreter: "none"`, venv Python tam yolu ✅
+
+### Sunucu Altyapısı
+
+- **2GB Swap eklendi** — 961MB RAM'li VPS'te FFmpeg OOM kill sorununu çözdü ✅
+- **Swap kalıcı** — `/etc/fstab`'a eklendi, reboot'ta kaybolmayacak ✅
+
+---
+
 En son **16 Nisan 2026** itibariyle aşağıdaki kritik "Gelecek Nesil" özellikler eklendi ve sistem tam otonom **"Agency Swarm OS"** mimarisine taşındı:
 
 ### 🎬 Video Üretim Hattı Robustluğu - [16 Nisan]
@@ -96,6 +149,46 @@ En son **14 Nisan 2026** itibariye:
 - **Ignite Him** — Rhodiola, Cordyceps, kırmızı pancar, çinko (PDF'den)
 - **Ignite Her** — magnesium, shatavari, çemen, limon melisa — ⚠️ GLUTEN İÇERİR (PDF'den)
 - **HL5** — 5g kollajen Tip I+III peptid, içilebilir sachet (PDF'den)
+
+---
+
+## 🛍️ AmareNL.com Bridge Site — Affiliate Link Audit & Fix [18 Nisan 2026]
+
+### Affiliate Link Düzeltmeleri
+- **12 kırık link onarıldı** — 404 veren veya genel `/shop` sayfasına yönlendiren linkler doğru ürün sayfalarına çevrildi
+- **Excel sync tamamlandı** — `amare_bridge_site/astra_integration/products/AmareNL product lijst.xlsx` kaynak dosyasındaki 39 affiliate URL, tüm WP sayfalarıyla karşılaştırıldı ve eşleştirildi
+- **Kısa URL formatı** (`nl-nl/[slug]`) doğrulandı — uzun `/shop/[cat]/[slug]` formatları 404 veriyor, kısa format çalışıyor
+
+### Düzeltilen Sayfalar (WP Page ID → Yeni URL)
+| ID | Sayfa | Eski Link | Yeni Link |
+|---|---|---|---|
+| 758 | Happy Juice Pack | `nl-NL/happy-juice-edge-plus-mango` (404) | `nl-nl/amareedge-plus-mango` |
+| 754 | EDGE+ Mango | `nl-NL/happy-juice-edge-plus-mango` (404) | `nl-nl/amareedge-plus-mango` |
+| 751 | EDGE Grape | (404) | `nl-nl/amareedge-plus-watermelon` |
+| 760 | HL5 Peach Collagen | `/shop` (genel) | `nl-nl/hl5-peach` |
+| 327 | FIT20 | `/shop` (genel) | `nl-nl/fit20` |
+| 22 | Restore | `/shop/restore/restore` (404) | `nl-nl/restore` |
+| 12 | Mentabiotics | `/shop/mentabiotics/mentabiotics` (404) | `nl-nl/mentabiotics` |
+| 9 | Ignite Him | `/shop/ignite/ignite-for-him` (404) | `nl-nl/ignite-for-him` |
+| 10 | Ignite Her | `/shop/ignite/ignite-for-her` (404) | `nl-nl/ignite-for-her` |
+| 14 | Triangle Xtreme | `/shop` (genel) | `nl-nl/triangle-of-wellness-xtreme` |
+| 36 | Homepage hero | (404) | `nl-nl/amareedge-plus-mango` |
+| 743 | Alle Producten | (404) | `nl-nl/amareedge-plus-mango` |
+
+### Yeni Oluşturulan Sayfa
+- **HL5 2-Pack** (WP ID: 982) — `https://amarenl.com/hl5-2pack/`
+  - Affiliate: `https://www.amare.com/2075008/nl-nl/hl5-peach-2pack`
+  - Fiyat: €130,42 (Subscribe & Save) / €144,90 (eenmalig)
+  - Script: `scripts/create_hl5_2pack.py`
+
+### Yeni / Güncellenen Scriptler
+| Script | Açıklama |
+|---|---|
+| `scripts/audit_affiliate_urls.py` | Tüm WP sayfalarındaki amare.com linklerini denetler |
+| `scripts/fix_affiliate_links.py` | 12 kırık linki düzeltir (hardcoded FIXES dict) |
+| `scripts/fix_all_affiliate_from_excel.py` | Excel'deki URL'leri WP sayfalarıyla karşılaştırır ve otomatik düzeltir |
+| `scripts/create_hl5_2pack.py` | HL5 2-Pack ürün sayfasını WordPress'te oluşturur |
+| `scripts/fix_why_responsive.py` | "Waarom Amare" bölümünün 4-kolon responsive grid düzenlemesi |
 
 ---
 
