@@ -82,6 +82,14 @@ def select_model(messages: Union[str, List[dict]], provider: str = "openai") -> 
         model = MODEL_GPT4O if text_len > _COMPLEXITY_THRESHOLD else MODEL_GPT4O_MINI
         return {"provider": "openai", "model": model}
 
+def ask_ai(
+    messages: Any, 
+    provider: str = "openai", 
+    is_json: bool = False, 
+    use_cache: bool = True,
+    model: str = None,
+    tools: list = None,
+    tool_choice: str = None,
     thinking_budget: int = 0,
     use_mcp: bool = True
 ) -> Any:
