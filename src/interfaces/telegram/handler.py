@@ -115,7 +115,8 @@ class TelegramHandler:
             return
 
         if text.startswith("/luna"):
-            user_topic = text[5:].strip()
+            # Flexible parsing: catch /luna_video_Topic or /luna Topic
+            user_topic = text.replace("/luna", "").replace("_video_", "").strip()
             brand = "glow"
             if not user_topic:
                 user_topic = _generate_dynamic_topic(brand, "user request", _handler_used_topics[brand])
@@ -128,7 +129,8 @@ class TelegramHandler:
             return
 
         if text.startswith("/zen"):
-            user_topic = text[4:].strip()
+            # Flexible parsing: catch /zen_video_Topic or /zen Topic
+            user_topic = text.replace("/zen", "").replace("_video_", "").strip()
             brand = "holisti"
             if not user_topic:
                 user_topic = _generate_dynamic_topic(brand, "user request", _handler_used_topics[brand])
@@ -141,7 +143,7 @@ class TelegramHandler:
             return
 
         if text.startswith("/priya"):
-            topic = text[6:].strip() or "Holistische wellness"
+            topic = text.replace("/priya", "").replace("_video_", "").strip() or "Holistische wellness"
             await update.message.reply_text(f"🧘 Dr. Priya @HolistiGlow için gelişmiş video hazırlıyor...\nKonu: {topic}")
             threading.Thread(target=self._generate_priya_sync, args=(chat_id, topic, context), daemon=True).start()
             return
@@ -509,16 +511,8 @@ def start_telegram_bot():
     handler = TelegramHandler()
     application = Application.builder().token(token).build()
     
-    application.add_handler(CommandHandler("start",   handler.handle_message))
-    application.add_handler(CommandHandler("ping",    handler.handle_message))
-    application.add_handler(CommandHandler("luna",    handler.handle_message))
-    application.add_handler(CommandHandler("zen",     handler.handle_message))
-    application.add_handler(CommandHandler("priya",   handler.handle_message))
-    application.add_handler(CommandHandler("content", handler.handle_message))
-    application.add_handler(CommandHandler("cmo",     handler.handle_message))
-    application.add_handler(CommandHandler("sales",   handler.handle_message))
-    application.add_handler(CommandHandler("trigger", handler.handle_trigger))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler.handle_message))
+    # Catch-all MessageHandler to allow flexible command parsing in handler.py
+    application.add_handler(MessageHandler(filters.ALL, handler.handle_message))
     application.add_handler(CallbackQueryHandler(handler.handle_callback))
     
     print("Antigravity Agency OS Botu Hazir!")
