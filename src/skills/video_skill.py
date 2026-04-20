@@ -420,12 +420,8 @@ def create_reel(fragments=None, image_path=None, srt_path=None, output_filename=
         icons_idx = None
 
     # Filter Complex
-    # Ken Burns: subtle slow zoom-in over video duration for cinematic feel
-    zoom_speed = 0.0008
     filter_parts = [
-        f"[0:v]scale=1280:2280:force_original_aspect_ratio=increase,crop=1280:2280,"
-        f"zoompan=z='min(zoom+{zoom_speed},1.15)':d={int(total_dur*30)}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1080x1920:fps=30,"
-        f"setsar=1[vbg]"
+        f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=30[vbg]"
     ]
     
     # Audio Concat (Voiceover fragments)
@@ -485,7 +481,7 @@ def create_reel(fragments=None, image_path=None, srt_path=None, output_filename=
     cmd.extend([
         "-filter_complex_script", filter_script_path,
         "-map", v_stream, "-map", map_a,
-        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "medium", "-crf", "18",
+        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-crf", "20",
         "-c:a", "aac", "-b:a", "192k", "-shortest", os.path.abspath(output_path)
     ])
 
