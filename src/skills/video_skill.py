@@ -238,8 +238,8 @@ def create_reel(fragments=None, image_path=None, srt_path=None, output_filename=
                 left = (new_w - _W) // 2
                 top = (new_h - _H) // 2
                 bg_pic = bg_pic.crop((left, top, left + _W, top + _H))
-                # Lighter background overlay to keep visibility high
-                dark_layer = Image.new("RGBA", (_W, _H), (0, 0, 0, 90))
+                # Softer background overlay (Reduced from 90 to 65 for less "foggy" look)
+                dark_layer = Image.new("RGBA", (_W, _H), (0, 0, 0, 65))
                 bg_pic = Image.alpha_composite(bg_pic, dark_layer)
                 img.paste(bg_pic, (0, 0), bg_pic)
             except Exception as e:
@@ -279,16 +279,15 @@ def create_reel(fragments=None, image_path=None, srt_path=None, output_filename=
 
         # ── CONTENT RENDERING ────────────────────────────────────────────────
         if tag == "hook":
-            lines, f, total_h = _fit_lines(draw, text, "display", 820, 900)
+            lines, f, total_h = _fit_lines(draw, text, "display", 820, 1000)
             bx0, bx1 = 80, _W - 80
-            # Center the card vertically
-            card_h = 420
+            # DYNAMIC card height (Fixes text overflow)
+            card_h = total_h + (padding * 2)
             by0 = (_H - card_h) // 2
             by1 = by0 + card_h
             
-            # Premium Glassmorphism (High blur + Soft white alpha)
-            # Lighter Premium Glassmorphism
-            glass = (255, 255, 255, 170) if not image_path else (10, 10, 10, 100)
+            # Premium Glassmorphism (Balanced translucency)
+            glass = (255, 255, 255, 180) if not image_path else (15, 15, 15, 140)
             _draw_rounded_rect(overlay_draw2, [bx0, by0, bx1, by1], 50, glass)
             
             # Subtle outer glow/shadow for the card
@@ -340,22 +339,22 @@ def create_reel(fragments=None, image_path=None, srt_path=None, output_filename=
 
         else:
             # CONTENT frame
-            lines, f, total_h = _fit_lines(draw, text, "body", 820, 1000)
-            bx0, bx1 = 0, _W
-            card_h = 420
+            lines, f, total_h = _fit_lines(draw, text, "body", 820, 1200)
+            bx0, bx1 = 60, _W - 60 # Slightly narrower for premium look
+            # DYNAMIC card height (Fixes text overflow)
+            card_h = total_h + (padding * 2)
             by0 = (_H - card_h) // 2
             by1 = by0 + card_h
             
             # Premium Glassmorphism
-            # Lighter Premium Glassmorphism
-            glass = (255, 255, 255, 160) if not image_path else (10, 10, 10, 90)
+            glass = (255, 255, 255, 175) if not image_path else (15, 15, 15, 130)
             _draw_rounded_rect(overlay_draw2, [bx0, by0, bx1, by1], 50, glass)
             
             # Subtle Shadow
             shadow_mask = Image.new("RGBA", (_W, _H), (0, 0, 0, 0))
             sm_draw = ImageDraw.Draw(shadow_mask)
-            _draw_rounded_rect(sm_draw, [bx0+3, by0+3, bx1+3, by1+3], 50, (0, 0, 0, 60))
-            img.paste(shadow_mask.filter(ImageFilter.GaussianBlur(10)), (0, 0), shadow_mask.filter(ImageFilter.GaussianBlur(10)))
+            _draw_rounded_rect(sm_draw, [bx0+3, by0+3, bx1+3, by1+3], 50, (0, 0, 0, 45))
+            img.paste(shadow_mask.filter(ImageFilter.GaussianBlur(15)), (0, 0), shadow_mask.filter(ImageFilter.GaussianBlur(15)))
             
             img.paste(overlay_img2, (0, 0), overlay_img2)
             # Only draw static text if NOT using daktilo
