@@ -229,145 +229,145 @@ def create_reel(fragments=None, image_path=None, srt_path=None, output_filename=
             color2 = tuple(theme["accent"]) if isinstance(theme["accent"], (list, tuple)) else (255, 112, 86)
             img = _create_gradient_bg(_W, _H, color1, color2)
 
-        if image_path and os.path.exists(image_path):
-            try:
-                bg_pic = Image.open(image_path).convert("RGBA")
-                bg_w, bg_h = bg_pic.size
-                ratio = max(_W / bg_w, _H / bg_h)
-                new_w, new_h = int(bg_w * ratio), int(bg_h * ratio)
-                bg_pic = bg_pic.resize((new_w, new_h), Image.Resampling.LANCZOS)
-                left = (new_w - _W) // 2
-                top = (new_h - _H) // 2
-                bg_pic = bg_pic.crop((left, top, left + _W, top + _H))
-                # Softer background overlay (Reduced from 90 to 65 for less "foggy" look)
-                dark_layer = Image.new("RGBA", (_W, _H), (0, 0, 0, 65))
-                bg_pic = Image.alpha_composite(bg_pic, dark_layer)
-                img.paste(bg_pic, (0, 0), bg_pic)
-            except Exception as e:
-                print(f"[video_skill] Gorsel eklenemedi: {e}")
+            if image_path and os.path.exists(image_path):
+                try:
+                    bg_pic = Image.open(image_path).convert("RGBA")
+                    bg_w, bg_h = bg_pic.size
+                    ratio = max(_W / bg_w, _H / bg_h)
+                    new_w, new_h = int(bg_w * ratio), int(bg_h * ratio)
+                    bg_pic = bg_pic.resize((new_w, new_h), Image.Resampling.LANCZOS)
+                    left = (new_w - _W) // 2
+                    top = (new_h - _H) // 2
+                    bg_pic = bg_pic.crop((left, top, left + _W, top + _H))
+                    # Softer background overlay (Reduced from 90 to 65 for less "foggy" look)
+                    dark_layer = Image.new("RGBA", (_W, _H), (0, 0, 0, 65))
+                    bg_pic = Image.alpha_composite(bg_pic, dark_layer)
+                    img.paste(bg_pic, (0, 0), bg_pic)
+                except Exception as e:
+                    print(f"[video_skill] Gorsel eklenemedi: {e}")
 
-        # Vignette efekti
-        img = _add_vignette(img)
+            # Vignette efekti
+            img = _add_vignette(img)
 
-        # ── Overlays layer ──────────────────────────────────────────────────
-        overlay_img = Image.new("RGBA", (_W, _H), (0, 0, 0, 0))
-        overlay_draw = ImageDraw.Draw(overlay_img)
-        padding = 65
+            # ── Overlays layer ──────────────────────────────────────────────────
+            overlay_img = Image.new("RGBA", (_W, _H), (0, 0, 0, 0))
+            overlay_draw = ImageDraw.Draw(overlay_img)
+            padding = 65
 
-        # ── TOP BRAND BAR ────────────────────────────────────────────────────
-        bar_h = 110
-        bar_color = accent_rgb + (200,)
-        overlay_draw.rectangle([0, 0, _W, bar_h], fill=bar_color)
-        img.paste(overlay_img, (0, 0), overlay_img)
+            # ── TOP BRAND BAR ────────────────────────────────────────────────────
+            bar_h = 110
+            bar_color = accent_rgb + (200,)
+            overlay_draw.rectangle([0, 0, _W, bar_h], fill=bar_color)
+            img.paste(overlay_img, (0, 0), overlay_img)
 
-        draw = ImageDraw.Draw(img)
-        f_brand = _font(44, "title")
-        brand_label = f"@{display_brand}"
-        bw, _ = _sz(draw, brand_label, f_brand)
-        draw.text(((_W - bw) // 2 + 2, 32 + 2), brand_label, font=f_brand, fill=(0, 0, 0, 80))
-        draw.text(((_W - bw) // 2, 32), brand_label, font=f_brand, fill=(255, 255, 255))
-
-        # ── BOTTOM PROGRESS BAR ──────────────────────────────────────────────
-        prog_h = 10
-        prog_y = _H - prog_h
-        draw.rectangle([0, prog_y, _W, _H], fill=(0, 0, 0, 90))
-        filled_w = int(_W * (i + 1) / max(total_frags, 1))
-        draw.rectangle([0, prog_y, filled_w, _H], fill=accent_rgb + (220,))
-
-        # Reset overlay for glass boxes
-        overlay_img2 = Image.new("RGBA", (_W, _H), (0, 0, 0, 0))
-        overlay_draw2 = ImageDraw.Draw(overlay_img2)
-
-        # ── CONTENT RENDERING ────────────────────────────────────────────────
-        if tag == "hook":
-            lines, f, total_h = _fit_lines(draw, text, "display", 820, 1000)
-            bx0, bx1 = 80, _W - 80
-            # DYNAMIC card height (Fixes text overflow)
-            card_h = total_h + (padding * 2)
-            by0 = (_H - card_h) // 2
-            by1 = by0 + card_h
-            
-            # Premium Glassmorphism (Balanced translucency)
-            glass = (255, 255, 255, 180) if not image_path else (15, 15, 15, 140)
-            _draw_rounded_rect(overlay_draw2, [bx0, by0, bx1, by1], 50, glass)
-            
-            # Subtle outer glow/shadow for the card
-            shadow_mask = Image.new("RGBA", (_W, _H), (0, 0, 0, 0))
-            sm_draw = ImageDraw.Draw(shadow_mask)
-            _draw_rounded_rect(sm_draw, [bx0+4, by0+4, bx1+4, by1+4], 52, (0, 0, 0, 80))
-            img.paste(shadow_mask.filter(ImageFilter.GaussianBlur(12)), (0, 0), shadow_mask.filter(ImageFilter.GaussianBlur(12)))
-            
-            img.paste(overlay_img2, (0, 0), overlay_img2)
-            # Only draw static shadow/text if NOT using dynamic word timestamps or SRT
-            if not word_timestamps and not srt_path:
-                draw = ImageDraw.Draw(img)
-                tc = tuple(theme["text"]) if not image_path else (255, 255, 255)
-                y = by0 + padding
-                for line in lines:
-                    lw, lh = _sz(draw, line, f)
-                    draw.text(((_W - lw) // 2 + 3, y + 3), line, font=f, fill=(0, 0, 0, 120))
-                    draw.text(((_W - lw) // 2, y), line, font=f, fill=tc)
-                    y += lh + 22
-
-        elif tag == "cta":
-            # Full-width CTA block (Instagram stili)
-            cta_main = "Volg voor meer tips!"
-            cta_sub = f"@{display_brand}"
-            cy_center = _H // 2
-
-            # Background block
-            block_y0, block_y1 = cy_center - 320, cy_center + 320
-            _draw_rounded_rect(overlay_draw2, [60, block_y0, _W - 60, block_y1], 50, (255, 255, 255, 220))
-            img.paste(overlay_img2, (0, 0), overlay_img2)
             draw = ImageDraw.Draw(img)
+            f_brand = _font(44, "title")
+            brand_label = f"@{display_brand}"
+            bw, _ = _sz(draw, brand_label, f_brand)
+            draw.text(((_W - bw) // 2 + 2, 32 + 2), brand_label, font=f_brand, fill=(0, 0, 0, 80))
+            draw.text(((_W - bw) // 2, 32), brand_label, font=f_brand, fill=(255, 255, 255))
 
-            # Main CTA text
-            f_cta = _font(80, "display")
-            lines_cta = _wrap(draw, cta_main, f_cta, 820)
-            y = block_y0 + 80
-            for line in lines_cta:
-                lw, lh = _sz(draw, line, f_cta)
-                draw.text(((_W - lw) // 2 + 3, y + 3), line, font=f_cta, fill=(0, 0, 0, 80))
-                draw.text(((_W - lw) // 2, y), line, font=f_cta, fill=tuple(theme["text"]))
-                y += lh + 18
+            # ── BOTTOM PROGRESS BAR ──────────────────────────────────────────────
+            prog_h = 10
+            prog_y = _H - prog_h
+            draw.rectangle([0, prog_y, _W, _H], fill=(0, 0, 0, 90))
+            filled_w = int(_W * (i + 1) / max(total_frags, 1))
+            draw.rectangle([0, prog_y, filled_w, _H], fill=accent_rgb + (220,))
 
-            # Follow button
-            btn_y0, btn_y1 = y + 40, y + 160
-            _draw_rounded_rect(draw, [120, btn_y0, _W - 120, btn_y1], 40, accent_rgb)
-            f_btn = _font(62, "title")
-            btw, _ = _sz(draw, cta_sub, f_btn)
-            draw.text(((_W - btw) // 2, btn_y0 + 46), cta_sub, font=f_btn, fill=(255, 255, 255))
+            # Reset overlay for glass boxes
+            overlay_img2 = Image.new("RGBA", (_W, _H), (0, 0, 0, 0))
+            overlay_draw2 = ImageDraw.Draw(overlay_img2)
 
-        else:
-            # CONTENT frame
-            lines, f, total_h = _fit_lines(draw, text, "body", 820, 1200)
-            bx0, bx1 = 60, _W - 60 # Slightly narrower for premium look
-            # DYNAMIC card height (Fixes text overflow)
-            card_h = total_h + (padding * 2)
-            by0 = (_H - card_h) // 2
-            by1 = by0 + card_h
-            
-            # Premium Glassmorphism
-            glass = (255, 255, 255, 175) if not image_path else (15, 15, 15, 130)
-            _draw_rounded_rect(overlay_draw2, [bx0, by0, bx1, by1], 50, glass)
-            
-            # Subtle Shadow
-            shadow_mask = Image.new("RGBA", (_W, _H), (0, 0, 0, 0))
-            sm_draw = ImageDraw.Draw(shadow_mask)
-            _draw_rounded_rect(sm_draw, [bx0+3, by0+3, bx1+3, by1+3], 50, (0, 0, 0, 45))
-            img.paste(shadow_mask.filter(ImageFilter.GaussianBlur(15)), (0, 0), shadow_mask.filter(ImageFilter.GaussianBlur(15)))
-            
-            img.paste(overlay_img2, (0, 0), overlay_img2)
-            # Only draw static text if NOT using daktilo
-            if not word_timestamps and not srt_path:
+            # ── CONTENT RENDERING ────────────────────────────────────────────────
+            if tag == "hook":
+                lines, f, total_h = _fit_lines(draw, text, "display", 820, 1000)
+                bx0, bx1 = 80, _W - 80
+                # DYNAMIC card height (Fixes text overflow)
+                card_h = total_h + (padding * 2)
+                by0 = (_H - card_h) // 2
+                by1 = by0 + card_h
+                
+                # Premium Glassmorphism (Balanced translucency)
+                glass = (255, 255, 255, 180) if not image_path else (15, 15, 15, 140)
+                _draw_rounded_rect(overlay_draw2, [bx0, by0, bx1, by1], 50, glass)
+                
+                # Subtle outer glow/shadow for the card
+                shadow_mask = Image.new("RGBA", (_W, _H), (0, 0, 0, 0))
+                sm_draw = ImageDraw.Draw(shadow_mask)
+                _draw_rounded_rect(sm_draw, [bx0+4, by0+4, bx1+4, by1+4], 52, (0, 0, 0, 80))
+                img.paste(shadow_mask.filter(ImageFilter.GaussianBlur(12)), (0, 0), shadow_mask.filter(ImageFilter.GaussianBlur(12)))
+                
+                img.paste(overlay_img2, (0, 0), overlay_img2)
+                # Only draw static shadow/text if NOT using dynamic word timestamps or SRT
+                if not word_timestamps and not srt_path:
+                    draw = ImageDraw.Draw(img)
+                    tc = tuple(theme["text"]) if not image_path else (255, 255, 255)
+                    y = by0 + padding
+                    for line in lines:
+                        lw, lh = _sz(draw, line, f)
+                        draw.text(((_W - lw) // 2 + 3, y + 3), line, font=f, fill=(0, 0, 0, 120))
+                        draw.text(((_W - lw) // 2, y), line, font=f, fill=tc)
+                        y += lh + 22
+
+            elif tag == "cta":
+                # Full-width CTA block (Instagram stili)
+                cta_main = "Volg voor meer tips!"
+                cta_sub = f"@{display_brand}"
+                cy_center = _H // 2
+
+                # Background block
+                block_y0, block_y1 = cy_center - 320, cy_center + 320
+                _draw_rounded_rect(overlay_draw2, [60, block_y0, _W - 60, block_y1], 50, (255, 255, 255, 220))
+                img.paste(overlay_img2, (0, 0), overlay_img2)
                 draw = ImageDraw.Draw(img)
-                tc = tuple(theme["text"]) if not image_path else (255, 255, 255)
-                y = by0 + padding
-                for line in lines:
-                    lw, lh = _sz(draw, line, f)
-                    draw.text(((_W - lw) // 2 + 3, y + 3), line, font=f, fill=(0, 0, 0, 85))
-                    draw.text(((_W - lw) // 2, y), line, font=f, fill=tc)
-                    y += lh + 22
+
+                # Main CTA text
+                f_cta = _font(80, "display")
+                lines_cta = _wrap(draw, cta_main, f_cta, 820)
+                y = block_y0 + 80
+                for line in lines_cta:
+                    lw, lh = _sz(draw, line, f_cta)
+                    draw.text(((_W - lw) // 2 + 3, y + 3), line, font=f_cta, fill=(0, 0, 0, 80))
+                    draw.text(((_W - lw) // 2, y), line, font=f_cta, fill=tuple(theme["text"]))
+                    y += lh + 18
+
+                # Follow button
+                btn_y0, btn_y1 = y + 40, y + 160
+                _draw_rounded_rect(draw, [120, btn_y0, _W - 120, btn_y1], 40, accent_rgb)
+                f_btn = _font(62, "title")
+                btw, _ = _sz(draw, cta_sub, f_btn)
+                draw.text(((_W - btw) // 2, btn_y0 + 46), cta_sub, font=f_btn, fill=(255, 255, 255))
+
+            else:
+                # CONTENT frame
+                lines, f, total_h = _fit_lines(draw, text, "body", 820, 1200)
+                bx0, bx1 = 60, _W - 60 # Slightly narrower for premium look
+                # DYNAMIC card height (Fixes text overflow)
+                card_h = total_h + (padding * 2)
+                by0 = (_H - card_h) // 2
+                by1 = by0 + card_h
+                
+                # Premium Glassmorphism
+                glass = (255, 255, 255, 175) if not image_path else (15, 15, 15, 130)
+                _draw_rounded_rect(overlay_draw2, [bx0, by0, bx1, by1], 50, glass)
+                
+                # Subtle Shadow
+                shadow_mask = Image.new("RGBA", (_W, _H), (0, 0, 0, 0))
+                sm_draw = ImageDraw.Draw(shadow_mask)
+                _draw_rounded_rect(sm_draw, [bx0+3, by0+3, bx1+3, by1+3], 50, (0, 0, 0, 45))
+                img.paste(shadow_mask.filter(ImageFilter.GaussianBlur(15)), (0, 0), shadow_mask.filter(ImageFilter.GaussianBlur(15)))
+                
+                img.paste(overlay_img2, (0, 0), overlay_img2)
+                # Only draw static text if NOT using daktilo
+                if not word_timestamps and not srt_path:
+                    draw = ImageDraw.Draw(img)
+                    tc = tuple(theme["text"]) if not image_path else (255, 255, 255)
+                    y = by0 + padding
+                    for line in lines:
+                        lw, lh = _sz(draw, line, f)
+                        draw.text(((_W - lw) // 2 + 3, y + 3), line, font=f, fill=(0, 0, 0, 85))
+                        draw.text(((_W - lw) // 2, y), line, font=f, fill=tc)
+                        y += lh + 22
             
             # --- Try-Except End ---
         except Exception as re:

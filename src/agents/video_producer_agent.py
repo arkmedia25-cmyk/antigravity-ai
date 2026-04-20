@@ -144,10 +144,11 @@ class VideoProducerAgent(BaseAgent):
             public_url = uploader.upload_file(final_video_path)
             
             # Final Rich Response with Metadata
+            content_summary = input_data[:300] + "..." if len(input_data) > 300 else input_data
             combined_content = (
                 f"🚀 *Video üretimi [@{brand}] tamamlandı!*\n\n"
-                f"📝 *İçerik Detayları:*\n{input_data}\n\n"
-                f"🔗 *Video Linki:* {public_url}"
+                f"📝 *İçerik Özeti:*\n{content_summary}\n\n"
+                f"🔗 *Video Linki:* {public_url or '⚠️ Upload hatası (Lütfen tekrar deneyin)'}"
             )
             
             return SwarmMessage(
