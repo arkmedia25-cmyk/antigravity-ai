@@ -239,8 +239,8 @@ def create_reel(fragments=None, image_path=None, srt_path=None, output_filename=
                     left = (new_w - _W) // 2
                     top = (new_h - _H) // 2
                     bg_pic = bg_pic.crop((left, top, left + _W, top + _H))
-                    # Softer background overlay (Reduced from 90 to 65 for less "foggy" look)
-                    dark_layer = Image.new("RGBA", (_W, _H), (0, 0, 0, 65))
+                    # Light overlay — fotoğraf daha net görünsün
+                    dark_layer = Image.new("RGBA", (_W, _H), (0, 0, 0, 35))
                     bg_pic = Image.alpha_composite(bg_pic, dark_layer)
                     img.paste(bg_pic, (0, 0), bg_pic)
                 except Exception as e:
@@ -411,8 +411,8 @@ def create_reel(fragments=None, image_path=None, srt_path=None, output_filename=
     for ap in valid_audios:
         cmd.extend(["-i", ap])
     
-    # Input N+1: CTA Icons
-    icons_path = r"C:\Users\mus-1\.gemini\antigravity\brain\2a7d011c-bd9e-46df-b82a-a4962a455b8b\social_engagement_icons_1776263235062.png"
+    # Input N+1: CTA Icons (platform-independent path)
+    icons_path = os.path.join(_get_project_root(), "assets", "icons", "social_engagement_icons.png")
     if os.path.exists(icons_path):
         cmd.extend(["-i", icons_path])
         icons_idx = len(valid_audios) + 1
@@ -420,8 +420,12 @@ def create_reel(fragments=None, image_path=None, srt_path=None, output_filename=
         icons_idx = None
 
     # Filter Complex
+    # Ken Burns: subtle slow zoom-in over video duration for cinematic feel
+    zoom_speed = 0.0008
     filter_parts = [
-        f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=30[vbg]"
+        f"[0:v]scale=1280:2280:force_original_aspect_ratio=increase,crop=1280:2280,"
+        f"zoompan=z='min(zoom+{zoom_speed},1.15)':d={int(total_dur*30)}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1080x1920:fps=30,"
+        f"setsar=1[vbg]"
     ]
     
     # Audio Concat (Voiceover fragments)
@@ -481,7 +485,7 @@ def create_reel(fragments=None, image_path=None, srt_path=None, output_filename=
     cmd.extend([
         "-filter_complex_script", filter_script_path,
         "-map", v_stream, "-map", map_a,
-        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast",
+        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "medium", "-crf", "18",
         "-c:a", "aac", "-b:a", "192k", "-shortest", os.path.abspath(output_path)
     ])
 
