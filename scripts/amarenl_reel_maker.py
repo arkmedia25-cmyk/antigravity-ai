@@ -444,7 +444,18 @@ def run(topic_key: str | None = None, title: str | None = None,
     # Tmp opruimen
     import shutil
     shutil.rmtree(tmp, ignore_errors=True)
-    return str(output) if ok else None
+
+    if not ok:
+        return None, {}
+
+    # Meta voor Telegram notificatie
+    hook_secs    = [s for s in script["sections"] if s[0] == "hook"]
+    content_secs = [s for s in script["sections"] if s[0] == "content"]
+    title_text   = f"{hook_secs[0][1]} {hook_secs[0][2]}" if hook_secs else topic_key.replace("_", " ").title()
+    desc_text    = "  ".join(f"{s[1]} {s[2]}" for s in content_secs[:3])
+    tags_text    = getattr(brand_cfg, "CTA_HASHTAGS", "#wellness #nl")
+
+    return str(output), {"title": title_text, "description": desc_text, "tags": tags_text}
 
 
 if __name__ == "__main__":

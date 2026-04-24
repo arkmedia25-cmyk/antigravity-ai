@@ -77,7 +77,7 @@ def _send_telegram(chat_id: str, text: str, video_path: str | None = None,
         requests.post(f"{base}/sendMessage", json=payload, timeout=30)
 
 
-def notify_approval(brand: str, video_path: str, topic: str, style: str):
+def notify_approval(brand: str, video_path: str, topic: str, style: str, meta: dict = {}):
     """Stuur video naar Telegram met goedkeuringsbuttons."""
     vid_id = _new_id()
     approvals = _load_approvals()
@@ -93,13 +93,19 @@ def notify_approval(brand: str, video_path: str, topic: str, style: str):
     handle_map = {"holistiglow": "@HolistiGlow", "glowup": "@GlowUpNL"}
     handle = handle_map.get(brand, brand)
 
-    caption = (
-        f"🎬 *Nieuwe reel klaar!*\n\n"
-        f"🏷 Merk : {handle}\n"
-        f"📌 Topic: `{topic}`\n"
-        f"🎨 Stijl: `{style}`\n\n"
-        f"Kies wat je wilt doen:"
-    )
+    title = meta.get("title", "")
+    desc  = meta.get("description", "")
+    tags  = meta.get("tags", "")
+
+    parts = [f"🎬 *{handle}*"]
+    if title:
+        parts.append(f"\n{title}")
+    if desc:
+        parts.append(f"\n{desc}")
+    if tags:
+        parts.append(f"\n{tags}")
+    parts.append(f"\n\n🎨 `{style}` · Kies wat je wilt doen:")
+    caption = "\n".join(parts)
 
     keyboard = {
         "inline_keyboard": [
@@ -131,7 +137,8 @@ def run(brand: str = "holistiglow"):
     topic = get_next_topic(brand)
     print(f"  Topic: {topic}")
 
-    video_path = make_reel(topic_key=topic, brand=brand)
+    result = make_reel(topic_key=topic, brand=brand)
+    video_path, meta = result if isinstance(result, tuple) else (result, {})
     if not video_path:
         print(f"[{datetime.now()}] FOUT: video generatie mislukt")
         sys.exit(1)
@@ -146,7 +153,7 @@ def run(brand: str = "holistiglow"):
     except Exception:
         style_name = "onbekend"
 
-    notify_approval(brand, video_path, topic, style_name)
+    notify_approval(brand, video_path, topic, style_name, meta)
     print(f"[{datetime.now()}] Klaar: {video_path}")
 
 
