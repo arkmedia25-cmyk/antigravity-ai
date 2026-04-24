@@ -23,7 +23,7 @@
 | T-005 | Google Search Console + Analytics controleren via Site Kit | amarenl.com WP Admin → Site Kit | Hoog |
 | T-006 | Blog → Ürün sayfası iç linkler ekle | `scripts/article_writer_amarenl.py` | Hoog |
 | T-007 | Article schema (FAQ + Article JSON-LD) blog makaleleri | `scripts/article_writer_amarenl.py` | Middel |
-| T-008 | Instagram auto-publish testen (pub_ callback) | `src/interfaces/telegram/handler.py` | Middel |
+| T-008 | ~~Instagram auto-publish testen~~ ✅ CANLI | `src/interfaces/telegram/handler.py` | ✅ |
 | T-009 | MailerLite welkomstmail automatie aanmaken | mailerlite.com dashboard | Middel |
 | T-010 | Canva OAuth 400 error diagnosticeren | `skills/heygen/` | Laag |
 | T-011 | SQLite WAL mode inschakelen (concurrent writes) | `src/memory/memory_manager.py` | Laag |
@@ -34,7 +34,8 @@
 
 | ID | Taak | Datum | Notities |
 |---|---|---|---|
-| ✅ | amarenl.com Reel Maker v2 | 2026-04-24 | ElevenLabs TTS + PIL glassmorphism + Pexels + 6 stil rotasyonu |
+| ✅ | Multi-brand social otomasyon CANLI | 2026-04-24 | HolistiGlow + GlowUpNL Instagram API, Telegram onay, günlük cron 4x |
+| ✅ | amarenl.com Reel Maker v2 | 2026-04-24 | OpenAI TTS + PIL glassmorphism + Pexels + 6 stil rotasyonu |
 | ✅ | amarenl.com WP backup/restore systeem | 2026-04-24 | wp_backup.py + wp_restore.py, 13 sayfa |
 | ✅ | Canva pin rotator | 2026-04-24 | 6 template round-robin, canva_pin_rotator.py |
 | ✅ | daily_article_writer reel entegrasyonu | 2026-04-24 | Makale sonrası otomatik reel üretimi |
