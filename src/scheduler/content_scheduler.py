@@ -310,14 +310,14 @@ def start_content_factory(chat_id, bot=None):
                                 v_title = msg.data.get("title", "")
                                 v_desc = msg.data.get("caption", "")
                                 v_tags = msg.data.get("tags", "")
-                                caption_parts = [f"{lbl} hazir!"]
+                                caption_parts = []
                                 if v_title:
-                                    caption_parts.append(f"\nTITLE: {v_title}")
+                                    caption_parts.append(v_title)
                                 if v_desc:
-                                    caption_parts.append(f"\nDESCRIPTION:\n{v_desc}")
+                                    caption_parts.append(v_desc)
                                 if v_tags:
-                                    caption_parts.append(f"\nTAGS:\n{v_tags}")
-                                caption_text = "\n".join(caption_parts)
+                                    caption_parts.append(v_tags)
+                                caption_text = "\n\n".join(caption_parts)
 
                                 _send_telegram_message(
                                     chat_id,
