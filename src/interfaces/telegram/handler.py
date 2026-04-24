@@ -277,9 +277,11 @@ class TelegramHandler:
                 text="❌ Upload mislukt — video niet beschikbaar voor Zapier.")
             return
 
-        handle_map = {"holistiglow": "@HolistiGlow", "glowup": "@GlowUpNL"}
-        caption = (f"Via {handle_map.get(brand, brand)} | "
-                   f"{topic.replace('_', ' ').title()}\n#wellness #health #nl")
+        brand_tags = {
+            "holistiglow": "#holistiglow #wellness #supplementen #gezondheid #vitamines #nl #nederland",
+            "glowup":      "#glowupnl #skincare #beauty #huidverzorging #skintips #nl #nederland",
+        }
+        caption = brand_tags.get(brand, "#wellness #nl")
 
         try:
             from src.skills.zapier_skill import post_via_zapier, post_to_all
