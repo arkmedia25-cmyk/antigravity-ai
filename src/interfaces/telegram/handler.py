@@ -253,50 +253,168 @@ class TelegramHandler:
         
         _send_telegram_message(chat_id, caption, video_path=video_path, reply_markup=reply_markup)
 
+    def _load_approvals(self) -> dict:
+        f = os.path.join(_ROOT, ".social_approvals.json")
+        try:
+            return json.load(open(f)) if os.path.exists(f) else {}
+        except Exception:
+            return {}
+
+    async def _publish_via_zapier(self, chat_id, vid_id: str, platforms: list[str], context):
+        approvals = self._load_approvals()
+        meta = approvals.get(vid_id)
+        if not meta:
+            await context.bot.send_message(chat_id=chat_id, text="❌ Goedkeuring niet gevonden.")
+            return
+        video_path = meta["path"]
+        brand      = meta.get("brand", "")
+        topic      = meta.get("topic", "")
+
+        await context.bot.send_message(chat_id=chat_id, text="⏳ Video uploaden naar CDN...")
+        public_url = uploader.upload_file(video_path)
+        if not public_url:
+            await context.bot.send_message(chat_id=chat_id,
+                text="❌ Upload mislukt — video niet beschikbaar voor Zapier.")
+            return
+
+        handle_map = {"holistiglow": "@HolistiGlow", "glowup": "@GlowUpNL"}
+        caption = (f"Via {handle_map.get(brand, brand)} | "
+                   f"{topic.replace('_', ' ').title()}\n#wellness #health #nl")
+
+        try:
+            from src.skills.zapier_skill import post_via_zapier, post_to_all
+        except ImportError:
+            await context.bot.send_message(chat_id=chat_id, text="❌ zapier_skill niet geladen.")
+            return
+
+        if "all" in platforms:
+            results = post_to_all(public_url, caption, brand, topic)
+            lines = []
+            for plat, (ok, msg) in results.items():
+                icon = "✅" if ok else "❌"
+                lines.append(f"{icon} {plat.upper()}: {msg}")
+            await context.bot.send_message(chat_id=chat_id, text="\n".join(lines))
+        else:
+            for plat in platforms:
+                ok, msg = post_via_zapier(plat, public_url, caption, brand, topic)
+                icon = "✅" if ok else "❌"
+                await context.bot.send_message(chat_id=chat_id,
+                    text=f"{icon} {plat.upper()}: {msg}")
+
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
         await query.answer()
-        data = query.data
+        data  = query.data or ""
         chat_id = update.effective_chat.id
 
+        # ── Download ─────────────────────────────────────────────────────────
         if data.startswith("dl_"):
-            path = data.replace("dl_", "")
-            path = os.path.join("outputs", os.path.basename(path))
-            if os.path.exists(path):
-                with open(path, "rb") as f:
-                    await context.bot.send_document(chat_id=chat_id, document=f, filename=os.path.basename(path))
+            vid_id = data[3:]
+            approvals = self._load_approvals()
+            meta = approvals.get(vid_id)
+            if meta and os.path.exists(meta["path"]):
+                # Stuur als document → downloadbaar op PC én mobiel
+                with open(meta["path"], "rb") as f:
+                    await context.bot.send_document(
+                        chat_id=chat_id,
+                        document=f,
+                        filename=os.path.basename(meta["path"]),
+                        caption=f"⬇️ {meta.get('brand','')} — {meta.get('topic','').replace('_',' ')}",
+                    )
             else:
-                await context.bot.send_message(chat_id=chat_id, text="❌ Dosya bulunamadı.")
+                # Oud formaat fallback
+                path = os.path.join(_ROOT, "outputs", os.path.basename(vid_id))
+                if os.path.exists(path):
+                    with open(path, "rb") as f:
+                        await context.bot.send_document(chat_id=chat_id, document=f,
+                                                        filename=os.path.basename(path))
+                else:
+                    await context.bot.send_message(chat_id=chat_id, text="❌ Bestand niet gevonden.")
 
+        # ── Aanpassen (revise) ────────────────────────────────────────────────
         elif data.startswith("rev_"):
-            parts = data.split("_")
-            self._user_state[chat_id] = "awaiting_revision"
-            self._user_state[f"{chat_id}_brand"] = parts[2] if len(parts) > 2 else "glowup"
-            await context.bot.send_message(chat_id=chat_id, text=f"✍️ Revize isteğini yaz:")
+            vid_id = data[4:]
+            approvals = self._load_approvals()
+            meta = approvals.get(vid_id, {})
+            brand = meta.get("brand", "glowup")
+            self._user_state[chat_id] = f"awaiting_revision_{vid_id}"
+            self._user_state[f"{chat_id}_brand"] = brand
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=(
+                    "✏️ *Wat wil je aanpassen?*\n\n"
+                    "Voorbeelden:\n"
+                    "• `ander onderwerp: vitamine D`\n"
+                    "• `andere stijl: sunset`\n"
+                    "• `hook tekst: Slaapproblemen? Dit helpt!`\n"
+                    "• `nieuwe video maken`"
+                ),
+                parse_mode="Markdown",
+            )
 
+        # ── Publiceren via Zapier ─────────────────────────────────────────────
         elif data.startswith("pub_"):
-            parts = data.split("_")
-            brand = parts[-2]
-            path = os.path.join("outputs", parts[1])
-            platform = parts[-1]
-            
-            await context.bot.send_message(chat_id=chat_id, text=f"🚀 Videon internete yükleniyor...")
-            public_url = uploader.upload_file(path)
-            
-            if public_url:
-                await context.bot.send_message(chat_id=chat_id, text=f"✅ Yükleme başarılı!\n🔗 {public_url}")
+            # formaat: pub_ig_<id> | pub_tt_<id> | pub_yt_<id> | pub_all_<id>
+            parts  = data.split("_", 2)   # ['pub', 'ig', '<id>']
+            if len(parts) == 3:
+                plat   = parts[1]          # 'ig' | 'tt' | 'yt' | 'all'
+                vid_id = parts[2]
+                platforms = list({"ig", "tt", "yt"}) if plat == "all" else [plat]
+                await self._publish_via_zapier(chat_id, vid_id, platforms, context)
             else:
-                await context.bot.send_message(chat_id=chat_id, text="❌ Yükleme hatası!")
+                # Oud formaat: pub_{filename}_{brand}_{platform}
+                old_parts = data.split("_")
+                path      = os.path.join(_ROOT, "outputs", old_parts[1])
+                platform  = old_parts[-1]
+                await context.bot.send_message(chat_id=chat_id, text="⏳ Video uploaden...")
+                public_url = uploader.upload_file(path)
+                if public_url:
+                    await context.bot.send_message(chat_id=chat_id,
+                        text=f"✅ Geüpload!\n🔗 {public_url}\n\nZapier webhook nog niet geconfigureerd voor oud formaat.")
+                else:
+                    await context.bot.send_message(chat_id=chat_id, text="❌ Upload mislukt!")
 
     async def _process_revision(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        chat_id = update.effective_chat.id
+        chat_id  = update.effective_chat.id
         rev_text = update.message.text
-        brand = self._user_state.get(f"{chat_id}_brand", "glowup")
+        state    = self._user_state.get(chat_id, "")
+        brand    = self._user_state.get(f"{chat_id}_brand", "glowup")
+
+        # Extract vid_id from state 'awaiting_revision_<vid_id>'
+        vid_id = state.replace("awaiting_revision_", "") if "_" in state else ""
+
         del self._user_state[chat_id]
-        
-        await update.message.reply_text(f"🔄 Revize işleniyor...")
-        msg = self.orchestrator.handle_request(f"@{brand} REVISE: {rev_text}", agent="content", chat_id=chat_id)
-        await update.message.reply_text(msg.content)
+        if f"{chat_id}_brand" in self._user_state:
+            del self._user_state[f"{chat_id}_brand"]
+
+        await update.message.reply_text("🔄 Opnieuw genereren...")
+
+        rev_lower = rev_text.lower()
+        if "ander onderwerp" in rev_lower or "ander topic" in rev_lower or "nieuwe video" in rev_lower:
+            # Maak nieuwe reel met volgende topic
+            try:
+                sys.path.insert(0, os.path.join(_ROOT, "scripts"))
+                from social_planner import run as plan_run
+                plan_run(brand)
+                await update.message.reply_text("✅ Nieuwe reel verstuurd ter goedkeuring!")
+            except Exception as e:
+                await update.message.reply_text(f"❌ Fout: {e}")
+        elif "andere stijl" in rev_lower:
+            style_name = rev_text.split(":")[-1].strip() if ":" in rev_text else None
+            try:
+                sys.path.insert(0, os.path.join(_ROOT, "scripts"))
+                from social_planner import run as plan_run
+                from amarenl_reel_maker import get_next_topic
+                topic = get_next_topic(brand)
+                import importlib, scripts.social_planner as sp
+                sp.run(brand)
+                await update.message.reply_text("✅ Nieuwe stijl verstuurd ter goedkeuring!")
+            except Exception as e:
+                await update.message.reply_text(f"❌ Fout: {e}")
+        else:
+            await update.message.reply_text(
+                "📝 Notitie ontvangen. Stuur `/luna` of `/zen` voor een volledig nieuwe video."
+            )
 
 def start_telegram_bot():
     token = os.getenv("TELEGRAM_TOKEN")

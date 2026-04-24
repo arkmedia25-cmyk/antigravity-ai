@@ -1,6 +1,6 @@
 # Antigravity Agency OS — Taak & Bug Tracker
 
-> Laatste update: 2026-04-20 (avond)
+> Laatste update: 2026-04-24
 > Gebruik `/tasks` skill om dit bestand te lezen en bij te werken via Claude.
 
 ---
@@ -34,6 +34,10 @@
 
 | ID | Taak | Datum | Notities |
 |---|---|---|---|
+| ✅ | amarenl.com Reel Maker v2 | 2026-04-24 | ElevenLabs TTS + PIL glassmorphism + Pexels + 6 stil rotasyonu |
+| ✅ | amarenl.com WP backup/restore systeem | 2026-04-24 | wp_backup.py + wp_restore.py, 13 sayfa |
+| ✅ | Canva pin rotator | 2026-04-24 | 6 template round-robin, canva_pin_rotator.py |
+| ✅ | daily_article_writer reel entegrasyonu | 2026-04-24 | Makale sonrası otomatik reel üretimi |
 | ✅ | Bot video pipeline — 10+ bugs opgelost | 2026-04-20 | Brand routing, MCP timeout, Markdown parse, Ken Burns |
 | ✅ | amarenl.com bridge site audit & fix | 2026-04-20 | 12 affiliate links, 4 nieuwe pagina's aangemaakt |
 | ✅ | SEO/GEO optimalisatie amarenl.com pagina's | 2026-04-20 | JSON-LD schema, meta descriptions |
@@ -65,6 +69,7 @@
 | Video Pipeline | ✅ Werkt | 08:00 / 12:30 / 20:15 / 22:00 |
 | amarereview.nl artikelen | ✅ Actief | 09:00 dagelijks |
 | amarenl.com artikelen | ✅ Actief | 10:00 dagelijks |
+| amarenl.com Reel Maker v2 | ⚠️ Lokal klaar, push bekleniyor | 10:00 (makale sonrası) |
 | MailerLite lead capture | ✅ Actief | — |
 | amarenl.com footer | ✅ Actief (homepage) | — |
 | amarenl.com /blog | ✅ Actief | — |
