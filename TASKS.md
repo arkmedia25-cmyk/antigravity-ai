@@ -20,11 +20,14 @@
 |---|---|---|---|
 | T-003 | amarenl.com blog cron testen (10:00 run) | `scripts/daily_article_writer_amarenl.py` | Hoog |
 | T-004 | MailerLite welkomstmail flow aanmaken | mailerlite.com dashboard | Middel |
+| T-014 | MailerLite plugin + inline form kurulumu — amarereview.nl | amarereview.nl WP Admin → MailerLite plugin | Hoog |
 | T-005 | Google Search Console + Analytics controleren via Site Kit | amarenl.com WP Admin → Site Kit | Hoog |
 | T-006 | Blog → Ürün sayfası iç linkler ekle | `scripts/article_writer_amarenl.py` | Hoog |
 | T-007 | Article schema (FAQ + Article JSON-LD) blog makaleleri | `scripts/article_writer_amarenl.py` | Middel |
 | T-008 | ~~Instagram auto-publish testen~~ ✅ CANLI | `src/interfaces/telegram/handler.py` | ✅ |
 | T-009 | MailerLite welkomstmail automatie aanmaken | mailerlite.com dashboard | Middel |
+| T-012 | TikTok Zapier webhook — Catch Hook Zap aanmaken + URL in .env | zapier.com → `ZAPIER_WEBHOOK_TIKTOK` | Middel |
+| T-013 | YouTube Zapier webhook — Catch Hook Zap aanmaken + URL in .env | zapier.com → `ZAPIER_WEBHOOK_YOUTUBE` | Laag |
 | T-010 | Canva OAuth 400 error diagnosticeren | `skills/heygen/` | Laag |
 | T-011 | SQLite WAL mode inschakelen (concurrent writes) | `src/memory/memory_manager.py` | Laag |
 
@@ -34,6 +37,7 @@
 
 | ID | Taak | Datum | Notities |
 |---|---|---|---|
+| ✅ | MailerLite inline form — amarenl.com | 2026-04-25 | Her makale sonuna `[mailerlite_form form_id=1]` eklendi, CANLI |
 | ✅ | Multi-brand social otomasyon CANLI | 2026-04-24 | HolistiGlow + GlowUpNL Instagram API, Telegram onay, günlük cron 4x |
 | ✅ | amarenl.com Reel Maker v2 | 2026-04-24 | OpenAI TTS + PIL glassmorphism + Pexels + 6 stil rotasyonu |
 | ✅ | amarenl.com WP backup/restore systeem | 2026-04-24 | wp_backup.py + wp_restore.py, 13 sayfa |
@@ -70,7 +74,9 @@
 | Video Pipeline | ✅ Werkt | 08:00 / 12:30 / 20:15 / 22:00 |
 | amarereview.nl artikelen | ✅ Actief | 09:00 dagelijks |
 | amarenl.com artikelen | ✅ Actief | 10:00 dagelijks |
-| amarenl.com Reel Maker v2 | ⚠️ Lokal klaar, push bekleniyor | 10:00 (makale sonrası) |
+| amarenl.com Reel Maker v2 | ✅ Actief | 10:00 (makale sonrası) |
+| amarenl.com MailerLite inline form | ✅ Actief (form_id=1) | Elk artikel |
+| amarereview.nl MailerLite inline form | ⚠️ Plugin kurulmadı | — |
 | MailerLite lead capture | ✅ Actief | — |
 | amarenl.com footer | ✅ Actief (homepage) | — |
 | amarenl.com /blog | ✅ Actief | — |

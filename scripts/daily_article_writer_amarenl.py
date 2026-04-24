@@ -68,7 +68,7 @@ def main():
         sys.path.insert(0, _FILE_DIR)
 
     try:
-        from article_writer_amarenl import write_and_publish
+        from article_writer_amarenl import write_and_publish, ARTICLES
         url = write_and_publish(next_article)
         print(f"[{datetime.now()}] ✅ Gepubliceerd: {url}")
 
@@ -80,6 +80,22 @@ def main():
     except Exception as e:
         print(f"[{datetime.now()}] ❌ Fout bij {next_article}: {e}", file=sys.stderr)
         sys.exit(1)
+
+    # Reel genereren na publicatie (v2 — ElevenLabs TTS + PIL + Pexels, wisselende stijl)
+    try:
+        from amarenl_reel_maker import run as make_reel, DEMO_SCRIPTS
+        article_title = ARTICLES[next_article]["title"]
+        topic_key = next_article if next_article in DEMO_SCRIPTS else "magnesium"
+        print(f"[{datetime.now()}] Reel genereren: {article_title}")
+        video_path = make_reel(topic_key=topic_key, title=article_title)
+        if video_path:
+            print(f"[{datetime.now()}] Reel klaar: {video_path}")
+            state[f"last_{next_article}"]["video"] = video_path
+            save_state(state)
+        else:
+            print(f"[{datetime.now()}] Reel mislukt (artikel wel gepubliceerd)")
+    except Exception as e:
+        print(f"[{datetime.now()}] Reel fout (artikel wel gepubliceerd): {e}")
 
 
 if __name__ == "__main__":

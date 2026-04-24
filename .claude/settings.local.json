@@ -1,9 +1,7 @@
 {
-  "links": [
-    "explee.com/auto-gtm/x/av1",
-    "https://www.skool.com/otomasyon/icerik-etkilesiminizi-artracak-claude-rehberi?p=24d385ce",
-    "https://www.skool.com/otomasyon/da-skiller-serisi-rakip-reklam-analizi-skill-kurulumu?p=8c40feb2"
-  ]
+  "permissions": {
+    "allow": [
+      "Bash(npx skills *)"
+    ]
+  }
 }
-
-https://digitalacademy.com.tr/claude-skills
