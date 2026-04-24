@@ -137,11 +137,12 @@ def run(brand: str = "holistiglow"):
         sys.exit(1)
 
     # Lees gebruikte stijl uit de state
-    from amarenl_reel_maker import STYLE_STATE, BRANDS
+    from amarenl_reel_maker import STYLE_STATE, load_brand_config
     try:
         state = json.loads(Path(STYLE_STATE).read_text())
-        styles = BRANDS[brand]["styles"]
-        style_name = styles[state.get(f"last_{brand}", 0)]["name"]
+        cfg = load_brand_config(brand)
+        style_idx = state.get(f"last_{brand}", 0)
+        style_name = cfg.STYLES[style_idx]["name"]
     except Exception:
         style_name = "onbekend"
 
