@@ -276,18 +276,8 @@ PRODUCT_FACTS = {
 """,
 }
 
-# ─── Inline Email Form (einde artikel — directe MailerLite subscribe) ───────────
-MAILERLITE_FORM = """<div class="ml-form-wrap" style="background:linear-gradient(135deg,#1a3a2a,#2d6b4a);border-radius:16px;padding:40px 32px;margin:56px 0 32px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.18);">
-<div style="font-size:2.8em;margin-bottom:10px;">📗</div>
-<h3 style="color:#fff;font-size:1.55em;margin:0 0 10px;line-height:1.3;">Ontvang Gratis: De Complete Gezondheidsgids</h3>
-<p style="color:#c8e6d4;margin:0 0 28px;font-size:1.05em;max-width:460px;margin-left:auto;margin-right:auto;">10 bewezen supplement-tips voor meer energie, betere slaap en een sterker immuunsysteem — direct in je inbox.</p>
-<form class="ml-subscribe-form" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;max-width:500px;margin:0 auto;">
-<input type="email" name="email" placeholder="Jouw e-mailadres" required style="flex:1;min-width:200px;padding:15px 22px;border-radius:50px;border:none;font-size:1em;box-shadow:0 2px 10px rgba(0,0,0,.15);outline:none;">
-<button type="submit" style="background:#4CAF80;color:#fff;padding:15px 30px;border-radius:50px;border:none;font-weight:700;font-size:1em;cursor:pointer;white-space:nowrap;box-shadow:0 4px 15px rgba(76,175,128,.4);">📩 Stuur mij de gids</button>
-</form>
-<p class="ml-form-msg" style="color:#c8e6d4;margin:18px 0 0;font-size:1em;display:none;font-weight:600;"></p>
-<p style="color:#7ab89a;font-size:.82em;margin:14px 0 0;">🔒 Geen spam. Uitschrijven kan altijd. Meer dan 500 lezers gingen je voor.</p>
-</div>"""
+# ─── Inline Email Form (einde artikel — MailerLite WordPress plugin shortcode) ──
+MAILERLITE_FORM = """[mailerlite_form form_id=1]"""
 
 SEO_TITLES = {
     "happy_juice":              "Amare Happy Juice Ervaringen 2026 – Werkt Het Echt? Eerlijke Review",
