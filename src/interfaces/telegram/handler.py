@@ -227,13 +227,13 @@ class TelegramHandler:
 
         from src.scheduler.content_scheduler import _send_telegram_message
 
-        parts = ["✅ Video hazir!"]
+        parts = []
         if title:
-            parts.append(f"\nTITLE: {title}")
+            parts.append(title)
         if description:
-            parts.append(f"\nDESCRIPTION:\n{description}")
+            parts.append(description)
         if tags:
-            parts.append(f"\nTAGS:\n{tags}")
+            parts.append(tags)
 
         caption = "\n".join(parts)
         if len(caption) > 1024: caption = caption[:1021] + "..."
