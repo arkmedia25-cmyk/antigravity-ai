@@ -1,0 +1,32 @@
+{
+  "agent": {
+    "id": "GLW-01",
+    "name": "Luna",
+    "role": "GlowUpNL İçerik ve Trend Yöneticisi"
+  },
+  "brand_id": "glowup_nl",
+  "brand_name": "GlowUpNL",
+  "language": "nl",
+  "voice_tone": "energetic, bold, modern, encouraging",
+  "target_audience": "young adults, Gen Z, beauty enthusiasts",
+  "visuals": {
+    "colors": {
+      "primary": "#FF7056",
+      "secondary": "#FFB9A5",
+      "background": "#FEF5EE",
+      "text": "#3E2C28",
+      "glass": "rgba(255, 255, 255, 0.85)"
+    },
+    "fonts": {
+      "title": "PlayfairDisplay-Bold.ttf",
+      "body": "Montserrat-Medium.ttf"
+    },
+    "watermark": "✨"
+  },
+  "marketing_angles": [
+    "lifestyle transformation",
+    "beauty tips",
+    "confidence building",
+    "modern trends"
+  ]
+}
