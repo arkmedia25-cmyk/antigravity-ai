@@ -1,6 +1,6 @@
 # Antigravity Agency OS — Taak & Bug Tracker
 
-> Laatste update: 2026-04-24
+> Laatste update: 2026-04-25
 > Gebruik `/tasks` skill om dit bestand te lezen en bij te werken via Claude.
 
 ---
