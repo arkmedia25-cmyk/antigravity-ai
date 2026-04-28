@@ -1,118 +1,29 @@
-# YouTube Music Bot — 4-Channel Automation
+# 🤖 YouTube Music Bot (Autonomous Pipeline)
 
-Auto-generates daily AI music videos and uploads them to 4 YouTube channels.
+Bu repo, 4 farklı niş YouTube kanalı (SleepWave, NeonPulse, HealingFlow, BinauralMind) için tamamen otonom çalışan bir video üretim ve yükleme botunu barındırır.
 
-## Channels
+## 📌 Son Güncellemeler & Yapılanlar (29 Nisan 2026)
 
-| Channel | Type | Niche |
-|---------|------|-------|
-| binauralmind | binaural | Delta / Theta / Alpha / Beta / Gamma binaural beats |
-| healingflow | standard | 528Hz, Tibetan bowls, Reiki, Chakra, Spa |
-| neonpulse | standard | Cinematic, EDM, Electronic, Ambient |
-| sleepwave | standard | Sleep music, Rain, Piano, Nature, Delta waves |
+Bugün sistem tamamen "bulletproof" ve üretime hazır hale getirildi. Yapılan işlemler:
 
-## Pipeline
+### 1. ⚙️ Otomatik Çalışma Sistemi (Task Scheduler)
+- `INSTALL_TASK_RUN_AS_ADMIN.ps1` scripti oluşturuldu.
+- Bu script sayesinde Windows Task Scheduler'a bot eklendi ve her gece tam **01:00'da** herhangi bir manuel müdahaleye gerek kalmadan sırayla 4 kanal için video üretmeye ayarlandı.
 
-```
-queue_runner.py  (runs all channels sequentially)
-  ↓
-main_runner.py --channel {slug}
-  ↓
-suno_generate.py   → kie.ai API (V4_5) → MP3 download
-  ↓
-audio_process.py   → FFmpeg normalize + crossfade → final.mp3
-  ↓                  (track_paths x2 loop = 50% cost saving)
-binaural_generate.py  → numpy WAV + FFmpeg mix  [binauralmind only]
-  ↓
-video_build.py     → FFmpeg 1920x1080 background loop + waveform overlay
-  ↓
-thumbnail_make.py  → Pillow 1280x720 JPEG → channels/{slug}/thumbnails/
-  ↓
-youtube_upload.py  → YouTube Data API v3 → scheduled publish
-  ↓
-notifier.py        → Telegram notification
-```
+### 2. 🌍 SEO, GEO ve İçerik Optimizasyonu
+- Botun YouTube yükleme kodları (`youtube_upload.py`) yeniden yazıldı. Sabit etiketler (hardcoded tags) kaldırıldı.
+- Artık her videonun başlığı (A/B Test uyumlu), açıklaması (description), etiketleri (tags) ve anahtar kelimeleri tamamen global (İngilizce), niş odaklı ve hatasız bir şekilde kendi `genres.json` dosyasından çekiliyor.
+- Türkçe karakterler veya spesifik isimler sistemden temizlendi. İş e-postası (`info@kbmedia.nl`) tüm video açıklamalarına standart şablonla bağlandı.
 
-## Folder Structure
+### 3. 🕒 US Prime Time (Amerikan Hedef Kitlesi) Saat Ayarları
+Tüm videolar "hemen yayınla (public)" yerine, Amerika Doğu Yakası (EST - New York) saatlerine göre "Zamanlanmış (Scheduled)" olarak YouTube'a atılır:
+- **Uyku Müzikleri (SleepWave & BinauralMind):** İnsanların uyuma saatine göre EST 21:00 - 23:00 (Avrupa saati: 03:00 - 05:00)
+- **Enerji / Spor Müzikleri (NeonPulse):** Sabah sporu EST 07:00 ve İş çıkışı EST 17:00
+- **Odak / Rahatlama (HealingFlow):** Çalışma saatleri EST 09:00 ve Öğleden sonra EST 14:00
 
-```
-channels/
-  {slug}/
-    channel.json       — channel config (active, token_file, telegram_chat_id)
-    genres.json        — genre rotation list
-    token.pickle       — YouTube OAuth token
-    backgrounds/       — bg_{genre-slug}.mp4 per genre
-    thumbnails/        — generated thumbnails (per run)
-    output/            — saved video copies (permanent)
-    .rotation_state.json  — tracks last used genre index
-output/                — working temp dir (cleared after each run)
-pipeline/              — suno_generate, audio_process, video_build, thumbnail_make, youtube_upload
-core/                  — notifier
-```
+### 4. 🖼️ Thumbnail & Mobil Doğrulama
+- 3 kanalın YouTube telefon (mobil) onayı sağlandığı için bot bu kanallara yapay zeka ile kendi ürettiği küçük resimleri (thumbnails) sorunsuz yükleyecek.
+- Onaysız kanallar için YouTube sisteminden otomatik rastgele thumbnail seçilecek.
 
-## Running
-
-```bash
-# Run all 4 channels
-python queue_runner.py
-
-# Run with publish-hour override (test: publish today at 13:00 Amsterdam)
-python queue_runner.py --publish-hour 13
-
-# Run single channel
-python main_runner.py --channel neonpulse --publish-hour 13
-
-# Test without YouTube upload
-python main_runner.py --channel neonpulse --no-upload
-```
-
-## Scheduler (Windows Task Scheduler)
-
-Runs nightly at 01:00 via Windows Task Scheduler:
-```
-Program: C:\Users\mus-1\AppData\Local\Programs\Python\Python311\python.exe
-Arguments: -u queue_runner.py
-Start in: D:\OneDrive\Bureaublad\Antigravity\youtube-music-bot
-```
-
-## Credentials
-
-| Service | Location |
-|---------|----------|
-| kie.ai API key | `.env` → `KIE_API_KEY` |
-| Telegram Bot token | `.env` → `TELEGRAM_TOKEN` |
-| YouTube OAuth | `channels/{slug}/token.pickle` (one per channel) |
-| Google OAuth client | `.env` → `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
-
-## Genres per Channel (5 per channel, rotates daily)
-
-**binauralmind:** delta-sleep, theta-meditation, alpha-focus, beta-energy, gamma-creativity
-
-**healingflow:** 528hz-healing, tibetan-bowls, reiki-healing, chakra-healing, spa-relaxation
-
-**neonpulse:** epic-cinematic, electronic-focus, dark-cinematic, energy-edm, futuristic-ambient
-
-**sleepwave:** deep-sleep-432hz, rain-sleep, delta-waves-sleep, piano-sleep, nature-sleep
-
-## YouTube ToS Rules
-
-- **NEVER** put "No Ads", "Ad-Free" in titles, tags, thumbnails or descriptions
-- Use `{duration} Min` not `{duration} Hour` in title templates
-- Each channel slug must be unique across all channels
-
-## Re-authenticating YouTube OAuth
-
-```bash
-python get_token.py --channel binauralmind
-```
-
-## Reset Genre Rotation (re-run a specific genre)
-
-```bash
-# Reset binauralmind to start from delta-sleep (index 0)
-python -c "import json; open('channels/binauralmind/.rotation_state.json','w').write(json.dumps({'last_index':-1,'last_date':'2026-01-01'}))"
-```
-
-## Logs
-
-Each channel writes to `logs/{slug}.log`. Queue summary in `logs/queue.log`.
+---
+*Bot 100% otonom çalışmaktadır.*
