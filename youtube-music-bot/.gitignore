@@ -1,0 +1,13 @@
+.env
+client_secret.json
+token.json
+token.pickle
+.rotation_state.json
+output/
+logs/
+__pycache__/
+*.pyc
+*.mp3
+*.mp4
+*.jpg
+thumbnails/

@@ -1,0 +1,9 @@
+{
+  "name": "BinauralMind",
+  "slug": "binauralmind",
+  "active": true,
+  "type": "binaural",
+  "token_file": "channels/binauralmind/token.pickle",
+  "telegram_chat_id": "812914122",
+  "description": "Binaural beats — delta, theta, alpha, beta, gamma"
+}

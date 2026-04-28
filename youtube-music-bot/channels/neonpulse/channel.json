@@ -1,0 +1,9 @@
+{
+  "name": "NeonPulse Music",
+  "slug": "neonpulse",
+  "active": true,
+  "type": "standard",
+  "token_file": "channels/neonpulse/token.pickle",
+  "telegram_chat_id": "812914122",
+  "description": "Lofi, chill beats, study music"
+}

@@ -1,0 +1,9 @@
+{
+  "name": "SleepWave",
+  "slug": "sleepwave",
+  "active": true,
+  "type": "standard",
+  "token_file": "channels/sleepwave/token.pickle",
+  "telegram_chat_id": "812914122",
+  "description": "Sleep music, healing frequencies, deep relaxation"
+}

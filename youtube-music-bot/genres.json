@@ -1,0 +1,37 @@
+[
+  {
+    "slug": "epic-cinematic",
+    "title": "Epic Cinematic Music | {duration} Hour | Powerful Soundtracks | No Ads | {year}",
+    "prompt": "epic orchestral cinematic trailer music, powerful emotional strings, dramatic percussion, no lyrics, hollywood style, inspirational",
+    "duration_min": 60,
+    "hook": "One hour of powerful cinematic soundtracks. Feel the epic. No ads, no interruptions."
+  },
+  {
+    "slug": "electronic-focus",
+    "title": "Electronic Focus Music | {duration} Hour Study Beats | AI Generated | No Ads | {year}",
+    "prompt": "futuristic electronic ambient, focus beats, minimal synth, clean bass, no lyrics, concentration, modern electronic",
+    "duration_min": 90,
+    "hook": "Stay in the zone for hours. Futuristic electronic beats engineered for deep focus."
+  },
+  {
+    "slug": "dark-cinematic",
+    "title": "Dark Cinematic Music | {duration} Hour Thriller Soundtrack | No Ads | {year}",
+    "prompt": "dark cinematic thriller, tense orchestral, dramatic, suspense music, no vocals, atmospheric, deep bass, mysterious",
+    "duration_min": 60,
+    "hook": "Enter the darkness. One hour of intense cinematic thriller soundtracks."
+  },
+  {
+    "slug": "energy-edm",
+    "title": "EDM Energy Mix | {duration} Hour Workout Beats | AI Music | No Ads | {year}",
+    "prompt": "energetic EDM, powerful electronic beats, upbeat, driving bass, no lyrics, workout music, high energy, festival electronic",
+    "duration_min": 60,
+    "hook": "Maximum energy. AI-generated EDM beats to push your limits."
+  },
+  {
+    "slug": "futuristic-ambient",
+    "title": "Futuristic Ambient | {duration} Hour AI Music | Cyberpunk Soundscape | No Ads | {year}",
+    "prompt": "futuristic electronic ambient, cyberpunk soundscape, atmospheric synth, ai music, space electronic, no lyrics, dreamy futuristic",
+    "duration_min": 75,
+    "hook": "Drift into the future. Atmospheric AI-generated electronic soundscapes."
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "name": "HealingFlow",
+  "slug": "healingflow",
+  "active": true,
+  "type": "standard",
+  "token_file": "channels/healingflow/token.pickle",
+  "telegram_chat_id": "812914122",
+  "description": "Healing frequencies, 528hz, chakra, meditation"
+}
