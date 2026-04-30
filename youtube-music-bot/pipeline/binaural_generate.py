@@ -104,5 +104,7 @@ def mix_with_ambient(binaural_path: Path, ambient_path: Path, out_path: Path) ->
         str(out_path)
     ]
     subprocess.run(cmd, check=True, capture_output=True)
+    import time
+    time.sleep(0.5)  # Small buffer for Windows/OneDrive sync
     print(f"[binaural] Mix complete: {out_path}")
     return out_path

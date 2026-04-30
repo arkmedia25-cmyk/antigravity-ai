@@ -82,6 +82,7 @@ def main(channel_slug: str, no_upload: bool = False, publish_hour: int | None = 
     token_file = Path(channel["token_file"])
     is_binaural = channel.get("type") == "binaural"
 
+    _cleanup()
     try:
         # 1. Generate music
         if is_binaural:
@@ -152,8 +153,7 @@ def main(channel_slug: str, no_upload: bool = False, publish_hour: int | None = 
         notify.error(type(e).__name__, str(e), chat_id)
         raise
 
-    finally:
-        _cleanup()
+    pass
 
 
 if __name__ == "__main__":

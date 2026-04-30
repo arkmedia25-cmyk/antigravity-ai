@@ -7,13 +7,22 @@ OUTPUT_VIDEO = Path("output/final_video.mp4")
 
 
 def _get_duration(path: Path) -> float:
-    result = subprocess.run([
-        "ffprobe", "-v", "error",
-        "-show_entries", "format=duration",
-        "-of", "default=noprint_wrappers=1:nokey=1",
-        str(path)
-    ], capture_output=True, text=True, check=True)
-    return float(result.stdout.strip())
+    import time
+    for _ in range(3):
+        if not path.exists():
+            time.sleep(1)
+            continue
+        try:
+            result = subprocess.run([
+                "ffprobe", "-v", "error",
+                "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1",
+                str(path)
+            ], capture_output=True, text=True, check=True)
+            return float(result.stdout.strip())
+        except subprocess.CalledProcessError:
+            time.sleep(1)
+    raise FileNotFoundError(f"Could not probe duration for {path}")
 
 
 def _pick_background(slug: str, bg_dir: Path) -> Path:
@@ -191,13 +200,15 @@ def create_short(
 
     # 3 Create waveform overlay image (720×120)
     waveform_png = cache_dir / f"{slug}_{h}_wave.png"
+    # Added -vn to ignore video stream for faster audio processing
+    # Using lowercase 'white' and aformat for better compatibility
     subprocess.run([
-        "ffmpeg", "-y",
+        "ffmpeg", "-y", "-vn",
         "-i", str(short_tmp),
-        "-filter_complex", "[0:a]showwavespic=s=720x120:colors=White",
+        "-filter_complex", "[0:a]aformat=channel_layouts=stereo,showwavespic=s=720x120:colors=white",
         "-frames:v", "1",
         str(waveform_png)
-    ], check=True, capture_output=True)
+    ], check=True)
 
     # 4 Assemble final short with audio mix and overlays
     final_tmp = cache_dir / f"{slug}_{h}_final.mp4"
