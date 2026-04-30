@@ -26,7 +26,7 @@ CLIENT_CONFIG = {
 }
 
 GLOBAL_TAGS = [
-    "no ads", "no interruptions", "relaxing music", "ambient music",
+    "no interruptions", "relaxing music", "ambient music",
     "instrumental music", "background music", "ai music",
 ]
 
@@ -50,12 +50,10 @@ def _get_credentials(token_file: Path):
 
 
 def _pick_title(genre: dict, duration_min: int) -> tuple[str, str]:
-    """Ana baslik ve A/B test basligini don. Rotation index'e gore hangisinin kullanildigini logla."""
     year = datetime.datetime.now().year
     title_a = genre["title"].format(duration=duration_min, year=year)
     title_ab = genre.get("title_ab", title_a).format(duration=duration_min, year=year)
 
-    # Gün çift → A, tek → AB (basit A/B rotasyonu)
     day = datetime.datetime.now().day
     if day % 2 == 0:
         chosen, variant = title_a, "A"
@@ -67,10 +65,8 @@ def _pick_title(genre: dict, duration_min: int) -> tuple[str, str]:
 
 
 def _build_tags(genre: dict) -> list[str]:
-    """Genre-spesifik + global tag'leri birleştir, max 500 karakter."""
     genre_tags = genre.get("tags", [])
     combined = genre_tags + [t for t in GLOBAL_TAGS if t not in genre_tags]
-    # YouTube tag limiti: toplam 500 karakter
     result, total = [], 0
     for tag in combined:
         if total + len(tag) + 2 > 500:
@@ -88,7 +84,7 @@ def _build_description(genre: dict, duration_min: int, title_variant: str) -> st
     return f"""{hook}
 
 Perfect for: {use_cases}.
-No ads. No interruptions. Just pure music.
+No interruptions. Just pure music.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🎵 New videos every day — Subscribe for daily music
@@ -108,6 +104,7 @@ def upload(
     duration_min: int,
     token_file: Path = TOKEN_FILE,
     publish_hour: int | None = None,
+    schedule: bool = True,
 ) -> str:
     creds = _get_credentials(token_file)
     youtube = build("youtube", "v3", credentials=creds)
@@ -118,12 +115,11 @@ def upload(
 
     status_body: dict = {"selfDeclaredMadeForKids": False}
 
-    # publish_hour: parametre > genre ayarı > public (hemen)
     effective_hour = publish_hour if publish_hour is not None else genre.get("publish_hour_cest")
 
     if genre.get("force_private"):
         status_body["privacyStatus"] = "private"
-    elif effective_hour is not None:
+    elif schedule and effective_hour is not None:
         tz = pytz.timezone("Europe/Amsterdam")
         now = datetime.datetime.now(tz)
         publish_dt = now.replace(hour=effective_hour, minute=0, second=0, microsecond=0)
@@ -167,6 +163,74 @@ def upload(
         print(f"[youtube] Thumbnail eklendi")
     except Exception as e:
         print(f"[youtube] Thumbnail eklenemedi (kanal yeni olabilir): {e}")
+
+    return f"https://youtu.be/{video_id}"
+
+
+def upload_short(
+    video_path: Path,
+    thumbnail_path: Path,
+    genre: dict,
+    token_file: Path = TOKEN_FILE,
+    schedule: bool = True,
+) -> str:
+    """Upload a YouTube Short (<= 60s vertical video)."""
+    creds = _get_credentials(token_file)
+    youtube = build("youtube", "v3", credentials=creds)
+
+    slug = genre.get("slug", "binaural")
+    title = f"{slug.replace('-', ' ').title()} | AI Music #Shorts"
+    description = (
+        f"60 seconds of pure {slug.replace('-', ' ')} music.\n"
+        "Subscribe for daily uploads!\n\n"
+        "#Shorts #RelaxMusic #Meditation #AI"
+    )
+
+    status_body = {
+        "privacyStatus": "private" if schedule else "public",
+        "selfDeclaredMadeForKids": False,
+    }
+
+    if schedule:
+        # Plan for today or tomorrow 17:00 Amsterdam (US lunch hour approx)
+        tz = pytz.timezone("Europe/Amsterdam")
+        now = datetime.datetime.now(tz)
+        publish_dt = now.replace(hour=17, minute=0, second=0, microsecond=0)
+        if publish_dt <= now:
+            publish_dt += datetime.timedelta(days=1)
+        publish_utc = publish_dt.astimezone(pytz.utc)
+        status_body["publishAt"] = publish_utc.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        print(f"[youtube-short] Zamanlanmış: {publish_dt.strftime('%d %b %H:%M')} Amsterdam")
+
+    body = {
+        "snippet": {
+            "title": title,
+            "description": description,
+            "categoryId": "10",
+        },
+        "status": status_body,
+    }
+
+    media = MediaFileUpload(str(video_path), chunksize=-1, resumable=True)
+    request = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
+
+    response = None
+    while response is None:
+        status, response = request.next_chunk()
+        if status:
+            print(f"[youtube-short] Yükleniyor: {int(status.progress() * 100)}%")
+
+    video_id = response["id"]
+    print(f"[youtube-short] Yüklendi: https://youtu.be/{video_id}")
+
+    try:
+        youtube.thumbnails().set(
+            videoId=video_id,
+            media_body=MediaFileUpload(str(thumbnail_path), mimetype="image/jpeg")
+        ).execute()
+        print(f"[youtube-short] Thumbnail eklendi")
+    except Exception as e:
+        print(f"[youtube-short] Thumbnail eklenemedi: {e}")
 
     return f"https://youtu.be/{video_id}"
 

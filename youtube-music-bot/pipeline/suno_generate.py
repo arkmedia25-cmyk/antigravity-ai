@@ -16,6 +16,27 @@ OUTPUT_DIR = Path("output/audio")
 BASE_URL = "https://api.kie.ai/api/v1"
 
 
+class InsufficientCreditsError(RuntimeError):
+    """Raised when kie.ai returns 402 - credits empty."""
+    pass
+
+
+def check_credits() -> None:
+    """Call before any generation. Raises InsufficientCreditsError if balance is zero."""
+    headers = {"Authorization": f"Bearer {KIE_API_KEY}"}
+    try:
+        resp = requests.get(f"{BASE_URL}/user/info", headers=headers, timeout=15)
+        data = resp.json()
+        credits = data.get("data", {}).get("credits", None)
+        if credits is not None and float(credits) <= 0:
+            raise InsufficientCreditsError(f"kie.ai credits = {credits}. Please top up.")
+        print(f"[suno] Credits available: {credits}")
+    except InsufficientCreditsError:
+        raise
+    except Exception as e:
+        print(f"[suno] Could not check credits ({e}), proceeding anyway.")
+
+
 def generate_tracks(prompt: str) -> list[str]:
     """Generate tracks via kie.ai Suno API, return list of MP3 URLs."""
     headers = {
@@ -38,12 +59,16 @@ def generate_tracks(prompt: str) -> list[str]:
             resp.raise_for_status()
             data = resp.json()
 
+            if data.get("code") == 402 or "Credits insufficient" in str(data.get("msg", "")):
+                raise InsufficientCreditsError(f"kie.ai credits empty: {data.get('msg')}")
             if data.get("data") is None:
                 raise RuntimeError(f"kie.ai API error (code={data.get('code')}): {data.get('msg')}")
 
             task_id = data["data"]["taskId"]
             print(f"[suno] Task ID: {task_id}")
             return _poll_task(task_id, headers)
+        except InsufficientCreditsError:
+            raise  # Never retry on 402
         except requests.exceptions.RequestException as e:
             last_error = e
             if attempt >= 2:
@@ -121,9 +146,9 @@ def download_tracks(urls: list[str]) -> list[Path]:
 def run(genre: dict) -> list[Path]:
     prompt = genre["prompt"]
     duration_min = genre.get("duration_min", 60)
-    # Half the tracks — main_runner doubles them via loop (50% cost saving)
-    target_tracks = max(2, duration_min // 6)
-    calls_needed = (target_tracks + 1) // 2
+    # Fixed 3 API calls (6 tracks) as requested to save tokens
+    target_tracks = 6
+    calls_needed = 3
 
     print(f"[suno] Prompt: {prompt}")
     print(f"[suno] Target: {target_tracks} tracks / {duration_min} min — {calls_needed} API calls")

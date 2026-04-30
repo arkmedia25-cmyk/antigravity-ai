@@ -26,4 +26,4 @@ Set-Location $ROOT
 
 $EXIT = $LASTEXITCODE
 $TIMESTAMP = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-Add-Content $LOG_FILE "[$TIMESTAMP] Tamamlandi — exit code: $EXIT"
+Add-Content $LOG_FILE "[$TIMESTAMP] Tamamlandi - exit code: $EXIT"

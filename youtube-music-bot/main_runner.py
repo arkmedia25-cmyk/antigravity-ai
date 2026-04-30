@@ -16,7 +16,15 @@ sys.stdout.reconfigure(encoding="utf-8")
 sys.stderr.reconfigure(encoding="utf-8")
 
 from pipeline import suno_generate, audio_process, video_build, thumbnail_make, youtube_upload, binaural_generate
+from pipeline.suno_generate import InsufficientCreditsError
 from core import notifier as notify
+
+# Animated thumbnail generator (genre-aware, vertical + horizontal)
+try:
+    from thumbnail_animated import make as make_animated_thumbs
+    _ANIMATED = True
+except ImportError:
+    _ANIMATED = False
 
 OUTPUT_DIR = Path("output")
 
@@ -25,7 +33,7 @@ def _load_channel(slug: str) -> dict:
     path = Path(f"channels/{slug}/channel.json")
     if not path.exists():
         raise FileNotFoundError(f"Channel not found: {path}")
-    return json.loads(path.read_text())
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _load_genre(slug: str) -> dict:
@@ -37,7 +45,7 @@ def _load_genre(slug: str) -> dict:
 
     state_file = channel_dir / ".rotation_state.json"
 
-    with open(genres_path) as f:
+    with open(genres_path, encoding="utf-8") as f:
         genres = json.load(f)
 
     state = {}
@@ -79,21 +87,36 @@ def main(channel_slug: str, no_upload: bool = False, publish_hour: int | None = 
         if is_binaural:
             preset  = genre.get("binaural_preset", genre["slug"])
             dur_sec = duration_min * 60
-            bin_path       = binaural_generate.generate(preset, dur_sec)
-            ambient_tracks = suno_generate.run(genre)
-            ambient_audio  = audio_process.run(ambient_tracks + ambient_tracks)
-            mix_path    = Path("output/audio/binaural_mix.mp3")
-            final_audio = binaural_generate.mix_with_ambient(bin_path, ambient_audio, mix_path)
+            bin_path = binaural_generate.generate(preset, dur_sec)
+            # Ambient layer via Suno (optional — requires credits)
+            try:
+                suno_generate.check_credits()
+                ambient_tracks = suno_generate.run(genre)
+                ambient_audio  = audio_process.run(ambient_tracks * 5)
+                mix_path    = Path("output/audio/binaural_mix.mp3")
+                final_audio = binaural_generate.mix_with_ambient(bin_path, ambient_audio, mix_path)
+                print("[runner] Binaural + ambient mix complete")
+            except InsufficientCreditsError:
+                print("[runner] No Suno credits — using pure binaural audio (no ambient layer)")
+                final_audio = bin_path
         else:
             track_paths = suno_generate.run(genre)
             # Loop tracks to double duration at half the API cost
-            final_audio = audio_process.run(track_paths + track_paths)
+            final_audio = audio_process.run(track_paths * 5)
 
         # 2. Build video
         video_path = video_build.run(final_audio, genre.get("slug", ""), bg_dir)
 
-        # 3. Thumbnail
-        thumbnail_path = thumbnail_make.run(genre, duration_min, channel_slug)
+        # 3. Build Short video
+        short_path = video_build.create_short(video_path, slug=genre.get("slug", ""))
+        print(f"[runner] Short: {short_path}")
+
+        # 4. Thumbnails — static JPG + animated HTML (vertical 9:16 + horizontal 16:9)
+        thumbs = thumbnail_make.run(genre, duration_min, channel_slug=channel_slug)
+        thumbnail_path    = thumbs["jpg"]          # static JPEG for long video
+        short_thumb_path  = thumbs.get("vertical") or thumbs["jpg"]   # animated 9:16 or fallback
+        print(f"[runner] Thumbnail JPG:      {thumbnail_path}")
+        print(f"[runner] Thumbnail vertical: {short_thumb_path}")
 
         # 4. Save local copy before cleanup
         channel_out_dir = Path(f"channels/{channel_slug}/output")
@@ -104,14 +127,25 @@ def main(channel_slug: str, no_upload: bool = False, publish_hour: int | None = 
 
         # 5. Upload to YouTube
         if not no_upload:
-            video_url = youtube_upload.run(video_path, thumbnail_path, genre, duration_min, token_file, publish_hour)
+            # Upload long video
+            video_url = youtube_upload.upload(
+                video_path, thumbnail_path, genre, duration_min, token_file, schedule=True
+            )
+            # Upload Short
+            short_url = youtube_upload.upload_short(
+                short_path, short_thumb_path, genre, token_file, schedule=True
+            )
             title = genre["title"].format(duration=duration_min, year=date.today().year)
             notify.send(
-                f"New video uploaded — {channel['name']}\n{title}\n{duration_min} min\n{video_url}",
+                f"New video uploaded — {channel['name']}\n{title}\n{duration_min} min\n{video_url}\nShort: {short_url}",
                 chat_id
             )
-            print(f"[runner] Done: {video_url}")
+            print(f"[runner] Long: {video_url} | Short: {short_url}")
 
+    except InsufficientCreditsError as e:
+        print(f"[runner] SKIPPED: {e}")
+        notify.send(f"[{channel['name']}] Skipped — kie.ai credits empty. Top up to resume.", chat_id)
+        # Exit cleanly, no re-raise — scheduler will retry tomorrow
     except Exception as e:
         detail = traceback.format_exc()
         print(f"[runner] ERROR: {e}\n{detail}")

@@ -96,7 +96,7 @@ def make(genre: dict, video_duration_min: int, channel_slug: str = "sleepwave") 
         y += 88
 
     # Alt etiket
-    label = f"{video_duration_min} HOURS  •  NO ADS  •  AI MUSIC"
+    label = f"{video_duration_min} HOURS  •  AI MUSIC"
     lw = draw.textlength(label, font=font_label)
     draw.text(((WIDTH - lw) // 2 + 2, 622), label, font=font_label, fill=(0, 0, 0, 160))
     draw.text(((WIDTH - lw) // 2, 620), label, font=font_label, fill=(200, 220, 255, 230))

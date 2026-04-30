@@ -101,13 +101,13 @@ youtube-music-bot/
 [
   {
     "slug": "deep-sleep-432hz",
-    "title": "432Hz Healing Frequency | {duration} Hour Deep Sleep Music | No Ads | {year}",
+    "title": "432Hz Healing Frequency | {duration} Hour Deep Sleep Music | {year}",
     "prompt": "432hz healing ambient, soft piano, deep sleep, no vocals, relaxing, slow tempo, binaural beats",
     "duration_min": 75
   },
   {
     "slug": "study-lofi",
-    "title": "Study Music Lo-Fi | {duration} Hour Focus Beats | No Ads | {year}",
+    "title": "Study Music Lo-Fi | {duration} Hour Focus Beats | {year}",
     "prompt": "lofi hip hop, study beats, calm, no lyrics, coffee shop ambience, mellow",
     "duration_min": 90
   },
@@ -137,9 +137,9 @@ youtube-music-bot/
 ## YouTube Metadata Şablonu
 
 ```python
-title    = "{niş} | {X} Hour | No Ads | {yıl}"
+title    = "{niş} | {X} Hour | {yıl}"
 category = 10  # Music
-tags     = ["sleep music", "432hz", "healing frequencies", "no ads",
+tags     = ["sleep music", "432hz", "healing frequencies",
             "relaxing music", "study music", "ambient", "meditation music",
             "deep sleep", "focus music", "lofi", "binaural beats"]
 
@@ -147,7 +147,7 @@ description = """
 {hook_cümle}
 
 Perfect for sleep, study, meditation, and relaxation.
-No ads. No interruptions. Just pure music.
+No interruptions. Just pure music.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 TRACKLIST
