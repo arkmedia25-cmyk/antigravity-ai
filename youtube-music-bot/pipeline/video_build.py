@@ -54,11 +54,7 @@ def run(audio_path: Path, slug: str = "", bg_dir: Path | None = None) -> Path:
         "-stream_loop", "-1", "-i", str(bg),
         "-i", str(audio_path),
         "-filter_complex",
-        (
-            "[0:v]scale=1920:-2,crop=1920:1080,setsar=1,eq=saturation=1.1[bg];"
-            "[1:a]showwaves=s=1920x250:mode=cline:colors=0x00FFFF@0.8|0xFF00FF@0.5[wave];"
-            "[bg][wave]overlay=0:830[out]"
-        ),
+        "[0:v]scale=1920:1080[out]",
         "-map", "[out]",
         "-map", "1:a",
         "-c:v", "libx264", "-preset", "ultrafast", "-crf", "26",
