@@ -48,14 +48,19 @@ def run(audio_path: Path, slug: str = "", bg_dir: Path | None = None) -> Path:
     if cached_video.exists():
         print(f"[video] Cache hit: {cached_video}")
         return cached_video
+    # Filter chain: restored moving waveform design for 4GB+ RAM servers
+    filter_chain = (
+        "[0:v]scale=1920:1080[bg];"
+        "[1:a]showwaves=s=1920x250:mode=cline:colors=0x00FFFF@0.8|0xFF00FF@0.5[wave];"
+        "[bg][wave]overlay=0:H-250[outv]"
+    )
     # If not cached, run ffmpeg to generate new video
     cmd = [
         "ffmpeg", "-y",
         "-stream_loop", "-1", "-i", str(bg),
         "-i", str(audio_path),
-        "-filter_complex",
-        "[0:v]scale=1920:1080[out]",
-        "-map", "[out]",
+        "-filter_complex", filter_chain,
+        "-map", "[outv]",
         "-map", "1:a",
         "-c:v", "libx264", "-preset", "ultrafast", "-crf", "26",
         "-c:a", "aac", "-b:a", "192k",
