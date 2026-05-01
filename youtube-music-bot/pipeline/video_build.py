@@ -54,10 +54,12 @@ def run(audio_path: Path, slug: str = "", bg_dir: Path | None = None) -> Path:
     hash_input = f"{bg.resolve()}|{audio_path.resolve()}|{audio_dur}".encode()
     cache_key = hashlib.sha256(hash_input).hexdigest()[:12]
     cached_video = OUTPUT_VIDEO.parent / f"video_{cache_key}.mp4"
-    if cached_video.exists():
+    # Only trust the cache if the file is larger than 1MB (prevents using 0-byte broken files from Ctrl+C)
+    if cached_video.exists() and cached_video.stat().st_size > 1_000_000:
         print(f"[video] Cache hit: {cached_video}")
         return cached_video
-    # Filter chain: restored moving waveform design for 4GB+ RAM servers
+    elif cached_video.exists():
+        cached_video.unlink() # delete broken cache
     filter_chain = (
         "[0:v]scale=1920:1080[bg];"
         "[1:a]showwaves=s=1920x250:mode=cline:colors=0x00FFFF@0.8|0xFF00FF@0.5[wave];"
@@ -202,21 +204,27 @@ def create_short(
     waveform_png = cache_dir / f"{slug}_{h}_wave.png"
     # Added -vn to ignore video stream for faster audio processing
     # Using lowercase 'white' and aformat for better compatibility
+    # Generate waveform image from the audio of the short video.
+    # Removed the '-update' flag and aformat conversion for broader FFmpeg compatibility.
     subprocess.run([
         "ffmpeg", "-y", "-vn",
         "-i", str(short_tmp),
-        "-filter_complex", "[0:a]aformat=channel_layouts=stereo,showwavespic=s=720x120:colors=white",
+        "-filter_complex", "[0:a]showwavespic=s=720x120:colors=white",
         "-frames:v", "1",
         str(waveform_png)
-    ], check=True)
+    ], check=True, capture_output=True)
 
     # 4 Assemble final short with audio mix and overlays
     final_tmp = cache_dir / f"{slug}_{h}_final.mp4"
-    # Filter chain: overlay waveform at bottom, draw CTA text at last 5 seconds
+    # Filter chain: overlay waveform at bottom, draw CTA text at end
+    delay_ms = (max_len - 10) * 1000
+    text_start = max_len - 6
+    text_end = max_len - 1
     filter_chain = (
         "[0:v][2:v]overlay=0:H-120[vidw];"
-        "[vidw]drawtext=text='Subscribe & Like!':fontcolor=white@0.9:fontsize=48:x=(w-text_w)/2:y=h-70:enable='between(t,54,59)'[outv];"
-        "[0:a][1:a]amix=inputs=2:duration=first:dropout_transition=2[outa]"
+        f"[vidw]drawtext=text='Subscribe & Like!':fontcolor=white@0.9:fontsize=48:x=(w-text_w)/2:y=h-70:enable='between(t,{text_start},{text_end})'[outv];"
+        f"[1:a]adelay={delay_ms}|{delay_ms}[delayed_voice];"
+        "[0:a][delayed_voice]amix=inputs=2:duration=first:dropout_transition=2[outa]"
     )
     cmd = [
         "ffmpeg", "-y",
