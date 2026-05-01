@@ -114,7 +114,7 @@ def _detect_hook(audio_path: Path, window_sec: int = 5) -> float:
             "ffprobe", "-hide_banner", "-loglevel", "error",
             "-f", "lavfi",
             "-i", f"amovie={audio_path.as_posix()},astats=metadata=1:reset=1",
-            "-show_entries", "frame_tags=lavfi.astats.Overall.RMS_level",
+            "-show_entries", "frame_tags=lavfi.astats.Overall.RMS_level:frame=pkt_pts_time",
             "-of", "json"
         ]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
@@ -122,22 +122,45 @@ def _detect_hook(audio_path: Path, window_sec: int = 5) -> float:
         frames = data.get("frames", [])
         if not frames:
             return 0.0
-        rms_vals = []
+            
+        frame_data = []
         for f in frames:
             val = f.get("tags", {}).get("lavfi.astats.Overall.RMS_level", "-91")
+            pts_time = f.get("pkt_pts_time", "0.0")
             try:
-                rms_vals.append(float(val))
+                frame_data.append((float(pts_time), float(val)))
             except ValueError:
-                rms_vals.append(-91.0)
-        step = 0.5
-        win = max(1, int(window_sec / step))
+                pass
+                
+        if not frame_data:
+            return 0.0
+
         best_start = 0.0
         best_sum = float("-inf")
-        for i in range(len(rms_vals) - win + 1):
-            s = sum(rms_vals[i:i + win])
-            if s > best_sum:
-                best_sum = s
-                best_start = i * step
+        
+        # O(N^2) sliding window over variable frame rate is okay since N is small
+        for i in range(len(frame_data)):
+            start_time = frame_data[i][0]
+            end_time = start_time + window_sec
+            
+            # Sum RMS for frames within the window
+            current_sum = 0
+            count = 0
+            for j in range(i, len(frame_data)):
+                if frame_data[j][0] > end_time:
+                    break
+                current_sum += frame_data[j][1]
+                count += 1
+                
+            if count > 0 and current_sum > best_sum:
+                best_sum = current_sum
+                best_start = start_time
+                
+        # Cap the start time so it leaves at least window_sec at the end if possible
+        duration = frame_data[-1][0]
+        if best_start > max(0, duration - window_sec):
+            best_start = max(0, duration - window_sec)
+            
         return best_start
     except Exception as e:
         print(f"[hook] detection failed: {e}, using start=0")
@@ -175,6 +198,7 @@ def create_short(
         tmp_audio.unlink(missing_ok=True)
 
     # Cache key based on video path + start + length
+    print("START IS:", start)
     h = hashlib.sha256(f"{long_video}|{start}|{max_len}".encode()).hexdigest()[:12]
     out_path = cache_dir / f"{slug}_{h}.mp4"
     if out_path.exists():
@@ -183,14 +207,18 @@ def create_short(
 
     # 1 Cut & resize to portrait (720×1280)
     short_tmp = cache_dir / f"{slug}_{h}_raw.mp4"
-    subprocess.run([
+    cmd1 = [
         "ffmpeg", "-y",
         "-ss", str(start), "-t", str(max_len),
         "-i", str(long_video),
         "-vf", "scale=720:1280,setsar=1",
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
         str(short_tmp)
-    ], check=True, capture_output=True)
+    ]
+    print("RUNNING FFMPEG CMD:", " ".join(cmd1))
+    r = subprocess.run(cmd1, check=True, capture_output=True)
+    print("FFMPEG STDOUT:", r.stdout.decode('utf-8'))
+    print("FFMPEG STDERR:", r.stderr.decode('utf-8'))
 
     # 2 Generate voice‑over (English young female)
     voice_text = (
@@ -217,7 +245,7 @@ def create_short(
     # 4 Assemble final short with audio mix and overlays
     final_tmp = cache_dir / f"{slug}_{h}_final.mp4"
     # Filter chain: overlay waveform at bottom, draw CTA text at end
-    delay_ms = (max_len - 10) * 1000
+    delay_ms = max(0, max_len - 10) * 1000
     text_start = max_len - 6
     text_end = max_len - 1
     filter_chain = (
