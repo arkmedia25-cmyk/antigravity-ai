@@ -1,0 +1,43 @@
+[Unit]
+Description=Neon Pulse v2.1 Telegram Bot (24/7 Listener)
+After=network-online.target
+Wants=network-online.target
+Documentation=file:///home/musa/neonpulse/CLAUDE.md
+
+[Service]
+Type=simple
+User=musa
+Group=musa
+WorkingDirectory=/home/musa/neonpulse
+
+# Start the bot
+ExecStart=/usr/bin/python3 telegram_bot.py
+
+# Restart policy: always, with 10 second delay between restarts
+Restart=always
+RestartSec=10
+StartLimitInterval=1min
+StartLimitBurst=3
+
+# Resource limits
+MemoryLimit=512M
+CPUQuota=50%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=neonpulse-bot
+
+# Security
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/home/musa/neonpulse
+
+# Environment
+Environment="PYTHONUNBUFFERED=1"
+Environment="LOG_LEVEL=INFO"
+EnvironmentFile=/home/musa/neonpulse/.env
+
+[Install]
+WantedBy=multi-user.target

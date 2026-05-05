@@ -1,0 +1,19 @@
+# Neon Pulse v2.1 — Daily YouTube Music Pipeline
+# Türkçe yorum, İngilizce kod
+
+# ================================================================================
+# CRON SCHEDULE: Daily execution at 06:00 (Amsterdam time)
+# ================================================================================
+
+# Daily run: 06:00 AM
+0 6 * * * cd /home/deploy/neonpulse && /usr/bin/python3 main_runner.py >> logs/system.log 2>&1
+
+# Daily log rotation: 01:00 AM
+0 1 * * * cd /home/deploy/neonpulse && python3 -c "from modules.cleanup import OutputCleaner; OutputCleaner().cleanup_cache()" >> logs/system.log 2>&1
+
+# Weekly state backup: Sundays at 02:00 AM
+0 2 * * 0 cd /home/deploy/neonpulse && cp state/state.json state/backups/state.json.backup-$(date +\%Y\%m\%d) && cp state/genres-history.json state/backups/genres-history.json.backup-$(date +\%Y\%m\%d)
+
+# Hourly monitoring: Check system health
+0 * * * * cd /home/deploy/neonpulse && python3 -m modules.preflight_check >> logs/monitor.log 2>&1
+
