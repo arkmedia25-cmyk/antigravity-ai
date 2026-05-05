@@ -34,7 +34,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from dotenv import load_dotenv
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -67,11 +67,44 @@ class TelegramBotHandler:
             logger.error("TELEGRAM_CHAT_ID must be a valid integer")
             self.chat_id = 0
 
+    def get_main_keyboard(self) -> ReplyKeyboardMarkup:
+        """Ana kontrol paneli keyboard'u."""
+        keyboard = [
+            ["🟢 /on", "🔴 /off"],
+            ["▶️ /run_now", "⏹️ /cancel"],
+            ["📊 /status", "📱 /trends"],
+            ["💰 /tokens", "📺 /history"],
+            ["🧪 /test", "🔍 /research"],
+        ]
+        return ReplyKeyboardMarkup(
+            keyboard,
+            resize_keyboard=True,
+            one_time_keyboard=False,
+            selective=False,
+        )
+
+    async def cmd_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Bot başlat ve menüyü göster."""
+        try:
+            keyboard = self.get_main_keyboard()
+            await update.message.reply_text(
+                "🤖 Neon Pulse v2.3 — Kontrol Paneli\n\n"
+                "Komutları seç veya /help yazarak tüm komutları gör.",
+                reply_markup=keyboard,
+            )
+            logger.info("Bot başlatıldı — /start komutu")
+        except Exception as e:
+            await update.message.reply_text(f"❌ Hata: {e}")
+
     async def cmd_on(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Sistemi aç."""
         try:
             self.state_manager.set_system_status("ON")
-            await update.message.reply_text("✅ Sistem açıldı. Cron tetiklenebilir.")
+            keyboard = self.get_main_keyboard()
+            await update.message.reply_text(
+                "✅ Sistem açıldı. Cron tetiklenebilir.",
+                reply_markup=keyboard,
+            )
             logger.info("Sistem ON yapıldı — /on komutu")
         except Exception as e:
             await update.message.reply_text(f"❌ Hata: {e}")
@@ -80,7 +113,11 @@ class TelegramBotHandler:
         """Sistemi kapat."""
         try:
             self.state_manager.set_system_status("OFF")
-            await update.message.reply_text("❌ Sistem kapatıldı. Yeni run başlamayacak.")
+            keyboard = self.get_main_keyboard()
+            await update.message.reply_text(
+                "❌ Sistem kapatıldı. Yeni run başlamayacak.",
+                reply_markup=keyboard,
+            )
             logger.info("Sistem OFF yapıldı — /off komutu")
         except Exception as e:
             await update.message.reply_text(f"❌ Hata: {e}")
@@ -121,7 +158,50 @@ Sistem: {system_status}
 🕒 Zaman: {datetime.now(timezone.utc).isoformat()}
             """.strip()
 
-            await update.message.reply_text(message)
+            keyboard = self.get_main_keyboard()
+            await update.message.reply_text(message, reply_markup=keyboard)
+
+        except Exception as e:
+            await update.message.reply_text(f"❌ Hata: {e}")
+
+    async def cmd_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Tüm komutlar."""
+        try:
+            help_text = """
+🤖 NEON PULSE v2.3 — Komut Rehberi
+
+🎛️ SİSTEM KONTROLü:
+  /on         — Sistemi aç
+  /off        — Sistemi kapat
+  /status     — Sistem durumu
+
+▶️ RUN YÖNETİMİ:
+  /run_now    — Manuel başlat
+  /cancel     — Run'ı iptal et
+  /resume     — Hata sonrası devam et
+  /test       — Mock mode dry-run
+
+📊 ARAŞTIRMA & ANALİZ:
+  /trends     — Son trend raporu
+  /research   — Manuel trend araştırması
+  /history    — Son 10 video
+
+💰 API YÖNETİMİ:
+  /tokens     — Suno API kullanım
+  /skip       — Sıradaki nişi atla
+
+📱 BUTONLAR:
+  Main keyboard'dan komutları seç
+  Video onay → İnline buttons (✅/❌/🔄)
+  Short onay → İnline buttons (✅/❌)
+
+❓ SORULAR:
+  /help       — Bu rehberi göster
+            """.strip()
+
+            keyboard = self.get_main_keyboard()
+            await update.message.reply_text(help_text, reply_markup=keyboard)
+            logger.info("Help gösterildi — /help komutu")
 
         except Exception as e:
             await update.message.reply_text(f"❌ Hata: {e}")
@@ -390,6 +470,8 @@ async def main() -> None:
     handler = TelegramBotHandler()
 
     # Komut handlers
+    app.add_handler(CommandHandler("start", handler.cmd_start))
+    app.add_handler(CommandHandler("help", handler.cmd_help))
     app.add_handler(CommandHandler("on", handler.cmd_on))
     app.add_handler(CommandHandler("off", handler.cmd_off))
     app.add_handler(CommandHandler("status", handler.cmd_status))
