@@ -21,6 +21,19 @@
 
 ---
 
+## ⚠️ CRITICAL: Suno Token Protection (v2.4)
+
+**DO NOT spend Suno tokens locally.** Follow this order:
+
+1. ✅ **VPS SSH Access** — Fix ED25519 key auth
+2. 📤 **Push to GitHub** — Code + .env ready
+3. 🚀 **Deploy to VPS** — Clone, systemd service start
+4. 🧪 **THEN Test Real Suno** — Only on production VPS
+
+**Why:** Mock mode (`python3 main_runner.py --mock`) tests everything without spending tokens. Real Suno calls should run on VPS production setup.
+
+---
+
 ## 🎯 What Works Now (May 9, 2026)
 
 ### ✅ Completed Session (May 8)

@@ -920,14 +920,20 @@ Musa **teknik geliştirici DEĞİLDİR**. Senden:
 - `.crontab` — Daily schedule (06:00 UTC)
 - `neonpulse-bot.service` — Systemd daemon
 
-❌ **BLOKE EDILDI (Session 2026-05-08 Açık):**
+❌ **BLOKE EDILDI (Session 2026-05-09 Açık):**
 - **VPS SSH Key Configuration:** deploy@168.231.107.135 SSH access YOK
   - Lokal ED25519 key var: `~/.ssh/id_ed25519.pub`
   - VPS deploy user'ında authorized_keys yapılandırılmamış
   - GitHub'dan pull/push yapılamıyor
 - **Çözüm bekleniyor:** VPS'ye SSH terminal erişimi (password, IPMI, host panel vb.)
 
-**Status:** Backend ✅, Deployment ⏹️ (SSH yetkilendirmesi gerekli)
+⚠️ **KRİTİK KURALLAR (v2.4 Zorunlu):**
+- **Suno token HARCAMAYACAK** deployment'tan ÖNCE
+- Mock mode'da test ET (main_runner.py --mock)
+- Gerçek API çağrıları SADECE VPS'de, production ortamında yapılır
+- GitHub'a push ET, VPS'ye deploy ET, SONRA Suno test et
+
+**Status:** Backend ✅, Deployment ⏹️ (SSH yetkilendirmesi + Suno token koruma)
 
 ---
 
