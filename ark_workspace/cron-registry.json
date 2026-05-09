@@ -1,0 +1,41 @@
+{
+  "description": "Kaan cron registry — oturum yeniden başladığında CronCreate ile yükle.",
+  "crons": [
+    {
+      "id": "weekly-research",
+      "name": "Pazartesi haftalık araştırma döngüsü",
+      "cron": "0 9 * * 1",
+      "prompt": "Haftalık araştırma döngüsünü başlat: /weekly-cycle skill'ini çalıştır.",
+      "enabled": true
+    },
+    {
+      "id": "daily-production",
+      "name": "Günlük video üretim tetikleyicisi",
+      "cron": "0 18 * * *",
+      "prompt": "Günlük üretimi tetikle: /daily-production skill'ini çalıştır.",
+      "enabled": true
+    },
+    {
+      "id": "keepalive",
+      "name": "Kanal bağlantısı canlı tut",
+      "cron": "*/20 * * * *",
+      "prompt": "Kanal bağlantısının aktif olduğunu kontrol et. Bekleyen mesaj varsa işle.",
+      "enabled": true
+    },
+    {
+      "id": "weekly-memory-save",
+      "name": "Haftalık bağlam özeti kaydet",
+      "cron": "0 23 * * 0",
+      "prompt": "Bu haftanın önemli kararlarını ve tamamlanan görevleri shared/memory/convo_log_kaan.md dosyasına ekle.",
+      "enabled": true
+    },
+    {
+      "id": "daily-theme-research",
+      "name": "Günlük tema araştırması (Burak)",
+      "cron": "0 7 * * *",
+      "prompt": "Burak'ın günlük NL wellness trendleri araştırması. Çalıştır: cd /root/antigravity-ai && python3 src/agents/cmo/theme_researcher.py",
+      "enabled": true,
+      "description": "Her gün 07:00 CET'de çalışır. NL wellness (HolistiGlow) ve beauty (GlowUpNL) trendlerini araştırıp daily_themes_YYYY-MM-DD.json oluşturur. Social planner bunu kullanarak her gün YENI konular yayınlar."
+    }
+  ]
+}

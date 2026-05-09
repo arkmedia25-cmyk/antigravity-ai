@@ -32,7 +32,7 @@ from src.memory.memory_manager import MemoryManager
 from src.skills.uploader_skill import uploader
 from src.skills.dedup_service import dedup_service
 from src.core.logging import get_logger
-from src.scheduler.content_scheduler import start_content_factory, _generate_dynamic_topic
+from src.scheduler.content_scheduler import _generate_dynamic_topic
 from src.core.health_monitor import health_monitor
 from src.core.task_queue import task_queue
 
@@ -224,6 +224,7 @@ class TelegramHandler:
         title = data.get("title", "")
         description = data.get("caption", "")
         tags = data.get("tags", "")
+        topic = data.get("topic", "")
 
         from src.scheduler.content_scheduler import _send_telegram_message
 
@@ -237,7 +238,10 @@ class TelegramHandler:
 
         caption = "\n".join(parts)
         if len(caption) > 1024: caption = caption[:1021] + "..."
-        
+
+        vid_id = f"{int(time.time())}_{brand}"
+        self._save_approval(vid_id, video_path, brand, topic)
+
         reply_markup = {
             "inline_keyboard": [
                 [
@@ -245,12 +249,12 @@ class TelegramHandler:
                     {"text": "✍️ Revise", "callback_data": f"rev_{task_id or '99'}_{brand}"}
                 ],
                 [
-                    {"text": "📸 Instagram", "callback_data": f"pub_{os.path.basename(video_path)}_{brand}_ig"},
-                    {"text": "📱 TikTok", "callback_data": f"pub_{os.path.basename(video_path)}_{brand}_tt"}
+                    {"text": "📸 Instagram", "callback_data": f"pub_ig_{vid_id}"},
+                    {"text": "📱 TikTok", "callback_data": f"pub_tt_{vid_id}"}
                 ]
             ]
         }
-        
+
         _send_telegram_message(chat_id, caption, video_path=video_path, reply_markup=reply_markup)
 
     def _load_approvals(self) -> dict:
@@ -259,6 +263,16 @@ class TelegramHandler:
             return json.load(open(f)) if os.path.exists(f) else {}
         except Exception:
             return {}
+
+    def _save_approval(self, vid_id: str, path: str, brand: str, topic: str = "") -> None:
+        f = os.path.join(_ROOT, ".social_approvals.json")
+        try:
+            approvals = json.load(open(f)) if os.path.exists(f) else {}
+        except Exception:
+            approvals = {}
+        approvals[vid_id] = {"path": path, "brand": brand, "topic": topic}
+        with open(f, "w") as fp:
+            json.dump(approvals, fp)
 
     async def _publish_via_zapier(self, chat_id, vid_id: str, platforms: list[str], context):
         approvals = self._load_approvals()
@@ -357,24 +371,59 @@ class TelegramHandler:
         # ── Publiceren via Zapier ─────────────────────────────────────────────
         elif data.startswith("pub_"):
             # formaat: pub_ig_<id> | pub_tt_<id> | pub_yt_<id> | pub_all_<id>
-            parts  = data.split("_", 2)   # ['pub', 'ig', '<id>']
-            if len(parts) == 3:
-                plat   = parts[1]          # 'ig' | 'tt' | 'yt' | 'all'
+            _VALID_PLATFORMS = {"ig", "tt", "yt", "all"}
+            parts = data.split("_", 2)   # ['pub', 'ig', '<id>']
+            if len(parts) == 3 and parts[1] in _VALID_PLATFORMS:
+                plat   = parts[1]
                 vid_id = parts[2]
                 platforms = list({"ig", "tt", "yt"}) if plat == "all" else [plat]
                 await self._publish_via_zapier(chat_id, vid_id, platforms, context)
             else:
-                # Oud formaat: pub_{filename}_{brand}_{platform}
-                old_parts = data.split("_")
-                path      = os.path.join(_ROOT, "outputs", old_parts[1])
-                platform  = old_parts[-1]
-                await context.bot.send_message(chat_id=chat_id, text="⏳ Video uploaden...")
-                public_url = uploader.upload_file(path)
-                if public_url:
-                    await context.bot.send_message(chat_id=chat_id,
-                        text=f"✅ Geüpload!\n🔗 {public_url}\n\nZapier webhook nog niet geconfigureerd voor oud formaat.")
-                else:
-                    await context.bot.send_message(chat_id=chat_id, text="❌ Upload mislukt!")
+                await context.bot.send_message(chat_id=chat_id, text="❌ Onbekend publish-formaat. Genereer een nieuwe video.")
+
+        # ── Cron Durdur (Stop) ────────────────────────────────────────────────
+        elif data == "stop_cron":
+            try:
+                cron_state_file = os.path.join(_ROOT, "src/agents/cmo/.cron_state.json")
+                state = {
+                    "status": "paused",
+                    "last_change": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "changed_by": "telegram_callback",
+                    "reason": "User paused via Telegram"
+                }
+                os.makedirs(os.path.dirname(cron_state_file), exist_ok=True)
+                with open(cron_state_file, "w") as f:
+                    json.dump(state, f, indent=2)
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text="🛑 *Tüm cron'lar durduruldu*\n\nSocial planner artık çalışmayacak.\n▶️ Başlatmak için 'Tüm cron'u başlat' butonuna tıkla.",
+                    parse_mode="Markdown"
+                )
+                logger.info(f"🛑 Cron PAUSED by {chat_id}")
+            except Exception as e:
+                await context.bot.send_message(chat_id=chat_id, text=f"❌ Hata: {e}")
+
+        # ── Cron Başlat (Start) ───────────────────────────────────────────────
+        elif data == "start_cron":
+            try:
+                cron_state_file = os.path.join(_ROOT, "src/agents/cmo/.cron_state.json")
+                state = {
+                    "status": "running",
+                    "last_change": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "changed_by": "telegram_callback",
+                    "reason": "User resumed via Telegram"
+                }
+                os.makedirs(os.path.dirname(cron_state_file), exist_ok=True)
+                with open(cron_state_file, "w") as f:
+                    json.dump(state, f, indent=2)
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text="▶️ *Tüm cron'lar başlatıldı*\n\nSocial planner çalışmaya başladı.\n🛑 Durdurmak için 'Tüm cron'u durdur' butonuna tıkla.",
+                    parse_mode="Markdown"
+                )
+                logger.info(f"▶️ Cron RUNNING by {chat_id}")
+            except Exception as e:
+                await context.bot.send_message(chat_id=chat_id, text=f"❌ Hata: {e}")
 
     async def _process_revision(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id  = update.effective_chat.id
@@ -429,9 +478,8 @@ def start_telegram_bot():
     application.add_handler(MessageHandler(filters.ALL, handler.handle_message))
     application.add_handler(CallbackQueryHandler(handler.handle_callback))
     
-    # Start scheduler
-    default_chat = os.getenv("TELEGRAM_CHAT_ID", "812914122")
-    start_content_factory(default_chat, bot=application.bot)
+    # Scheduler disabled — CMO agent (src/agents/cmo/social_planner.py) handles scheduled posts via cron
+    # start_content_factory(default_chat, bot=application.bot)
 
     print("Antigravity Agency OS Botu Hazir!")
     application.run_polling(drop_pending_updates=True)

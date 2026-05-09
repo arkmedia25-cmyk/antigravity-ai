@@ -1,0 +1,73 @@
+{
+  "date": "2026-05-09",
+  "holistiglow": [
+    {
+      "topic_key": "magnesium_deep_sleep",
+      "hook": "Slecht slapen? Magnesium is je geheim wapen",
+      "content": [
+        "Magnesium reguleert melatonine productie",
+        "Zeventig procent van Nederlanders heeft een magnesiumtekort",
+        "Zorgt voor diepe slaapfasen en sneller inslapen"
+      ],
+      "pexels_query": "woman sleeping dark bedroom peaceful calm",
+      "trend": "NL wellness trend: sleep optimization 2026"
+    },
+    {
+      "topic_key": "vitamin_d_spring_energy",
+      "hook": "Voelt lente je niet aan? Vitamine D tekort!",
+      "content": [
+        "Vitamine D reguleert serotoninproductie",
+        "Ondersteunt bot- en immuunsterkte in het voorjaar",
+        "Vijftien tot dertig minuten zon dagelijks helpt"
+      ],
+      "pexels_query": "woman sunlight spring nature outdoor bright",
+      "trend": "Seasonale vitamine D deficiency awareness"
+    },
+    {
+      "topic_key": "collagen_skin_elasticity",
+      "hook": "Hoe voelt je huid zich vanbinnen?",
+      "content": [
+        "Collageen peptide absorbeert negentig procent efficiënter",
+        "Steunt huid elasticiteit en vochtbinding van binnenuit",
+        "Zichtbare verbetering in acht tot twaalf weken"
+      ],
+      "pexels_query": "woman smooth glowing skin beauty health natural",
+      "trend": "Collagen supplementation trend NL"
+    }
+  ],
+  "glowup": [
+    {
+      "topic_key": "retinol_beginner_guide",
+      "hook": "Retinol zonder irritatie? Dat kan!",
+      "content": [
+        "Begin met lage concentratie nul komma twee vijf procent",
+        "Drie keer per week op schone, droge huid toepassen",
+        "Zichtbare rimpelvermindering en textuur verbetering in twaalf weken"
+      ],
+      "pexels_query": "woman skincare routine beauty face skin care",
+      "trend": "Retinol for beginners trend 2026"
+    },
+    {
+      "topic_key": "sunscreen_daily_habit",
+      "hook": "SPF vijftig plus is niet optioneel, het is nodig",
+      "content": [
+        "UV straling veroorzaakt tachtig procent van huidveroudering",
+        "Minerale SPF beter voor gevoelige en reactieve huid",
+        "Opnieuw aanbrengen om de twee uur onder zon"
+      ],
+      "pexels_query": "woman sunscreen protection uv sun beach outdoors",
+      "trend": "Daily sun protection as skincare foundation"
+    },
+    {
+      "topic_key": "hyaluronic_hydration_base",
+      "hook": "Je huid dorst naar hyaluronzuur",
+      "content": [
+        "Hyaluronzuur bindt duizendmaal zijn gewicht in water",
+        "Feuchtigheid is de basis voor alle skin goals",
+        "Toepassen na toner, voor oils en crèmes voor maksimale absorptie"
+      ],
+      "pexels_query": "woman hydrated glowing skin beauty moisture fresh",
+      "trend": "Hydration-first skincare routine philosophy"
+    }
+  ]
+}

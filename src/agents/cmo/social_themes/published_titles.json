@@ -1,0 +1,30 @@
+{
+  "holistiglow": [
+    {
+      "date": "2026-05-08",
+      "topic_key": "magnesium",
+      "hook": "Slecht slapen?",
+      "full_title": "Slecht slapen? Magnesium tekort speelt mee!"
+    },
+    {
+      "date": "2026-05-08",
+      "topic_key": "collageen_supplement",
+      "hook": "Hoe voelt je huid zich vanbinnen?",
+      "full_title": "Hoe voelt je huid zich vanbinnen?"
+    }
+  ],
+  "glowup": [
+    {
+      "date": "2026-05-08",
+      "topic_key": "skincare_ochtend",
+      "hook": "Geglazuurde huid?",
+      "full_title": "Geglazuurde huid? Start met de juiste routine"
+    },
+    {
+      "date": "2026-05-08",
+      "topic_key": "lippenverzorging",
+      "hook": "Geglazuurde huid?",
+      "full_title": "Geglazuurde huid? Start met de juiste routine"
+    }
+  ]
+}

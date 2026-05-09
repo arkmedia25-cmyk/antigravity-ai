@@ -310,9 +310,54 @@ def build_reel(sections: list, bg_video: Path, output: Path) -> bool:
         return False
     return True
 
-# ── Per-merk topic queues ─────────────────────────────────────────────────────
+# ── Per-merk topic queues (dinamik JSON'dan) ─────────────────────────────────
+
+def load_daily_themes() -> dict:
+    """Günlük tema JSON'ını yükle, fallback: TOPIC_QUEUE."""
+    today = datetime.now().strftime("%Y-%m-%d")
+    themes_dir = _DIR / "social_themes"
+    themes_file = themes_dir / f"daily_themes_{today}.json"
+
+    if themes_file.exists():
+        try:
+            return json.loads(themes_file.read_text(encoding="utf-8"))
+        except Exception as e:
+            print(f"  ⚠ Tema JSON yüklenmedi: {e}")
+    return None
+
 
 def get_next_topic(brand: str) -> str:
+    """JSON'dan dinamik tema, yoksa TOPIC_QUEUE'dan fallback."""
+
+    # Önce JSON'dan dene
+    themes_data = load_daily_themes()
+    if themes_data and brand in themes_data:
+        brand_themes = themes_data[brand]
+        if brand_themes:
+            # Bugün zaten yayınlanan konuyu takip et
+            today = datetime.now().strftime("%Y-%m-%d")
+            try:
+                state = json.loads(STYLE_STATE.read_text()) if STYLE_STATE.exists() else {}
+            except Exception:
+                state = {}
+
+            if state.get("today_date") != today:
+                state["today_date"] = today
+                state["today_runs"] = {}
+
+            today_runs = state.get("today_runs", {})
+            brand_run_count = len([v for k, v in today_runs.items() if k.startswith(brand)])
+
+            # Sonraki tema
+            if brand_run_count < len(brand_themes):
+                theme = brand_themes[brand_run_count]
+                topic_key = theme.get("topic_key", "default")
+                today_runs[f"{brand}_{brand_run_count}"] = topic_key
+                state["today_runs"] = today_runs
+                STYLE_STATE.write_text(json.dumps(state))
+                return topic_key
+
+    # Fallback: TOPIC_QUEUE statik
     topics = load_brand_config(brand).TOPIC_QUEUE
     today = datetime.now().strftime("%Y-%m-%d")
     try:
@@ -327,7 +372,7 @@ def get_next_topic(brand: str) -> str:
     today_runs: dict = state.get("today_runs", {})
     already_today = set(today_runs.values())
     idx = state.get(f"topic_idx_{brand}", -1)
-    candidate = topics[(idx + 1) % len(topics)]  # default: next in queue
+    candidate = topics[(idx + 1) % len(topics)]
 
     for _ in range(len(topics)):
         idx = (idx + 1) % len(topics)
@@ -340,6 +385,16 @@ def get_next_topic(brand: str) -> str:
     state["today_runs"] = today_runs
     STYLE_STATE.write_text(json.dumps(state))
     return candidate
+
+
+def get_topic_metadata(brand: str, topic_key: str) -> dict:
+    """JSON'dan topic metadata'sı (hook, content, pexels_query, vb.)."""
+    themes_data = load_daily_themes()
+    if themes_data and brand in themes_data:
+        for theme in themes_data[brand]:
+            if theme.get("topic_key") == topic_key:
+                return theme
+    return {}
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -369,10 +424,21 @@ def run(topic_key: str | None = None, title: str | None = None,
         style = get_next_style(brand)
     print(f"  Stijl vandaag : {style['name']}  |  Stem: {brand_voice}")
 
+    # JSON'dan metadata al (hook, content, pexels_query, vb.)
+    metadata = get_topic_metadata(brand, topic_key)
+
+    # Fallback: DEMO_SCRIPTS'ten script al
     scripts = brand_cfg.DEMO_SCRIPTS
     script  = scripts.get(topic_key) or scripts.get(
         brand_cfg.TOPIC_QUEUE[0], list(scripts.values())[0]
     )
+
+    # JSON metadata'sı mevcut ise pexels_query'ı override et
+    if metadata and metadata.get("pexels_query"):
+        script = dict(script)
+        script["pexels_query"] = metadata["pexels_query"]
+        print(f"  Pexels query (JSON): {metadata.get('pexels_query')}")
+
     if title:
         # Pas pexels query aan op basis van meegegeven titel
         script = dict(script)

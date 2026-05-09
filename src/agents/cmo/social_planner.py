@@ -31,6 +31,9 @@ sys.path.insert(0, str(_ROOT))
 from dotenv import load_dotenv
 load_dotenv(_ROOT / ".env")
 
+# Cron state kontrol
+CRON_STATE_FILE = _DIR / ".cron_state.json"
+
 TELEGRAM_TOKEN   = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "812914122")
 
@@ -58,6 +61,27 @@ def _save_approvals(data: dict):
 
 def _new_id() -> str:
     return str(int(time.time()))[-6:]
+
+
+def check_cron_status() -> bool:
+    """Cron aktif mi kontrol et. Paused ise False dön."""
+    try:
+        state = json.loads(CRON_STATE_FILE.read_text()) if CRON_STATE_FILE.exists() else {"status": "running"}
+        return state.get("status") == "running"
+    except Exception:
+        return True  # Default: running
+
+
+def set_cron_status(status: str, reason: str = ""):
+    """Cron status'ü güncelle (running/paused)."""
+    state = {
+        "status": status,
+        "last_change": datetime.now().isoformat(),
+        "changed_by": "telegram_callback",
+        "reason": reason
+    }
+    CRON_STATE_FILE.write_text(json.dumps(state, indent=2))
+    print(f"[{datetime.now()}] Cron status: {status} ({reason})")
 
 
 def _send_telegram(chat_id: str, text: str, video_path: str | None = None,
@@ -121,6 +145,10 @@ def notify_approval(brand: str, video_path: str, topic: str, style: str, meta: d
                 {"text": "▶️ YouTube",       "callback_data": f"pub_yt_{vid_id}"},
                 {"text": "🌐 Alle platforms","callback_data": f"pub_all_{vid_id}"},
             ],
+            [
+                {"text": "🛑 Tüm cron'u durdur", "callback_data": "stop_cron"},
+                {"text": "▶️ Tüm cron'u başlat", "callback_data": "start_cron"},
+            ],
         ]
     }
 
@@ -129,6 +157,11 @@ def notify_approval(brand: str, video_path: str, topic: str, style: str, meta: d
 
 
 def run(brand: str = "holistiglow"):
+    # Cron status kontrol — paused ise çık
+    if not check_cron_status():
+        print(f"[{datetime.now()}] ⏸️ CRON PAUSED — social_planner çalışmadı")
+        sys.exit(0)
+
     print(f"\n[{datetime.now()}] Social Planner — {brand}")
 
     from src.agents.cmo.reel_maker import run as make_reel, get_next_topic
